@@ -46,6 +46,7 @@ public SecurityFilterChain securityFilterChain(HttpSecurity http) throws Excepti
 
     http
             .csrf(csrf -> csrf
+                    .ignoringRequestMatchers("/api/auth/login", "/api/auth/register", "/api/auth/logout")
                     .ignoringRequestMatchers(request -> {
                         String auth = request.getHeader("Authorization");
                         return auth != null && auth.startsWith("Bearer ");
