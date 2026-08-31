@@ -11,9 +11,9 @@ import {
 import { Header } from '../components/Header';
 import { MetricCard } from '../components/MetricCard';
 import { ReceiptModal } from '../components/ReceiptModal';
-import { dashboardApi } from '../services/shopApi';
+import { dashboardApi, salesApi } from '../services/shopApi';
 import { colors } from '../theme/colors';
-import { DashboardSummary, Sale } from '../types';
+import { DashboardSummary, SaleResponse, SaleSummaryResponse } from '../types';
 import { TabScreen } from '../components/BottomTabBar';
 import {
   IndianRupee,
@@ -25,6 +25,8 @@ import {
   Package,
   Receipt,
   ArrowRight,
+  TrendingDown,
+  BarChart2,
 } from 'lucide-react-native';
 
 interface DashboardScreenProps {
@@ -35,7 +37,8 @@ export const DashboardScreen: React.FC<DashboardScreenProps> = ({ onNavigateTab 
   const [summary, setSummary] = useState<DashboardSummary | null>(null);
   const [loading, setLoading] = useState<boolean>(true);
   const [refreshing, setRefreshing] = useState<boolean>(false);
-  const [selectedSale, setSelectedSale] = useState<Sale | null>(null);
+  const [selectedSale, setSelectedSale] = useState<SaleResponse | null>(null);
+  const [loadingReceipt, setLoadingReceipt] = useState<boolean>(false);
 
   const loadDashboard = async () => {
     try {
@@ -58,6 +61,32 @@ export const DashboardScreen: React.FC<DashboardScreenProps> = ({ onNavigateTab 
     loadDashboard();
   };
 
+  const handleOpenReceipt = async (saleSummary: SaleSummaryResponse) => {
+    setLoadingReceipt(true);
+    try {
+      const fullSale = await salesApi.get(saleSummary.id);
+      setSelectedSale(fullSale);
+    } catch {
+      // Fallback construct from summary
+      setSelectedSale({
+        id: saleSummary.id,
+        totalAmount: saleSummary.totalAmount,
+        createdAt: saleSummary.createdAt,
+        items: (saleSummary.items || []).map((name) => ({
+          productId: 0,
+          productName: name,
+          unit: 'PIECE',
+          quantity: 1,
+          unitPrice: saleSummary.totalAmount,
+          purchasePrice: 0,
+          lineTotal: saleSummary.totalAmount,
+        })),
+      });
+    } finally {
+      setLoadingReceipt(false);
+    }
+  };
+
   if (loading && !summary) {
     return (
       <View style={styles.centerContainer}>
@@ -67,12 +96,16 @@ export const DashboardScreen: React.FC<DashboardScreenProps> = ({ onNavigateTab 
     );
   }
 
-  const todayRev = summary?.todayRevenue || 0;
-  const todayProfit = summary?.todayProfit || 0;
-  const todaySales = summary?.todaySaleCount || 0;
+  const todayRev = typeof summary?.revenueToday === 'number' ? summary.revenueToday : parseFloat(String(summary?.revenueToday || 0));
+  const todayProfit = typeof summary?.profitToday === 'number' ? summary.profitToday : parseFloat(String(summary?.profitToday || 0));
+  const todaySales = summary?.salesToday || 0;
   const lowStock = summary?.lowStockCount || 0;
   const outOfStock = summary?.outOfStockCount || 0;
   const attentionCount = lowStock + outOfStock;
+
+  // Chart max value calculation
+  const dailyPoints = summary?.dailyRevenue || [];
+  const maxRev = Math.max(...dailyPoints.map((d) => (typeof d.total === 'number' ? d.total : parseFloat(String(d.total || 0)))), 100);
 
   return (
     <View style={styles.container}>
@@ -164,7 +197,7 @@ export const DashboardScreen: React.FC<DashboardScreenProps> = ({ onNavigateTab 
 
         <View style={[styles.metricsGrid, { marginTop: 10 }]}>
           <MetricCard
-            label="Total Sales"
+            label="Total Bills"
             value={todaySales}
             subtitle="Completed today"
             icon={<ShoppingCart size={18} color={colors.accent} />}
@@ -174,11 +207,49 @@ export const DashboardScreen: React.FC<DashboardScreenProps> = ({ onNavigateTab 
           <MetricCard
             label="Stock Alerts"
             value={attentionCount}
-            subtitle={outOfStock > 0 ? `${outOfStock} out of stock` : 'Items need restock'}
+            subtitle={outOfStock > 0 ? `${outOfStock} out of stock` : `${summary?.totalProducts || 0} active items`}
             icon={<AlertTriangle size={18} color={attentionCount > 0 ? colors.danger : colors.textMuted} />}
             variant={attentionCount > 0 ? 'danger' : 'primary'}
           />
         </View>
+
+        {/* 7-Day Revenue Trend Chart */}
+        {dailyPoints.length > 0 && (
+          <View style={styles.chartCard}>
+            <View style={styles.chartHeader}>
+              <View style={styles.chartTitleRow}>
+                <BarChart2 size={18} color={colors.primary} />
+                <Text style={styles.chartTitle}>7-Day Revenue Trend</Text>
+              </View>
+            </View>
+
+            <View style={styles.barChartContainer}>
+              {dailyPoints.map((point, index) => {
+                const total = typeof point.total === 'number' ? point.total : parseFloat(String(point.total || 0));
+                const heightPct = Math.max((total / maxRev) * 100, 8);
+                const dayLabel = new Date(point.date).toLocaleDateString('en-US', { weekday: 'narrow' });
+
+                return (
+                  <View key={index} style={styles.barColumn}>
+                    <Text style={styles.barAmountText}>
+                      {total > 0 ? `₹${Math.round(total)}` : ''}
+                    </Text>
+                    <View style={styles.barTrack}>
+                      <View
+                        style={[
+                          styles.barFill,
+                          { height: `${heightPct}%` },
+                          total > 0 ? styles.barFillActive : styles.barFillInactive,
+                        ]}
+                      />
+                    </View>
+                    <Text style={styles.barDayLabel}>{dayLabel}</Text>
+                  </View>
+                );
+              })}
+            </View>
+          </View>
+        )}
 
         {/* Recent Sales Section */}
         <View style={styles.sectionHeader}>
@@ -190,32 +261,35 @@ export const DashboardScreen: React.FC<DashboardScreenProps> = ({ onNavigateTab 
 
         {summary?.recentSales && summary.recentSales.length > 0 ? (
           <View style={styles.salesList}>
-            {summary.recentSales.slice(0, 5).map((sale) => (
-              <TouchableOpacity
-                key={sale.id}
-                style={styles.saleItem}
-                onPress={() => setSelectedSale(sale)}
-                activeOpacity={0.7}
-              >
-                <View style={styles.saleLeft}>
-                  <View style={styles.receiptIconBox}>
-                    <Receipt size={18} color={colors.primary} />
+            {summary.recentSales.slice(0, 5).map((sale) => {
+              const total = typeof sale.totalAmount === 'number' ? sale.totalAmount : parseFloat(String(sale.totalAmount || 0));
+              return (
+                <TouchableOpacity
+                  key={sale.id}
+                  style={styles.saleItem}
+                  onPress={() => handleOpenReceipt(sale)}
+                  activeOpacity={0.7}
+                >
+                  <View style={styles.saleLeft}>
+                    <View style={styles.receiptIconBox}>
+                      <Receipt size={18} color={colors.primary} />
+                    </View>
+                    <View>
+                      <Text style={styles.saleNumber}>Invoice #{sale.id}</Text>
+                      <Text style={styles.saleTime}>
+                        {new Date(sale.createdAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })} •{' '}
+                        {sale.itemCount || (sale.items ? sale.items.length : 1)} items
+                      </Text>
+                    </View>
                   </View>
-                  <View>
-                    <Text style={styles.saleNumber}>#{sale.saleNumber}</Text>
-                    <Text style={styles.saleTime}>
-                      {new Date(sale.createdAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })} •{' '}
-                      {sale.items?.length || 1} items
-                    </Text>
-                  </View>
-                </View>
 
-                <View style={styles.saleRight}>
-                  <Text style={styles.saleAmount}>₹{sale.totalAmount.toFixed(2)}</Text>
-                  <Text style={styles.saleProfit}>+₹{sale.profitAmount?.toFixed(2) || '0.00'}</Text>
-                </View>
-              </TouchableOpacity>
-            ))}
+                  <View style={styles.saleRight}>
+                    <Text style={styles.saleAmount}>₹{total.toFixed(2)}</Text>
+                    <Text style={styles.tapReceiptText}>View Receipt →</Text>
+                  </View>
+                </TouchableOpacity>
+              );
+            })}
           </View>
         ) : (
           <View style={styles.emptyCard}>
@@ -254,7 +328,7 @@ const styles = StyleSheet.create({
   },
   scrollBody: {
     padding: 16,
-    paddingBottom: 30,
+    paddingBottom: 40,
   },
   quickBar: {
     marginBottom: 16,
@@ -370,6 +444,73 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     gap: 10,
   },
+  chartCard: {
+    backgroundColor: colors.surface,
+    borderRadius: 16,
+    borderWidth: 1,
+    borderColor: colors.border,
+    padding: 16,
+    marginTop: 14,
+  },
+  chartHeader: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    marginBottom: 12,
+  },
+  chartTitleRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
+  },
+  chartTitle: {
+    fontSize: 14,
+    fontWeight: '800',
+    color: colors.text,
+  },
+  barChartContainer: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'flex-end',
+    height: 120,
+    paddingTop: 14,
+  },
+  barColumn: {
+    flex: 1,
+    alignItems: 'center',
+    height: '100%',
+    justifyContent: 'flex-end',
+  },
+  barAmountText: {
+    fontSize: 9,
+    fontWeight: '700',
+    color: colors.textMuted,
+    marginBottom: 4,
+  },
+  barTrack: {
+    width: 22,
+    height: 80,
+    backgroundColor: colors.bg,
+    borderRadius: 6,
+    justifyContent: 'flex-end',
+    overflow: 'hidden',
+  },
+  barFill: {
+    width: '100%',
+    borderRadius: 6,
+  },
+  barFillActive: {
+    backgroundColor: colors.primary,
+  },
+  barFillInactive: {
+    backgroundColor: colors.border,
+  },
+  barDayLabel: {
+    fontSize: 11,
+    fontWeight: '700',
+    color: colors.textMuted,
+    marginTop: 6,
+  },
   salesList: {
     backgroundColor: colors.surface,
     borderRadius: 16,
@@ -416,10 +557,10 @@ const styles = StyleSheet.create({
     fontWeight: '800',
     color: colors.text,
   },
-  saleProfit: {
+  tapReceiptText: {
     fontSize: 11,
     fontWeight: '700',
-    color: colors.success,
+    color: colors.primary,
     marginTop: 1,
   },
   emptyCard: {

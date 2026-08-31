@@ -4,7 +4,6 @@ import {
   Alert,
   FlatList,
   Modal,
-  ScrollView,
   StyleSheet,
   Text,
   TextInput,
@@ -14,11 +13,10 @@ import {
 import { BarcodeScannerModal } from '../components/BarcodeScannerModal';
 import { Header } from '../components/Header';
 import { ReceiptModal } from '../components/ReceiptModal';
-import { StockBadge } from '../components/StockBadge';
 import { useCart } from '../context/CartContext';
 import { productsApi, salesApi } from '../services/shopApi';
 import { colors } from '../theme/colors';
-import { Product, Sale } from '../types';
+import { Product, SaleResponse } from '../types';
 import * as Haptics from 'expo-haptics';
 import {
   Camera,
@@ -43,10 +41,9 @@ export const PosScreen: React.FC = () => {
   const [scannerOpen, setScannerOpen] = useState<boolean>(false);
   const [checkoutModalOpen, setCheckoutModalOpen] = useState<boolean>(false);
   const [paymentMethod, setPaymentMethod] = useState<'CASH' | 'UPI' | 'CARD'>('CASH');
-  const [customerName, setCustomerName] = useState<string>('');
   const [customerPhone, setCustomerPhone] = useState<string>('');
   const [submitting, setSubmitting] = useState<boolean>(false);
-  const [completedSale, setCompletedSale] = useState<Sale | null>(null);
+  const [completedSale, setCompletedSale] = useState<SaleResponse | null>(null);
 
   useEffect(() => {
     loadProducts();
@@ -69,14 +66,18 @@ export const PosScreen: React.FC = () => {
     );
 
     if (matched) {
+      const available = matched.currentQuantity !== undefined ? matched.currentQuantity : 9999;
       const added = addItem(matched, 1);
       if (!added) {
-        Alert.alert('Stock Limit Reached', `Cannot add more "${matched.name}". Maximum available stock is ${matched.quantity}.`);
+        Alert.alert(
+          'Stock Limit Reached',
+          `Cannot add more "${matched.name}". Maximum available stock is ${available}.`
+        );
       }
     } else {
       Alert.alert(
         'Product Not Found',
-        `No active product found with Barcode/SKU: ${scannedCode}. Would you like to add it?`
+        `No active product found with Barcode/SKU: ${scannedCode}. Please check your inventory.`
       );
     }
   };
@@ -100,11 +101,7 @@ export const PosScreen: React.FC = () => {
         items: items.map((i) => ({
           productId: i.product.id,
           quantity: i.quantity,
-          unitPrice: i.unitPrice,
         })),
-        paymentMethod,
-        customerName: customerName.trim() || undefined,
-        customerPhone: customerPhone.trim() || undefined,
       };
 
       const result = await salesApi.create(salePayload);
@@ -115,9 +112,9 @@ export const PosScreen: React.FC = () => {
       setCheckoutModalOpen(false);
       clearCart();
       setCompletedSale(result);
-      loadProducts(); // Refresh stock counts in background
+      loadProducts();
     } catch (err: any) {
-      Alert.alert('Sale Failed', err.message || 'Unable to record sale. Please verify stock levels.');
+      Alert.alert('Sale Failed', err.message || 'Unable to complete sale. Please verify stock availability.');
     } finally {
       setSubmitting(false);
     }
@@ -176,7 +173,7 @@ export const PosScreen: React.FC = () => {
                   <View style={{ flex: 1 }}>
                     <Text style={styles.searchItemName}>{item.name}</Text>
                     <Text style={styles.searchItemSku}>
-                      SKU: {item.sku || 'N/A'} • Stock: {item.quantity}
+                      SKU: {item.sku || 'N/A'} • Stock: {item.currentQuantity}
                     </Text>
                   </View>
                   <View style={{ alignItems: 'flex-end' }}>
@@ -208,52 +205,55 @@ export const PosScreen: React.FC = () => {
             data={items}
             keyExtractor={(item) => item.product.id.toString()}
             contentContainerStyle={styles.cartList}
-            renderItem={({ item }) => (
-              <View style={styles.cartCard}>
-                <View style={styles.cartCardLeft}>
-                  <Text style={styles.cartItemName} numberOfLines={1}>
-                    {item.product.name}
+            renderItem={({ item }) => {
+              const maxQty = item.product.currentQuantity !== undefined ? item.product.currentQuantity : 9999;
+              return (
+                <View style={styles.cartCard}>
+                  <View style={styles.cartCardLeft}>
+                    <Text style={styles.cartItemName} numberOfLines={1}>
+                      {item.product.name}
+                    </Text>
+                    <Text style={styles.cartItemUnit}>
+                      ₹{item.unitPrice.toFixed(2)} / {item.product.unit || 'unit'} • Stock: {item.product.currentQuantity}
+                    </Text>
+                  </View>
+
+                  {/* Quantity Controls */}
+                  <View style={styles.qtyRow}>
+                    <TouchableOpacity
+                      style={styles.qtyBtn}
+                      onPress={() => updateQuantity(item.product.id, item.quantity - 1)}
+                    >
+                      <Minus size={14} color={colors.text} />
+                    </TouchableOpacity>
+
+                    <Text style={styles.qtyText}>{item.quantity}</Text>
+
+                    <TouchableOpacity
+                      style={styles.qtyBtn}
+                      onPress={() => updateQuantity(item.product.id, item.quantity + 1)}
+                      disabled={item.quantity >= maxQty}
+                    >
+                      <Plus
+                        size={14}
+                        color={item.quantity >= maxQty ? colors.textLight : colors.text}
+                      />
+                    </TouchableOpacity>
+                  </View>
+
+                  <Text style={styles.cartItemTotal}>
+                    ₹{(item.quantity * item.unitPrice).toFixed(2)}
                   </Text>
-                  <Text style={styles.cartItemUnit}>
-                    ₹{item.unitPrice.toFixed(2)} / unit • Stock: {item.product.quantity}
-                  </Text>
-                </View>
-
-                {/* Quantity Controls */}
-                <View style={styles.qtyRow}>
-                  <TouchableOpacity
-                    style={styles.qtyBtn}
-                    onPress={() => updateQuantity(item.product.id, item.quantity - 1)}
-                  >
-                    <Minus size={14} color={colors.text} />
-                  </TouchableOpacity>
-
-                  <Text style={styles.qtyText}>{item.quantity}</Text>
 
                   <TouchableOpacity
-                    style={styles.qtyBtn}
-                    onPress={() => updateQuantity(item.product.id, item.quantity + 1)}
-                    disabled={item.quantity >= item.product.quantity}
+                    style={styles.trashBtn}
+                    onPress={() => removeItem(item.product.id)}
                   >
-                    <Plus
-                      size={14}
-                      color={item.quantity >= item.product.quantity ? colors.textLight : colors.text}
-                    />
+                    <Trash2 size={16} color={colors.danger} />
                   </TouchableOpacity>
                 </View>
-
-                <Text style={styles.cartItemTotal}>
-                  ₹{(item.quantity * item.unitPrice).toFixed(2)}
-                </Text>
-
-                <TouchableOpacity
-                  style={styles.trashBtn}
-                  onPress={() => removeItem(item.product.id)}
-                >
-                  <Trash2 size={16} color={colors.danger} />
-                </TouchableOpacity>
-              </View>
-            )}
+              );
+            }}
           />
         ) : (
           <View style={styles.emptyCartBox}>
@@ -382,7 +382,12 @@ export const PosScreen: React.FC = () => {
       <ReceiptModal
         visible={!!completedSale}
         sale={completedSale}
-        onClose={() => setCompletedSale(null)}
+        customerPhone={customerPhone}
+        paymentMethod={paymentMethod}
+        onClose={() => {
+          setCompletedSale(null);
+          setCustomerPhone('');
+        }}
       />
     </View>
   );

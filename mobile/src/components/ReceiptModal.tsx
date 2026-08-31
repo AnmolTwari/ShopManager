@@ -11,14 +11,16 @@ import {
 import * as Print from 'expo-print';
 import * as Sharing from 'expo-sharing';
 import * as Haptics from 'expo-haptics';
-import { Sale } from '../types';
+import { SaleResponse } from '../types';
 import { colors } from '../theme/colors';
-import { X, Share2, Printer, CheckCircle, MessageSquare } from 'lucide-react-native';
+import { CheckCircle, Printer, MessageSquare } from 'lucide-react-native';
 
 interface ReceiptModalProps {
   visible: boolean;
-  sale: Sale | null;
+  sale: SaleResponse | null;
   shopName?: string;
+  customerPhone?: string;
+  paymentMethod?: string;
   onClose: () => void;
 }
 
@@ -26,11 +28,13 @@ export const ReceiptModal: React.FC<ReceiptModalProps> = ({
   visible,
   sale,
   shopName = 'ShopManager Store',
+  customerPhone,
+  paymentMethod = 'CASH',
   onClose,
 }) => {
   if (!sale) return null;
 
-  const formattedDate = new Date(sale.createdAt).toLocaleString('en-IN', {
+  const formattedDate = new Date(sale.createdAt || Date.now()).toLocaleString('en-IN', {
     day: '2-digit',
     month: 'short',
     year: 'numeric',
@@ -38,19 +42,33 @@ export const ReceiptModal: React.FC<ReceiptModalProps> = ({
     minute: '2-digit',
   });
 
+  const totalAmount = typeof sale.totalAmount === 'number' ? sale.totalAmount : parseFloat(sale.totalAmount) || 0;
+
+  const items = sale.items || [];
+  const calculatedProfit = items.reduce((acc, item) => {
+    const qty = typeof item.quantity === 'number' ? item.quantity : parseFloat(String(item.quantity)) || 0;
+    const sell = typeof item.unitPrice === 'number' ? item.unitPrice : parseFloat(String(item.unitPrice)) || 0;
+    const buy = typeof item.purchasePrice === 'number' ? item.purchasePrice : parseFloat(String(item.purchasePrice)) || 0;
+    return acc + qty * (sell - buy);
+  }, 0);
+
   const handleWhatsAppShare = async () => {
     try {
       Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
-      const itemsList = sale.items
-        .map((i, idx) => `${idx + 1}. *${i.productName}* x${i.quantity} = ₹${i.totalPrice.toFixed(2)}`)
+      const itemsList = items
+        .map((i, idx) => {
+          const qty = typeof i.quantity === 'number' ? i.quantity : parseFloat(String(i.quantity)) || 0;
+          const total = typeof i.lineTotal === 'number' ? i.lineTotal : parseFloat(String(i.lineTotal)) || 0;
+          return `${idx + 1}. *${i.productName}* x${qty} = ₹${total.toFixed(2)}`;
+        })
         .join('\n');
 
-      const message = `🧾 *INVOICE: ${sale.saleNumber}*\n🏬 *${shopName}*\n📅 ${formattedDate}\n\n*Items:*\n${itemsList}\n\n-------------------------\n💰 *TOTAL AMOUNT: ₹${sale.totalAmount.toFixed(2)}*\n💳 Payment Mode: ${sale.paymentMethod || 'CASH'}\n-------------------------\nThank you for shopping with us! 🙏`;
+      const message = `🧾 *INVOICE #${sale.id}*\n🏬 *${shopName}*\n📅 ${formattedDate}\n\n*Items:*\n${itemsList}\n\n-------------------------\n💰 *TOTAL AMOUNT: ₹${totalAmount.toFixed(2)}*\n💳 Payment Mode: ${paymentMethod}\n-------------------------\nThank you for shopping with us! 🙏`;
 
       const encoded = encodeURI(message);
       let url = `whatsapp://send?text=${encoded}`;
-      if (sale.customerPhone) {
-        const cleanPhone = sale.customerPhone.replace(/[^0-9]/g, '');
+      if (customerPhone && customerPhone.trim()) {
+        const cleanPhone = customerPhone.replace(/[^0-9]/g, '');
         url = `whatsapp://send?phone=${cleanPhone}&text=${encoded}`;
       }
 
@@ -58,7 +76,6 @@ export const ReceiptModal: React.FC<ReceiptModalProps> = ({
       if (canOpen) {
         await Linking.openURL(url);
       } else {
-        // Fallback to web WhatsApp or standard share
         await Linking.openURL(`https://api.whatsapp.com/send?text=${encoded}`);
       }
     } catch (e) {
@@ -74,7 +91,7 @@ export const ReceiptModal: React.FC<ReceiptModalProps> = ({
         <!DOCTYPE html>
         <html>
         <head>
-          <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, minimum-scale=1.0, user-scalable=no" />
+          <meta name="viewport" content="width=device-width, initial-scale=1.0" />
           <style>
             body { font-family: 'Courier New', Courier, monospace; padding: 20px; font-size: 12px; color: #111; }
             .center { text-align: center; }
@@ -92,7 +109,7 @@ export const ReceiptModal: React.FC<ReceiptModalProps> = ({
         <body>
           <div class="center header">
             <div class="title">${shopName}</div>
-            <div>Invoice #${sale.saleNumber}</div>
+            <div>Invoice #${sale.id}</div>
             <div>${formattedDate}</div>
           </div>
           <div class="divider"></div>
@@ -106,17 +123,20 @@ export const ReceiptModal: React.FC<ReceiptModalProps> = ({
               </tr>
             </thead>
             <tbody>
-              ${sale.items
-                .map(
-                  (i) => `
-                <tr>
-                  <td>${i.productName}</td>
-                  <td class="right">${i.quantity}</td>
-                  <td class="right">₹${i.unitPrice.toFixed(2)}</td>
-                  <td class="right">₹${i.totalPrice.toFixed(2)}</td>
-                </tr>
-              `
-                )
+              ${items
+                .map((i) => {
+                  const qty = typeof i.quantity === 'number' ? i.quantity : parseFloat(String(i.quantity)) || 0;
+                  const rate = typeof i.unitPrice === 'number' ? i.unitPrice : parseFloat(String(i.unitPrice)) || 0;
+                  const total = typeof i.lineTotal === 'number' ? i.lineTotal : parseFloat(String(i.lineTotal)) || 0;
+                  return `
+                    <tr>
+                      <td>${i.productName}</td>
+                      <td class="right">${qty}</td>
+                      <td class="right">₹${rate.toFixed(2)}</td>
+                      <td class="right">₹${total.toFixed(2)}</td>
+                    </tr>
+                  `;
+                })
                 .join('')}
             </tbody>
           </table>
@@ -124,11 +144,11 @@ export const ReceiptModal: React.FC<ReceiptModalProps> = ({
           <table>
             <tr class="total-row">
               <td>Grand Total:</td>
-              <td class="right">₹${sale.totalAmount.toFixed(2)}</td>
+              <td class="right">₹${totalAmount.toFixed(2)}</td>
             </tr>
             <tr>
               <td>Payment:</td>
-              <td class="right">${sale.paymentMethod || 'CASH'}</td>
+              <td class="right">${paymentMethod}</td>
             </tr>
           </table>
           <div class="divider"></div>
@@ -156,7 +176,7 @@ export const ReceiptModal: React.FC<ReceiptModalProps> = ({
           <View style={styles.successHeader}>
             <CheckCircle size={32} color={colors.success} />
             <Text style={styles.successTitle}>Sale Recorded Successfully!</Text>
-            <Text style={styles.invoiceNumber}>Invoice #{sale.saleNumber}</Text>
+            <Text style={styles.invoiceNumber}>Invoice #{sale.id}</Text>
           </View>
 
           {/* Receipt Card */}
@@ -168,19 +188,25 @@ export const ReceiptModal: React.FC<ReceiptModalProps> = ({
 
               {/* Items Table */}
               <View style={styles.itemsTable}>
-                {sale.items.map((item, index) => (
-                  <View key={index} style={styles.itemRow}>
-                    <View style={styles.itemLeft}>
-                      <Text style={styles.itemName} numberOfLines={1}>
-                        {item.productName}
-                      </Text>
-                      <Text style={styles.itemQtyRate}>
-                        {item.quantity} x ₹{item.unitPrice.toFixed(2)}
-                      </Text>
+                {items.map((item, index) => {
+                  const qty = typeof item.quantity === 'number' ? item.quantity : parseFloat(String(item.quantity)) || 0;
+                  const rate = typeof item.unitPrice === 'number' ? item.unitPrice : parseFloat(String(item.unitPrice)) || 0;
+                  const total = typeof item.lineTotal === 'number' ? item.lineTotal : parseFloat(String(item.lineTotal)) || 0;
+
+                  return (
+                    <View key={index} style={styles.itemRow}>
+                      <View style={styles.itemLeft}>
+                        <Text style={styles.itemName} numberOfLines={1}>
+                          {item.productName}
+                        </Text>
+                        <Text style={styles.itemQtyRate}>
+                          {qty} x ₹{rate.toFixed(2)}
+                        </Text>
+                      </View>
+                      <Text style={styles.itemTotal}>₹{total.toFixed(2)}</Text>
                     </View>
-                    <Text style={styles.itemTotal}>₹{item.totalPrice.toFixed(2)}</Text>
-                  </View>
-                ))}
+                  );
+                })}
               </View>
 
               <View style={styles.dashLine} />
@@ -188,13 +214,13 @@ export const ReceiptModal: React.FC<ReceiptModalProps> = ({
               {/* Total & Profit */}
               <View style={styles.totalRow}>
                 <Text style={styles.totalLabel}>Total Amount</Text>
-                <Text style={styles.totalValue}>₹{sale.totalAmount.toFixed(2)}</Text>
+                <Text style={styles.totalValue}>₹{totalAmount.toFixed(2)}</Text>
               </View>
 
-              {sale.profitAmount !== undefined && (
+              {calculatedProfit > 0 && (
                 <View style={styles.profitRow}>
                   <Text style={styles.profitLabel}>Net Profit</Text>
-                  <Text style={styles.profitValue}>+₹{sale.profitAmount.toFixed(2)}</Text>
+                  <Text style={styles.profitValue}>+₹{calculatedProfit.toFixed(2)}</Text>
                 </View>
               )}
             </View>

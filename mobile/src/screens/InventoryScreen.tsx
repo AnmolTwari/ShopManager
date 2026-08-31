@@ -21,18 +21,15 @@ import {
   ArrowDownLeft,
   Sliders,
   Camera,
-  Search,
   CheckCircle,
   X,
   History,
-  AlertTriangle,
 } from 'lucide-react-native';
 
 export const InventoryScreen: React.FC = () => {
   const [movements, setMovements] = useState<StockMovement[]>([]);
   const [products, setProducts] = useState<Product[]>([]);
   const [loading, setLoading] = useState<boolean>(true);
-  const [refreshing, setRefreshing] = useState<boolean>(false);
 
   // Modals
   const [stockInModalOpen, setStockInModalOpen] = useState<boolean>(false);
@@ -44,14 +41,11 @@ export const InventoryScreen: React.FC = () => {
   // Stock In Form
   const [selectedProductId, setSelectedProductId] = useState<number | null>(null);
   const [stockInQty, setStockInQty] = useState('');
-  const [stockInCost, setStockInCost] = useState('');
-  const [stockInRef, setStockInRef] = useState('');
-  const [stockInNotes, setStockInNotes] = useState('');
+  const [stockInReason, setStockInReason] = useState('');
 
   // Adjust Form
   const [adjustNewQty, setAdjustNewQty] = useState('');
-  const [adjustReason, setAdjustReason] = useState<'DAMAGE' | 'EXPIRY' | 'COUNT_ERROR' | 'THEFT' | 'OTHER'>('DAMAGE');
-  const [adjustNotes, setAdjustNotes] = useState('');
+  const [adjustReason, setAdjustReason] = useState('DAMAGE');
 
   useEffect(() => {
     loadData();
@@ -69,7 +63,6 @@ export const InventoryScreen: React.FC = () => {
       console.warn('Error loading inventory data:', e);
     } finally {
       setLoading(false);
-      setRefreshing(false);
     }
   };
 
@@ -80,10 +73,8 @@ export const InventoryScreen: React.FC = () => {
 
     if (matched) {
       setSelectedProductId(matched.id);
-      if (scannerTarget === 'stock-in') {
-        setStockInCost(matched.purchasePrice?.toString() || '');
-      } else {
-        setAdjustNewQty(matched.quantity.toString());
+      if (scannerTarget === 'adjust') {
+        setAdjustNewQty(matched.currentQuantity.toString());
       }
       setScannerOpen(false);
     } else {
@@ -101,10 +92,8 @@ export const InventoryScreen: React.FC = () => {
     try {
       const payload: StockInRequest = {
         productId: selectedProductId,
-        quantity: parseInt(stockInQty, 10) || 0,
-        purchasePrice: stockInCost.trim() ? parseFloat(stockInCost) : null,
-        referenceNumber: stockInRef.trim() || null,
-        notes: stockInNotes.trim() || null,
+        quantity: parseFloat(stockInQty) || 0,
+        reason: stockInReason.trim() || null,
       };
 
       await inventoryApi.stockIn(payload);
@@ -128,9 +117,8 @@ export const InventoryScreen: React.FC = () => {
     try {
       const payload: StockAdjustmentRequest = {
         productId: selectedProductId,
-        newQuantity: parseInt(adjustNewQty, 10) || 0,
-        reason: adjustReason,
-        notes: adjustNotes.trim() || null,
+        newQuantity: parseFloat(adjustNewQty) || 0,
+        reason: adjustReason.trim() || null,
       };
 
       await inventoryApi.adjust(payload);
@@ -147,16 +135,13 @@ export const InventoryScreen: React.FC = () => {
   const resetStockInForm = () => {
     setSelectedProductId(null);
     setStockInQty('');
-    setStockInCost('');
-    setStockInRef('');
-    setStockInNotes('');
+    setStockInReason('');
   };
 
   const resetAdjustForm = () => {
     setSelectedProductId(null);
     setAdjustNewQty('');
     setAdjustReason('DAMAGE');
-    setAdjustNotes('');
   };
 
   const selectedProduct = products.find((p) => p.id === selectedProductId);
@@ -214,7 +199,7 @@ export const InventoryScreen: React.FC = () => {
           keyExtractor={(item) => item.id.toString()}
           contentContainerStyle={styles.logList}
           renderItem={({ item }) => {
-            const isPositive = item.quantityDelta > 0;
+            const isPositive = item.quantityChanged > 0;
             return (
               <View style={styles.movementCard}>
                 <View style={styles.movLeft}>
@@ -250,16 +235,15 @@ export const InventoryScreen: React.FC = () => {
                       hour: '2-digit',
                       minute: '2-digit',
                     })}
-                    {item.referenceNumber ? ` • Ref: ${item.referenceNumber}` : ''}
-                    {item.reason ? ` • Reason: ${item.reason}` : ''}
+                    {item.reason ? ` • ${item.reason}` : ''}
                   </Text>
                 </View>
 
                 <View style={styles.movRight}>
                   <Text style={[styles.deltaText, isPositive ? styles.textPositive : styles.textNegative]}>
-                    {isPositive ? `+${item.quantityDelta}` : `${item.quantityDelta}`}
+                    {isPositive ? `+${item.quantityChanged}` : `${item.quantityChanged}`}
                   </Text>
-                  <Text style={styles.resultingText}>Bal: {item.resultingQuantity}</Text>
+                  <Text style={styles.resultingText}>Bal: {item.newQuantity}</Text>
                 </View>
               </View>
             );
@@ -289,7 +273,9 @@ export const InventoryScreen: React.FC = () => {
               <View style={styles.scannerPickRow}>
                 <View style={[styles.pickerContainer, { flex: 1 }]}>
                   <Text style={styles.pickerSelectedText}>
-                    {selectedProduct ? `${selectedProduct.name} (Current: ${selectedProduct.quantity})` : 'Choose a product...'}
+                    {selectedProduct
+                      ? `${selectedProduct.name} (Stock: ${selectedProduct.currentQuantity})`
+                      : 'Choose a product below or scan...'}
                   </Text>
                 </View>
                 <TouchableOpacity
@@ -303,66 +289,43 @@ export const InventoryScreen: React.FC = () => {
                 </TouchableOpacity>
               </View>
 
-              {/* Product quick pill selector if none selected */}
-              {!selectedProduct && (
-                <ScrollView horizontal showsHorizontalScrollIndicator={false} style={styles.quickProdList}>
-                  {products.slice(0, 10).map((p) => (
-                    <TouchableOpacity
-                      key={p.id}
-                      style={styles.quickProdPill}
-                      onPress={() => {
-                        setSelectedProductId(p.id);
-                        setStockInCost(p.purchasePrice?.toString() || '');
-                      }}
+              {/* Product quick pill selector */}
+              <ScrollView horizontal showsHorizontalScrollIndicator={false} style={styles.quickProdList}>
+                {products.map((p) => (
+                  <TouchableOpacity
+                    key={p.id}
+                    style={[styles.quickProdPill, selectedProductId === p.id && styles.quickProdPillActive]}
+                    onPress={() => setSelectedProductId(p.id)}
+                  >
+                    <Text
+                      style={[
+                        styles.quickProdText,
+                        selectedProductId === p.id && styles.quickProdTextActive,
+                      ]}
                     >
-                      <Text style={styles.quickProdText}>{p.name}</Text>
-                    </TouchableOpacity>
-                  ))}
-                </ScrollView>
-              )}
+                      {p.name}
+                    </Text>
+                  </TouchableOpacity>
+                ))}
+              </ScrollView>
 
-              <View style={styles.twoCol}>
-                <View style={{ flex: 1 }}>
-                  <Text style={styles.inputLabel}>Quantity to Add *</Text>
-                  <TextInput
-                    style={styles.formInput}
-                    placeholder="e.g. 50"
-                    placeholderTextColor={colors.textLight}
-                    keyboardType="numeric"
-                    value={stockInQty}
-                    onChangeText={setStockInQty}
-                  />
-                </View>
-
-                <View style={{ flex: 1 }}>
-                  <Text style={styles.inputLabel}>Cost / Unit (₹)</Text>
-                  <TextInput
-                    style={styles.formInput}
-                    placeholder="Purchase rate"
-                    placeholderTextColor={colors.textLight}
-                    keyboardType="numeric"
-                    value={stockInCost}
-                    onChangeText={setStockInCost}
-                  />
-                </View>
-              </View>
-
-              <Text style={styles.inputLabel}>Invoice / Ref # (Optional)</Text>
+              <Text style={styles.inputLabel}>Quantity to Add *</Text>
               <TextInput
                 style={styles.formInput}
-                placeholder="e.g. INV-2026-99"
+                placeholder="e.g. 50"
                 placeholderTextColor={colors.textLight}
-                value={stockInRef}
-                onChangeText={setStockInRef}
+                keyboardType="numeric"
+                value={stockInQty}
+                onChangeText={setStockInQty}
               />
 
-              <Text style={styles.inputLabel}>Notes</Text>
+              <Text style={styles.inputLabel}>Invoice / Reason / Notes</Text>
               <TextInput
                 style={styles.formInput}
-                placeholder="Supplier or batch details"
+                placeholder="e.g. Supplier Batch #902"
                 placeholderTextColor={colors.textLight}
-                value={stockInNotes}
-                onChangeText={setStockInNotes}
+                value={stockInReason}
+                onChangeText={setStockInReason}
               />
             </ScrollView>
 
@@ -405,7 +368,9 @@ export const InventoryScreen: React.FC = () => {
               <View style={styles.scannerPickRow}>
                 <View style={[styles.pickerContainer, { flex: 1 }]}>
                   <Text style={styles.pickerSelectedText}>
-                    {selectedProduct ? `${selectedProduct.name} (Current: ${selectedProduct.quantity})` : 'Choose a product...'}
+                    {selectedProduct
+                      ? `${selectedProduct.name} (Stock: ${selectedProduct.currentQuantity})`
+                      : 'Choose a product below or scan...'}
                   </Text>
                 </View>
                 <TouchableOpacity
@@ -419,22 +384,27 @@ export const InventoryScreen: React.FC = () => {
                 </TouchableOpacity>
               </View>
 
-              {!selectedProduct && (
-                <ScrollView horizontal showsHorizontalScrollIndicator={false} style={styles.quickProdList}>
-                  {products.slice(0, 10).map((p) => (
-                    <TouchableOpacity
-                      key={p.id}
-                      style={styles.quickProdPill}
-                      onPress={() => {
-                        setSelectedProductId(p.id);
-                        setAdjustNewQty(p.quantity.toString());
-                      }}
+              <ScrollView horizontal showsHorizontalScrollIndicator={false} style={styles.quickProdList}>
+                {products.map((p) => (
+                  <TouchableOpacity
+                    key={p.id}
+                    style={[styles.quickProdPill, selectedProductId === p.id && styles.quickProdPillActive]}
+                    onPress={() => {
+                      setSelectedProductId(p.id);
+                      setAdjustNewQty(p.currentQuantity.toString());
+                    }}
+                  >
+                    <Text
+                      style={[
+                        styles.quickProdText,
+                        selectedProductId === p.id && styles.quickProdTextActive,
+                      ]}
                     >
-                      <Text style={styles.quickProdText}>{p.name}</Text>
-                    </TouchableOpacity>
-                  ))}
-                </ScrollView>
-              )}
+                      {p.name}
+                    </Text>
+                  </TouchableOpacity>
+                ))}
+              </ScrollView>
 
               <Text style={styles.inputLabel}>New Total Quantity *</Text>
               <TextInput
@@ -448,7 +418,7 @@ export const InventoryScreen: React.FC = () => {
 
               <Text style={styles.inputLabel}>Adjustment Reason</Text>
               <View style={styles.reasonRow}>
-                {(['DAMAGE', 'EXPIRY', 'COUNT_ERROR', 'OTHER'] as const).map((r) => (
+                {['DAMAGE', 'EXPIRY', 'COUNT_ERROR', 'THEFT', 'RECOUNT'].map((r) => (
                   <TouchableOpacity
                     key={r}
                     style={[styles.reasonPill, adjustReason === r && styles.reasonPillActive]}
@@ -460,15 +430,6 @@ export const InventoryScreen: React.FC = () => {
                   </TouchableOpacity>
                 ))}
               </View>
-
-              <Text style={styles.inputLabel}>Notes</Text>
-              <TextInput
-                style={styles.formInput}
-                placeholder="Explain adjustment reason"
-                placeholderTextColor={colors.textLight}
-                value={adjustNotes}
-                onChangeText={setAdjustNotes}
-              />
             </ScrollView>
 
             <View style={styles.modalActions}>
@@ -738,21 +699,25 @@ const styles = StyleSheet.create({
   },
   quickProdPill: {
     backgroundColor: colors.bg,
-    paddingHorizontal: 10,
-    paddingVertical: 6,
+    paddingHorizontal: 12,
+    paddingVertical: 7,
     borderRadius: 8,
     borderWidth: 1,
     borderColor: colors.border,
     marginRight: 6,
   },
+  quickProdPillActive: {
+    backgroundColor: colors.primaryLight,
+    borderColor: colors.primary,
+  },
   quickProdText: {
-    fontSize: 11,
+    fontSize: 12,
     color: colors.text,
     fontWeight: '600',
   },
-  twoCol: {
-    flexDirection: 'row',
-    gap: 10,
+  quickProdTextActive: {
+    color: colors.primary,
+    fontWeight: '700',
   },
   formInput: {
     height: 44,

@@ -14,13 +14,11 @@ import { reportsApi } from '../services/shopApi';
 import { colors } from '../theme/colors';
 import { ReportSummary } from '../types';
 import {
-  BarChart3,
-  Calendar,
   IndianRupee,
   TrendingUp,
   ShoppingCart,
   Percent,
-  Layers,
+  Wallet,
 } from 'lucide-react-native';
 
 type DatePreset = 'today' | '7d' | '30d' | 'all';
@@ -72,10 +70,11 @@ export const ReportsScreen: React.FC = () => {
     loadReport();
   };
 
-  const totalRev = summary?.totalRevenue || 0;
-  const totalProfit = summary?.totalProfit || 0;
-  const totalSales = summary?.totalSales || 0;
-  const marginPct = summary?.profitMarginPercentage || (totalRev > 0 ? (totalProfit / totalRev) * 100 : 0);
+  const totalRev = typeof summary?.totalAmount === 'number' ? summary.totalAmount : parseFloat(String(summary?.totalAmount || 0));
+  const totalProfit = typeof summary?.totalProfit === 'number' ? summary.totalProfit : parseFloat(String(summary?.totalProfit || 0));
+  const totalSales = summary?.salesCount || 0;
+  const avgOrder = typeof summary?.averageOrderValue === 'number' ? summary.averageOrderValue : parseFloat(String(summary?.averageOrderValue || 0));
+  const marginPct = totalRev > 0 ? (totalProfit / totalRev) * 100 : 0;
 
   return (
     <View style={styles.container}>
@@ -140,60 +139,44 @@ export const ReportsScreen: React.FC = () => {
               />
 
               <MetricCard
-                label="Profit Margin"
-                value={`${marginPct.toFixed(1)}%`}
-                subtitle="Return on sales"
-                icon={<Percent size={18} color={colors.primary} />}
+                label="Avg Order Value"
+                value={`₹${avgOrder.toFixed(2)}`}
+                subtitle="Per bill average"
+                icon={<Wallet size={18} color={colors.primary} />}
                 variant="primary"
               />
             </View>
 
-            {/* Category Breakdown */}
-            <View style={styles.sectionHeader}>
-              <Text style={styles.sectionTitle}>Category Performance</Text>
+            {/* Performance Summary Banner */}
+            <View style={styles.summaryCard}>
+              <View style={styles.summaryTitleRow}>
+                <Percent size={18} color={colors.primary} />
+                <Text style={styles.summaryTitle}>Profit Margin Overview</Text>
+              </View>
+
+              <View style={styles.marginRow}>
+                <Text style={styles.marginValueText}>{marginPct.toFixed(1)}%</Text>
+                <Text style={styles.marginLabelText}>Overall Profit Margin</Text>
+              </View>
+
+              <View style={styles.progressTrack}>
+                <View
+                  style={[
+                    styles.progressBar,
+                    {
+                      width: `${Math.min(Math.max(marginPct, 5), 100)}%`,
+                      backgroundColor: marginPct >= 15 ? colors.success : colors.warning,
+                    },
+                  ]}
+                />
+              </View>
+
+              <Text style={styles.summaryNote}>
+                {totalRev > 0
+                  ? `For every ₹100 of sales, you earned ₹${marginPct.toFixed(1)} in net profit.`
+                  : 'Record sales to track your profit margins in real-time.'}
+              </Text>
             </View>
-
-            {summary?.categoryBreakdown && summary.categoryBreakdown.length > 0 ? (
-              <View style={styles.breakdownCard}>
-                {summary.categoryBreakdown.map((cat, idx) => {
-                  const percentage = cat.percentage || (totalRev > 0 ? (cat.totalRevenue / totalRev) * 100 : 0);
-                  return (
-                    <View key={idx} style={styles.catItem}>
-                      <View style={styles.catTopRow}>
-                        <Text style={styles.catName}>{cat.categoryName || 'Uncategorized'}</Text>
-                        <Text style={styles.catAmount}>₹{cat.totalRevenue.toFixed(2)}</Text>
-                      </View>
-
-                      {/* Progress Bar */}
-                      <View style={styles.progressTrack}>
-                        <View
-                          style={[
-                            styles.progressBar,
-                            {
-                              width: `${Math.min(Math.max(percentage, 5), 100)}%`,
-                              backgroundColor: idx % 2 === 0 ? colors.primary : colors.accent,
-                            },
-                          ]}
-                        />
-                      </View>
-
-                      <View style={styles.catBottomRow}>
-                        <Text style={styles.catSub}>
-                          {cat.saleCount || 0} sales • Profit: ₹{cat.totalProfit?.toFixed(2) || '0.00'}
-                        </Text>
-                        <Text style={styles.catPct}>{percentage.toFixed(1)}%</Text>
-                      </View>
-                    </View>
-                  );
-                })}
-              </View>
-            ) : (
-              <View style={styles.emptyCard}>
-                <Layers size={36} color={colors.textLight} />
-                <Text style={styles.emptyTitle}>No Category Breakdown</Text>
-                <Text style={styles.emptyDesc}>Sales recorded in this period will display category analytics here</Text>
-              </View>
-            )}
           </>
         )}
       </ScrollView>
@@ -241,87 +224,58 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     gap: 10,
   },
-  sectionHeader: {
-    marginTop: 20,
-    marginBottom: 10,
-  },
-  sectionTitle: {
-    fontSize: 15,
-    fontWeight: '800',
-    color: colors.text,
-  },
-  breakdownCard: {
+  summaryCard: {
     backgroundColor: colors.surface,
     borderRadius: 16,
     borderWidth: 1,
     borderColor: colors.border,
-    padding: 16,
-    gap: 16,
+    padding: 18,
+    marginTop: 14,
   },
-  catItem: {},
-  catTopRow: {
+  summaryTitleRow: {
     flexDirection: 'row',
-    justifyContent: 'space-between',
-    marginBottom: 6,
+    alignItems: 'center',
+    gap: 6,
+    marginBottom: 12,
   },
-  catName: {
-    fontSize: 13,
-    fontWeight: '700',
-    color: colors.text,
-  },
-  catAmount: {
-    fontSize: 13,
+  summaryTitle: {
+    fontSize: 14,
     fontWeight: '800',
     color: colors.text,
   },
+  marginRow: {
+    marginBottom: 8,
+  },
+  marginValueText: {
+    fontSize: 28,
+    fontWeight: '900',
+    color: colors.primary,
+  },
+  marginLabelText: {
+    fontSize: 12,
+    color: colors.textMuted,
+    fontWeight: '600',
+    marginTop: 2,
+  },
   progressTrack: {
-    height: 6,
+    height: 8,
     backgroundColor: colors.bg,
-    borderRadius: 3,
+    borderRadius: 4,
     overflow: 'hidden',
-    marginBottom: 4,
+    marginBottom: 10,
   },
   progressBar: {
     height: '100%',
-    borderRadius: 3,
+    borderRadius: 4,
   },
-  catBottomRow: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-  },
-  catSub: {
-    fontSize: 11,
+  summaryNote: {
+    fontSize: 12,
     color: colors.textMuted,
-  },
-  catPct: {
-    fontSize: 11,
-    fontWeight: '700',
-    color: colors.primary,
+    lineHeight: 18,
   },
   centerBox: {
     paddingVertical: 50,
     alignItems: 'center',
     justifyContent: 'center',
-  },
-  emptyCard: {
-    backgroundColor: colors.surface,
-    borderRadius: 16,
-    borderWidth: 1,
-    borderColor: colors.border,
-    padding: 24,
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  emptyTitle: {
-    fontSize: 14,
-    fontWeight: '700',
-    color: colors.text,
-    marginTop: 10,
-  },
-  emptyDesc: {
-    fontSize: 12,
-    color: colors.textMuted,
-    marginTop: 2,
-    textAlign: 'center',
   },
 });

@@ -1,13 +1,12 @@
 import { http } from './api';
 import {
-  AuthResponse,
   Category,
   CreateSaleRequest,
   DashboardSummary,
   Product,
   ProductRequest,
   ReportSummary,
-  Sale,
+  SaleResponse,
   StockAdjustmentRequest,
   StockInRequest,
   StockMovement,
@@ -74,7 +73,7 @@ export const productsApi = {
     return res.data;
   },
 
-  async createCategory(data: { name: string; description?: string }): Promise<Category> {
+  async createCategory(data: { name: string }): Promise<Category> {
     const res = await http.post<Category>('/categories', data);
     return res.data;
   },
@@ -98,18 +97,18 @@ export const inventoryApi = {
 };
 
 export const salesApi = {
-  async create(data: CreateSaleRequest): Promise<Sale> {
-    const res = await http.post<Sale>('/sales', data);
+  async create(data: CreateSaleRequest): Promise<SaleResponse> {
+    const res = await http.post<SaleResponse>('/sales', data);
     return res.data;
   },
 
-  async list(): Promise<Sale[]> {
-    const res = await http.get<Sale[]>('/sales');
+  async list(): Promise<SaleResponse[]> {
+    const res = await http.get<SaleResponse[]>('/sales');
     return res.data;
   },
 
-  async get(id: number): Promise<Sale> {
-    const res = await http.get<Sale>(`/sales/${id}`);
+  async get(id: number): Promise<SaleResponse> {
+    const res = await http.get<SaleResponse>(`/sales/${id}`);
     return res.data;
   },
 };
@@ -126,7 +125,9 @@ export const reportsApi = {
     const params = new URLSearchParams();
     if (from) params.append('from', from);
     if (to) params.append('to', to);
-    const res = await http.get<ReportSummary>(`/reports/summary?${params.toString()}`);
+    const queryString = params.toString();
+    const url = queryString ? `/reports/summary?${queryString}` : '/reports/summary';
+    const res = await http.get<ReportSummary>(url);
     return res.data;
   },
 };

@@ -4,7 +4,7 @@ import { colors } from '../theme/colors';
 import { StockStatus } from '../types';
 
 interface StockBadgeProps {
-  status: StockStatus;
+  status?: StockStatus;
   quantity?: number;
   minLevel?: number;
 }
@@ -14,11 +14,16 @@ export const StockBadge: React.FC<StockBadgeProps> = ({ status, quantity, minLev
   let text = colors.success;
   let label = 'In Stock';
 
-  if (status === 'OUT_OF_STOCK' || (quantity !== undefined && quantity <= 0)) {
+  const isOutOfStock = status === 'OUT_OF_STOCK' || (quantity !== undefined && quantity <= 0);
+  const isLowStock =
+    status === 'LOW_STOCK' ||
+    (quantity !== undefined && minLevel !== undefined && quantity > 0 && quantity <= minLevel);
+
+  if (isOutOfStock) {
     bg = colors.dangerLight;
     text = colors.danger;
     label = 'Out of Stock';
-  } else if (status === 'LOW_STOCK' || (quantity !== undefined && minLevel !== undefined && quantity <= minLevel)) {
+  } else if (isLowStock) {
     bg = colors.warningLight;
     text = colors.warning;
     label = 'Low Stock';

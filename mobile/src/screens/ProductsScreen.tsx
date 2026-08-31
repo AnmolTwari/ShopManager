@@ -16,7 +16,7 @@ import { Header } from '../components/Header';
 import { StockBadge } from '../components/StockBadge';
 import { productsApi } from '../services/shopApi';
 import { colors } from '../theme/colors';
-import { Category, Product, ProductRequest } from '../types';
+import { Category, Product, ProductRequest, ProductUnit } from '../types';
 import {
   Plus,
   Search,
@@ -25,10 +25,12 @@ import {
   Archive,
   RotateCcw,
   Package,
-  SlidersHorizontal,
   X,
   Check,
+  FolderPlus,
 } from 'lucide-react-native';
+
+const UNITS: ProductUnit[] = ['PIECE', 'PACKET', 'BOX', 'BOTTLE', 'KG', 'GRAM', 'LITRE', 'ML'];
 
 export const ProductsScreen: React.FC = () => {
   const [products, setProducts] = useState<Product[]>([]);
@@ -41,21 +43,23 @@ export const ProductsScreen: React.FC = () => {
 
   // Form Modal State
   const [formModalOpen, setFormModalOpen] = useState<boolean>(false);
+  const [categoryModalOpen, setCategoryModalOpen] = useState<boolean>(false);
+  const [newCatName, setNewCatName] = useState<string>('');
   const [editingProduct, setEditingProduct] = useState<Product | null>(null);
   const [scannerOpen, setScannerOpen] = useState<boolean>(false);
   const [saving, setSaving] = useState<boolean>(false);
 
   // Form Fields
   const [name, setName] = useState('');
-  const [categoryId, setCategoryId] = useState<number | undefined>(undefined);
+  const [categoryId, setCategoryId] = useState<number | null>(null);
   const [brand, setBrand] = useState('');
   const [sku, setSku] = useState('');
-  const [unit, setUnit] = useState('pcs');
+  const [unit, setUnit] = useState<ProductUnit>('PIECE');
   const [purchasePrice, setPurchasePrice] = useState('');
   const [sellingPrice, setSellingPrice] = useState('');
   const [mrp, setMrp] = useState('');
-  const [quantity, setQuantity] = useState('0');
-  const [minStockLevel, setMinStockLevel] = useState('5');
+  const [currentQuantity, setCurrentQuantity] = useState('0');
+  const [minimumStockLevel, setMinimumStockLevel] = useState('5');
 
   useEffect(() => {
     loadData();
@@ -77,31 +81,44 @@ export const ProductsScreen: React.FC = () => {
   const openCreateModal = () => {
     setEditingProduct(null);
     setName('');
-    setCategoryId(categories.length > 0 ? categories[0].id : undefined);
+    setCategoryId(categories.length > 0 ? categories[0].id : null);
     setBrand('');
     setSku('');
-    setUnit('pcs');
+    setUnit('PIECE');
     setPurchasePrice('');
     setSellingPrice('');
     setMrp('');
-    setQuantity('0');
-    setMinStockLevel('5');
+    setCurrentQuantity('0');
+    setMinimumStockLevel('5');
     setFormModalOpen(true);
   };
 
   const openEditModal = (p: Product) => {
     setEditingProduct(p);
     setName(p.name);
-    setCategoryId(p.categoryId);
+    setCategoryId(p.categoryId || (categories.length > 0 ? categories[0].id : null));
     setBrand(p.brand || '');
     setSku(p.sku || '');
-    setUnit(p.unit || 'pcs');
+    setUnit(p.unit || 'PIECE');
     setPurchasePrice(p.purchasePrice?.toString() || '');
     setSellingPrice(p.sellingPrice?.toString() || '');
     setMrp(p.mrp?.toString() || '');
-    setQuantity(p.quantity?.toString() || '0');
-    setMinStockLevel(p.minStockLevel?.toString() || '5');
+    setCurrentQuantity((p.currentQuantity !== undefined ? p.currentQuantity : 0).toString());
+    setMinimumStockLevel((p.minimumStockLevel !== undefined ? p.minimumStockLevel : 5).toString());
     setFormModalOpen(true);
+  };
+
+  const handleCreateCategory = async () => {
+    if (!newCatName.trim()) return;
+    try {
+      const created = await productsApi.createCategory({ name: newCatName.trim() });
+      setCategories([...categories, created]);
+      setCategoryId(created.id);
+      setNewCatName('');
+      setCategoryModalOpen(false);
+    } catch (err: any) {
+      Alert.alert('Error', err.message || 'Could not create category.');
+    }
   };
 
   const handleSaveProduct = async () => {
@@ -110,19 +127,36 @@ export const ProductsScreen: React.FC = () => {
       return;
     }
 
+    let targetCatId = categoryId;
+    if (!targetCatId) {
+      if (categories.length > 0) {
+        targetCatId = categories[0].id;
+      } else {
+        // Auto-create default category if none exists
+        try {
+          const defaultCat = await productsApi.createCategory({ name: 'General' });
+          setCategories([defaultCat]);
+          targetCatId = defaultCat.id;
+        } catch {
+          Alert.alert('Category Required', 'Please create a category first.');
+          return;
+        }
+      }
+    }
+
     setSaving(true);
     try {
       const payload: ProductRequest = {
         name: name.trim(),
-        categoryId: categoryId || null,
+        categoryId: targetCatId,
         brand: brand.trim() || null,
         sku: sku.trim() || null,
-        unit: unit.trim() || 'pcs',
+        unit: unit,
         purchasePrice: parseFloat(purchasePrice) || 0,
         sellingPrice: parseFloat(sellingPrice) || 0,
         mrp: mrp.trim() ? parseFloat(mrp) : null,
-        quantity: parseInt(quantity, 10) || 0,
-        minStockLevel: parseInt(minStockLevel, 10) || 5,
+        currentQuantity: parseFloat(currentQuantity) || 0,
+        minimumStockLevel: parseFloat(minimumStockLevel) || 5,
       };
 
       if (editingProduct) {
@@ -261,10 +295,16 @@ export const ProductsScreen: React.FC = () => {
                 <View style={{ flex: 1 }}>
                   <Text style={styles.productName}>{item.name}</Text>
                   <Text style={styles.productSku}>
-                    {item.brand ? `${item.brand} • ` : ''}SKU: {item.sku || 'N/A'}
+                    {item.categoryName ? `${item.categoryName} • ` : ''}
+                    {item.brand ? `${item.brand} • ` : ''}
+                    SKU: {item.sku || 'N/A'}
                   </Text>
                 </View>
-                <StockBadge status={item.stockStatus} quantity={item.quantity} minLevel={item.minStockLevel} />
+                <StockBadge
+                  status={item.stockStatus}
+                  quantity={item.currentQuantity}
+                  minLevel={item.minimumStockLevel}
+                />
               </View>
 
               <View style={styles.priceRow}>
@@ -279,9 +319,9 @@ export const ProductsScreen: React.FC = () => {
                 </View>
 
                 <View>
-                  <Text style={styles.priceLabel}>Margin</Text>
+                  <Text style={styles.priceLabel}>Unit / Margin</Text>
                   <Text style={styles.marginText}>
-                    +₹{(item.sellingPrice - item.purchasePrice).toFixed(2)}
+                    {item.unit} (+₹{(item.sellingPrice - item.purchasePrice).toFixed(2)})
                   </Text>
                 </View>
               </View>
@@ -346,6 +386,42 @@ export const ProductsScreen: React.FC = () => {
                 onChangeText={setName}
               />
 
+              {/* Category Selector */}
+              <View style={styles.labelWithAction}>
+                <Text style={styles.inputLabel}>Category *</Text>
+                <TouchableOpacity onPress={() => setCategoryModalOpen(true)}>
+                  <Text style={styles.addCategoryLink}>+ New Category</Text>
+                </TouchableOpacity>
+              </View>
+
+              <ScrollView horizontal showsHorizontalScrollIndicator={false} style={styles.unitPickerScroll}>
+                {categories.map((cat) => (
+                  <TouchableOpacity
+                    key={cat.id}
+                    style={[styles.unitPill, categoryId === cat.id && styles.unitPillActive]}
+                    onPress={() => setCategoryId(cat.id)}
+                  >
+                    <Text style={[styles.unitText, categoryId === cat.id && styles.unitTextActive]}>
+                      {cat.name}
+                    </Text>
+                  </TouchableOpacity>
+                ))}
+              </ScrollView>
+
+              {/* Unit Enum Selector */}
+              <Text style={styles.inputLabel}>Unit of Measure *</Text>
+              <ScrollView horizontal showsHorizontalScrollIndicator={false} style={styles.unitPickerScroll}>
+                {UNITS.map((u) => (
+                  <TouchableOpacity
+                    key={u}
+                    style={[styles.unitPill, unit === u && styles.unitPillActive]}
+                    onPress={() => setUnit(u)}
+                  >
+                    <Text style={[styles.unitText, unit === u && styles.unitTextActive]}>{u}</Text>
+                  </TouchableOpacity>
+                ))}
+              </ScrollView>
+
               {/* Barcode / SKU with Camera Scan Button */}
               <Text style={styles.inputLabel}>Barcode / SKU</Text>
               <View style={styles.skuInputRow}>
@@ -364,13 +440,13 @@ export const ProductsScreen: React.FC = () => {
                 </TouchableOpacity>
               </View>
 
-              {/* Brand & Unit */}
+              {/* Brand & MRP */}
               <View style={styles.twoCol}>
                 <View style={{ flex: 1 }}>
-                  <Text style={styles.inputLabel}>Brand (Optional)</Text>
+                  <Text style={styles.inputLabel}>Brand</Text>
                   <TextInput
                     style={styles.formInput}
-                    placeholder="e.g. India Gate"
+                    placeholder="e.g. Nestle"
                     placeholderTextColor={colors.textLight}
                     value={brand}
                     onChangeText={setBrand}
@@ -378,13 +454,14 @@ export const ProductsScreen: React.FC = () => {
                 </View>
 
                 <View style={{ flex: 1 }}>
-                  <Text style={styles.inputLabel}>Unit</Text>
+                  <Text style={styles.inputLabel}>MRP (₹)</Text>
                   <TextInput
                     style={styles.formInput}
-                    placeholder="pcs, kg, packet"
+                    placeholder="Printed MRP"
                     placeholderTextColor={colors.textLight}
-                    value={unit}
-                    onChangeText={setUnit}
+                    keyboardType="numeric"
+                    value={mrp}
+                    onChangeText={setMrp}
                   />
                 </View>
               </View>
@@ -425,8 +502,8 @@ export const ProductsScreen: React.FC = () => {
                     placeholder="Quantity"
                     placeholderTextColor={colors.textLight}
                     keyboardType="numeric"
-                    value={quantity}
-                    onChangeText={setQuantity}
+                    value={currentQuantity}
+                    onChangeText={setCurrentQuantity}
                   />
                 </View>
 
@@ -437,8 +514,8 @@ export const ProductsScreen: React.FC = () => {
                     placeholder="Alert below"
                     placeholderTextColor={colors.textLight}
                     keyboardType="numeric"
-                    value={minStockLevel}
-                    onChangeText={setMinStockLevel}
+                    value={minimumStockLevel}
+                    onChangeText={setMinimumStockLevel}
                   />
                 </View>
               </View>
@@ -465,6 +542,32 @@ export const ProductsScreen: React.FC = () => {
                     <Text style={styles.saveBtnText}>Save Product</Text>
                   </>
                 )}
+              </TouchableOpacity>
+            </View>
+          </View>
+        </View>
+      </Modal>
+
+      {/* New Category Modal */}
+      <Modal visible={categoryModalOpen} animationType="fade" transparent>
+        <View style={styles.modalOverlay}>
+          <View style={[styles.modalContent, { maxHeight: 240 }]}>
+            <Text style={styles.modalTitle}>Add New Category</Text>
+            <Text style={styles.inputLabel}>Category Name</Text>
+            <TextInput
+              style={styles.formInput}
+              placeholder="e.g. Dairy, Snacks, Beverages"
+              placeholderTextColor={colors.textLight}
+              value={newCatName}
+              onChangeText={setNewCatName}
+            />
+
+            <View style={styles.modalActions}>
+              <TouchableOpacity style={styles.cancelBtn} onPress={() => setCategoryModalOpen(false)}>
+                <Text style={styles.cancelBtnText}>Cancel</Text>
+              </TouchableOpacity>
+              <TouchableOpacity style={styles.saveBtn} onPress={handleCreateCategory}>
+                <Text style={styles.saveBtnText}>Add Category</Text>
               </TouchableOpacity>
             </View>
           </View>
@@ -637,7 +740,7 @@ const styles = StyleSheet.create({
     marginTop: 2,
   },
   marginText: {
-    fontSize: 13,
+    fontSize: 12,
     fontWeight: '700',
     color: colors.success,
     marginTop: 2,
@@ -741,6 +844,41 @@ const styles = StyleSheet.create({
     color: colors.textMuted,
     textTransform: 'uppercase',
     marginBottom: 5,
+  },
+  labelWithAction: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    marginBottom: 5,
+  },
+  addCategoryLink: {
+    fontSize: 11,
+    fontWeight: '700',
+    color: colors.primary,
+  },
+  unitPickerScroll: {
+    marginBottom: 12,
+  },
+  unitPill: {
+    backgroundColor: colors.bg,
+    paddingHorizontal: 12,
+    paddingVertical: 7,
+    borderRadius: 8,
+    borderWidth: 1,
+    borderColor: colors.border,
+    marginRight: 6,
+  },
+  unitPillActive: {
+    backgroundColor: colors.primaryLight,
+    borderColor: colors.primary,
+  },
+  unitText: {
+    fontSize: 11,
+    fontWeight: '700',
+    color: colors.textMuted,
+  },
+  unitTextActive: {
+    color: colors.primary,
   },
   formInput: {
     height: 44,

@@ -19,15 +19,14 @@ export const CartProvider: React.FC<{ children: React.ReactNode }> = ({ children
   const [items, setItems] = useState<CartItem[]>([]);
 
   const addItem = (product: Product, quantity: number = 1): boolean => {
-    // Prevent adding inactive or 0 stock products if desired
     const existingIndex = items.findIndex((i) => i.product.id === product.id);
+    const availableStock = product.currentQuantity !== undefined ? product.currentQuantity : 9999;
 
     if (existingIndex > -1) {
       const currentQty = items[existingIndex].quantity;
       const newQty = currentQty + quantity;
 
-      if (newQty > product.quantity) {
-        // Exceeds available stock
+      if (newQty > availableStock) {
         try {
           Haptics.notificationAsync(Haptics.NotificationFeedbackType.Warning);
         } catch {}
@@ -38,7 +37,7 @@ export const CartProvider: React.FC<{ children: React.ReactNode }> = ({ children
       updated[existingIndex].quantity = newQty;
       setItems(updated);
     } else {
-      if (quantity > product.quantity) {
+      if (quantity > availableStock) {
         try {
           Haptics.notificationAsync(Haptics.NotificationFeedbackType.Warning);
         } catch {}
@@ -54,7 +53,7 @@ export const CartProvider: React.FC<{ children: React.ReactNode }> = ({ children
   };
 
   const removeItem = (productId: number) => {
-    setItems(items.filter((i) => i.product.id !== productId));
+    setItems((prev) => prev.filter((i) => i.product.id !== productId));
     try {
       Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
     } catch {}
@@ -65,10 +64,11 @@ export const CartProvider: React.FC<{ children: React.ReactNode }> = ({ children
       removeItem(productId);
       return;
     }
-    setItems(
-      items.map((i) => {
+    setItems((prev) =>
+      prev.map((i) => {
         if (i.product.id === productId) {
-          const validQty = Math.min(quantity, i.product.quantity);
+          const maxAvailable = i.product.currentQuantity !== undefined ? i.product.currentQuantity : 9999;
+          const validQty = Math.min(quantity, maxAvailable);
           return { ...i, quantity: validQty };
         }
         return i;
