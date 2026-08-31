@@ -84,6 +84,7 @@ public class AuthController {
                     .email(user.getEmail())
                     .name(user.getName())
                     .role(roleOf(user))
+                    .token(token)
                     .build());
         } catch (BadCredentialsException e) {
             rateLimiterService.recordFailedLogin(httpRequest, request.getUsername());
@@ -117,12 +118,14 @@ public class AuthController {
 
         userRepository.save(user);
         rateLimiterService.recordRegisterAttempt(httpRequest);
+        String token = jwtService.generateToken(user);
 
         return ResponseEntity.ok(AuthResponse.builder()
                 .username(user.getUsername())
                 .email(user.getEmail())
                 .name(user.getName())
                 .role(roleOf(user))
+                .token(token)
                 .build());
     }
 

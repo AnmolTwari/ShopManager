@@ -1,0 +1,46 @@
+{
+  "expo": {
+    "name": "ShopManager",
+    "slug": "shopmanager",
+    "version": "1.0.0",
+    "orientation": "portrait",
+    "icon": "./assets/icon.png",
+    "userInterfaceStyle": "light",
+    "splash": {
+      "image": "./assets/splash-icon.png",
+      "resizeMode": "contain",
+      "backgroundColor": "#0f172a"
+    },
+    "ios": {
+      "supportsTablet": true,
+      "bundleIdentifier": "com.shopmanager.app",
+      "infoPlist": {
+        "NSCameraUsageDescription": "ShopManager uses camera to scan product barcodes for fast billing and stock management."
+      }
+    },
+    "android": {
+      "package": "com.shopmanager.app",
+      "adaptiveIcon": {
+        "backgroundColor": "#0f172a",
+        "foregroundImage": "./assets/android-icon-foreground.png"
+      },
+      "permissions": [
+        "CAMERA"
+      ],
+      "predictiveBackGestureEnabled": false
+    },
+    "web": {
+      "favicon": "./assets/favicon.png"
+    },
+    "plugins": [
+      "expo-secure-store",
+      "expo-sharing",
+      [
+        "expo-camera",
+        {
+          "cameraPermission": "ShopManager needs camera access to scan product barcodes."
+        }
+      ]
+    ]
+  }
+}

@@ -46,6 +46,10 @@ public SecurityFilterChain securityFilterChain(HttpSecurity http) throws Excepti
 
     http
             .csrf(csrf -> csrf
+                    .ignoringRequestMatchers(request -> {
+                        String auth = request.getHeader("Authorization");
+                        return auth != null && auth.startsWith("Bearer ");
+                    })
                     .csrfTokenRepository(csrfTokenRepository)
                     .csrfTokenRequestHandler(new CsrfTokenRequestAttributeHandler()))
             .cors(cors -> cors.configurationSource(corsConfigurationSource()))

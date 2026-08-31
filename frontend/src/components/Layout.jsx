@@ -10,6 +10,7 @@ import {
   IconLogout,
   IconSettings,
   IconShield,
+  IconSmartphone,
 } from './icons'
 
 const NAV_ITEMS = [
@@ -91,7 +92,15 @@ export default function Layout() {
               </li>
             ))}
           </ul>
-          <div className="mt-3 border-t border-border pt-3 md:mt-auto md:pt-4">
+          <div className="mt-3 flex flex-col gap-2 border-t border-border pt-3 md:mt-auto md:pt-4">
+            <a
+              href="/ShopManager.apk"
+              download="ShopManager.apk"
+              className="inline-flex min-h-10 w-full cursor-pointer items-center justify-center gap-2.5 rounded-lg border border-emerald-200 bg-emerald-50 px-3 py-2 text-[13px] font-bold text-emerald-800 no-underline transition-colors hover:bg-emerald-100 md:min-h-0 md:justify-start"
+            >
+              <IconSmartphone size={16} />
+              Get Android App
+            </a>
             <button
               onClick={handleLogout}
               className="inline-flex min-h-10 w-full cursor-pointer items-center justify-center gap-2.5 rounded-lg border border-border bg-surface px-3 py-2 text-[13px] font-semibold no-underline transition-colors hover:bg-[#fef2f2] hover:text-danger disabled:opacity-60 md:min-h-0 md:justify-start"
