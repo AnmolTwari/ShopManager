@@ -19,14 +19,14 @@ import {
   IndianRupee,
   TrendingUp,
   ShoppingCart,
-  AlertTriangle,
+  TriangleAlert,
   Zap,
-  PlusCircle,
+  CirclePlus,
   Package,
   Receipt,
   ArrowRight,
   TrendingDown,
-  BarChart2,
+  ChartBar,
 } from 'lucide-react-native';
 
 interface DashboardScreenProps {
@@ -131,7 +131,7 @@ export const DashboardScreen: React.FC<DashboardScreenProps> = ({ onNavigateTab 
               style={styles.quickSmallBtn}
               onPress={() => onNavigateTab('products')}
             >
-              <PlusCircle size={16} color={colors.primary} />
+              <CirclePlus size={16} color={colors.primary} />
               <Text style={styles.quickSmallText}>Add Product</Text>
             </TouchableOpacity>
 
@@ -154,7 +154,7 @@ export const DashboardScreen: React.FC<DashboardScreenProps> = ({ onNavigateTab 
           >
             <View style={styles.alertLeft}>
               <View style={styles.alertIconBox}>
-                <AlertTriangle size={18} color={colors.warning} />
+                <TriangleAlert size={18} color={colors.warning} />
               </View>
               <View style={{ flex: 1 }}>
                 <Text style={styles.alertTitle}>Inventory Alert</Text>
@@ -208,7 +208,7 @@ export const DashboardScreen: React.FC<DashboardScreenProps> = ({ onNavigateTab 
             label="Stock Alerts"
             value={attentionCount}
             subtitle={outOfStock > 0 ? `${outOfStock} out of stock` : `${summary?.totalProducts || 0} active items`}
-            icon={<AlertTriangle size={18} color={attentionCount > 0 ? colors.danger : colors.textMuted} />}
+            icon={<TriangleAlert size={18} color={attentionCount > 0 ? colors.danger : colors.textMuted} />}
             variant={attentionCount > 0 ? 'danger' : 'primary'}
           />
         </View>
@@ -218,7 +218,7 @@ export const DashboardScreen: React.FC<DashboardScreenProps> = ({ onNavigateTab 
           <View style={styles.chartCard}>
             <View style={styles.chartHeader}>
               <View style={styles.chartTitleRow}>
-                <BarChart2 size={18} color={colors.primary} />
+                <ChartBar size={18} color={colors.primary} />
                 <Text style={styles.chartTitle}>7-Day Revenue Trend</Text>
               </View>
             </View>

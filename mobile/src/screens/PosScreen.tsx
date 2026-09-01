@@ -25,7 +25,7 @@ import {
   Plus,
   Minus,
   Trash2,
-  CheckCircle,
+  CircleCheck,
   CreditCard,
   QrCode,
   Banknote,
@@ -388,7 +388,7 @@ export const PosScreen: React.FC = () => {
                   <ActivityIndicator color="#fff" />
                 ) : (
                   <>
-                    <CheckCircle size={18} color="#fff" />
+                    <CircleCheck size={18} color="#fff" />
                     <Text style={styles.confirmBtnText}>Complete Sale</Text>
                   </>
                 )}

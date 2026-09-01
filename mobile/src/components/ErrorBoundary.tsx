@@ -1,7 +1,7 @@
 import React from 'react';
 import { StyleSheet, Text, TouchableOpacity, View } from 'react-native';
 import { colors } from '../theme/colors';
-import { AlertTriangle, RefreshCw } from 'lucide-react-native';
+import { TriangleAlert, RefreshCw } from 'lucide-react-native';
 
 interface Props {
   children: React.ReactNode;
@@ -34,7 +34,7 @@ export class ErrorBoundary extends React.Component<Props, State> {
       return (
         <View style={styles.container}>
           <View style={styles.card}>
-            <AlertTriangle size={36} color={colors.danger} />
+            <TriangleAlert size={36} color={colors.danger} />
             <Text style={styles.title}>Something went wrong</Text>
             <Text style={styles.msg}>{this.state.message}</Text>
             <Text style={styles.hint}>The app recovered from a crash. Tap retry to continue.</Text>

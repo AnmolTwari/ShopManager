@@ -20,11 +20,11 @@ import { Product, StockAdjustmentRequest, StockInRequest, StockMovement } from '
 import {
   Layers,
   ArrowDownLeft,
-  Sliders,
+  SlidersHorizontal,
   Camera,
-  CheckCircle,
+  CircleCheck,
   X,
-  History,
+  RotateCcw,
 } from 'lucide-react-native';
 
 export const InventoryScreen: React.FC = () => {
@@ -203,7 +203,7 @@ export const InventoryScreen: React.FC = () => {
           }}
           activeOpacity={0.8}
         >
-          <Sliders size={20} color={colors.text} />
+          <SlidersHorizontal size={20} color={colors.text} />
           <View>
             <Text style={styles.adjustTitle}>Adjust Stock</Text>
             <Text style={styles.adjustSub}>Damages, expiry, recount</Text>
@@ -213,7 +213,7 @@ export const InventoryScreen: React.FC = () => {
 
       {/* Movement Audit Log */}
       <View style={styles.logHeader}>
-        <History size={16} color={colors.textMuted} />
+        <RotateCcw size={16} color={colors.textMuted} />
         <Text style={styles.logTitle}>Recent Stock Movements</Text>
       </View>
 
@@ -370,7 +370,7 @@ export const InventoryScreen: React.FC = () => {
                   <ActivityIndicator color="#fff" />
                 ) : (
                   <>
-                    <CheckCircle size={18} color="#fff" />
+                    <CircleCheck size={18} color="#fff" />
                     <Text style={ui.btnPrimaryText}>Record Stock In</Text>
                   </>
                 )}
@@ -385,7 +385,7 @@ export const InventoryScreen: React.FC = () => {
         <View style={ui.modalOverlay}>
           <View style={ui.modalContent}>
             <View style={ui.modalHeader}>
-              <Text style={ui.modalTitle}>Stock Adjustment</Text>
+              <Text style={ui.modalTitle}>Adjust Stock Level</Text>
               <TouchableOpacity onPress={() => setAdjustModalOpen(false)}>
                 <X size={20} color={colors.text} />
               </TouchableOpacity>
@@ -395,7 +395,7 @@ export const InventoryScreen: React.FC = () => {
               <Text style={styles.inputLabel}>Select Product *</Text>
               <View style={styles.scannerPickRow}>
                 <View style={[styles.pickerContainer, { flex: 1 }]}>
-                  <Text style={styles.pickerSelectedText}>
+                  <Text style={styles.pickerSelectedText} numberOfLines={1}>
                     {selectedProduct
                       ? `${selectedProduct.name} (Stock: ${selectedProduct.currentQuantity})`
                       : 'Choose a product below or scan...'}
@@ -473,7 +473,7 @@ export const InventoryScreen: React.FC = () => {
                   <ActivityIndicator color="#fff" />
                 ) : (
                   <>
-                    <CheckCircle size={18} color="#fff" />
+                    <CircleCheck size={18} color="#fff" />
                     <Text style={ui.btnPrimaryText}>Apply Adjustment</Text>
                   </>
                 )}

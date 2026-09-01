@@ -23,13 +23,13 @@ import {
   Plus,
   Search,
   Camera,
-  Edit2,
+  Pencil,
   Archive,
   Package,
   X,
   Check,
   RefreshCw,
-  AlertTriangle,
+  TriangleAlert,
 } from 'lucide-react-native';
 
 const UNITS: ProductUnit[] = ['PIECE', 'PACKET', 'BOX', 'BOTTLE', 'KG', 'GRAM', 'LITRE', 'ML'];
@@ -304,7 +304,7 @@ export const ProductsScreen: React.FC = () => {
 
         <View style={styles.cardActions}>
           <TouchableOpacity style={styles.editBtn} onPress={() => openEditModal(item)} activeOpacity={0.7}>
-            <Edit2 size={14} color={colors.text} />
+            <Pencil size={14} color={colors.text} />
             <Text style={styles.editBtnText}>Edit</Text>
           </TouchableOpacity>
           <TouchableOpacity style={styles.archiveBtn} onPress={() => handleArchiveToggle(item)} activeOpacity={0.7}>
@@ -381,7 +381,7 @@ export const ProductsScreen: React.FC = () => {
 
       {error ? (
         <View style={ui.errorBanner}>
-          <AlertTriangle size={16} color={colors.danger} />
+          <TriangleAlert size={16} color={colors.danger} />
           <Text style={styles.errorText}>{error}</Text>
         </View>
       ) : null}

@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import {
   ActivityIndicator,
+  Image,
   KeyboardAvoidingView,
   Platform,
   ScrollView,
@@ -12,7 +13,9 @@ import {
 } from 'react-native';
 import { useAuth } from '../context/AuthContext';
 import { colors } from '../theme/colors';
-import { Store, Lock, User, Eye, EyeOff, Sparkles } from 'lucide-react-native';
+import { Lock, User, Eye, EyeOff, Sparkles } from 'lucide-react-native';
+
+const APP_LOGO = require('../../assets/logo.png');
 
 interface LoginScreenProps {
   onSwitchToRegister: () => void;
@@ -58,7 +61,7 @@ export const LoginScreen: React.FC<LoginScreenProps> = ({ onSwitchToRegister }) 
         {/* Brand Header */}
         <View style={styles.brandContainer}>
           <View style={styles.logoBadge}>
-            <Store size={36} color="#fff" />
+            <Image source={APP_LOGO} style={styles.logoImage} resizeMode="contain" />
           </View>
           <Text style={styles.brandTitle}>ShopManager</Text>
           <Text style={styles.brandTagline}>Smart Point of Sale & Inventory for Retail</Text>
@@ -179,18 +182,25 @@ const styles = StyleSheet.create({
     marginBottom: 24,
   },
   logoBadge: {
-    width: 64,
-    height: 64,
+    width: 68,
+    height: 68,
     borderRadius: 20,
-    backgroundColor: colors.primary,
+    backgroundColor: '#0f172a',
     alignItems: 'center',
     justifyContent: 'center',
     marginBottom: 12,
     shadowColor: colors.primary,
     shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.4,
-    shadowRadius: 10,
-    elevation: 6,
+    shadowOpacity: 0.5,
+    shadowRadius: 12,
+    elevation: 8,
+    overflow: 'hidden',
+    borderWidth: 1.5,
+    borderColor: 'rgba(5, 150, 105, 0.4)',
+  },
+  logoImage: {
+    width: 68,
+    height: 68,
   },
   brandTitle: {
     fontSize: 26,

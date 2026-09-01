@@ -13,7 +13,7 @@ import * as Sharing from 'expo-sharing';
 import * as Haptics from 'expo-haptics';
 import { SaleResponse } from '../types';
 import { colors } from '../theme/colors';
-import { CheckCircle, Printer, MessageSquare } from 'lucide-react-native';
+import { CircleCheck, Printer, MessageSquare } from 'lucide-react-native';
 
 interface ReceiptModalProps {
   visible: boolean;
@@ -174,7 +174,7 @@ export const ReceiptModal: React.FC<ReceiptModalProps> = ({
         <View style={styles.container}>
           {/* Top Success Banner */}
           <View style={styles.successHeader}>
-            <CheckCircle size={32} color={colors.success} />
+            <CircleCheck size={32} color={colors.success} />
             <Text style={styles.successTitle}>Sale Recorded Successfully!</Text>
             <Text style={styles.invoiceNumber}>Invoice #{sale.id}</Text>
           </View>

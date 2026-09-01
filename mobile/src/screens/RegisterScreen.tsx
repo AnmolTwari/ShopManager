@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import {
   ActivityIndicator,
+  Image,
   KeyboardAvoidingView,
   Platform,
   ScrollView,
@@ -12,7 +13,9 @@ import {
 } from 'react-native';
 import { useAuth } from '../context/AuthContext';
 import { colors } from '../theme/colors';
-import { Store, Lock, User, Mail, Sparkles, Building2 } from 'lucide-react-native';
+import { Lock, User, Mail, Sparkles, Building2 } from 'lucide-react-native';
+
+const APP_LOGO = require('../../assets/logo.png');
 
 interface RegisterScreenProps {
   onSwitchToLogin: () => void;
@@ -77,7 +80,7 @@ export const RegisterScreen: React.FC<RegisterScreenProps> = ({ onSwitchToLogin 
         {/* Header */}
         <View style={styles.brandContainer}>
           <View style={styles.logoBadge}>
-            <Store size={36} color="#fff" />
+            <Image source={APP_LOGO} style={styles.logoImage} resizeMode="contain" />
           </View>
           <Text style={styles.brandTitle}>ShopManager</Text>
           <Text style={styles.brandTagline}>Register Your Shop in Seconds</Text>
@@ -219,13 +222,21 @@ const styles = StyleSheet.create({
     marginBottom: 20,
   },
   logoBadge: {
-    width: 60,
-    height: 60,
+    width: 64,
+    height: 64,
     borderRadius: 20,
-    backgroundColor: colors.primary,
+    backgroundColor: '#0f172a',
     alignItems: 'center',
     justifyContent: 'center',
     marginBottom: 10,
+    overflow: 'hidden',
+    borderWidth: 1.5,
+    borderColor: 'rgba(5, 150, 105, 0.4)',
+    elevation: 6,
+  },
+  logoImage: {
+    width: 64,
+    height: 64,
   },
   brandTitle: {
     fontSize: 24,

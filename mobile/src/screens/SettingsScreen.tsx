@@ -25,7 +25,7 @@ import {
   LogOut,
   ShieldCheck,
   Building,
-  CheckCircle,
+  CircleCheck,
   X,
 } from 'lucide-react-native';
 
