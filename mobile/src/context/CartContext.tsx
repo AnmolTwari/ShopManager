@@ -18,9 +18,16 @@ const CartContext = createContext<CartContextType | undefined>(undefined);
 export const CartProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   const [items, setItems] = useState<CartItem[]>([]);
 
+  function safeN(v: any, fallback = 0): number {
+    if (typeof v === 'number' && Number.isFinite(v)) return v;
+    const n = parseFloat(String(v ?? ''));
+    return Number.isFinite(n) ? n : fallback;
+  }
+
   const addItem = (product: Product, quantity: number = 1): boolean => {
     const existingIndex = items.findIndex((i) => i.product.id === product.id);
-    const availableStock = product.currentQuantity !== undefined ? product.currentQuantity : 9999;
+    const availableStock = product.currentQuantity !== undefined ? safeN(product.currentQuantity, 9999) : 9999;
+    const safePrice = safeN((product as any).sellingPrice, 0);
 
     if (existingIndex > -1) {
       const currentQty = items[existingIndex].quantity;
@@ -43,7 +50,7 @@ export const CartProvider: React.FC<{ children: React.ReactNode }> = ({ children
         } catch {}
         return false;
       }
-      setItems([...items, { product, quantity, unitPrice: product.sellingPrice }]);
+      setItems([...items, { product, quantity, unitPrice: safePrice }]);
     }
 
     try {

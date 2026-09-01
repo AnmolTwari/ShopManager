@@ -16,6 +16,7 @@ import { ReceiptModal } from '../components/ReceiptModal';
 import { useCart } from '../context/CartContext';
 import { productsApi, salesApi } from '../services/shopApi';
 import { colors } from '../theme/colors';
+import { ui } from '../theme/ui';
 import { Product, SaleResponse } from '../types';
 import * as Haptics from 'expo-haptics';
 import {
@@ -49,12 +50,23 @@ export const PosScreen: React.FC = () => {
     loadProducts();
   }, []);
 
+  const [loadError, setLoadError] = useState<string | null>(null);
+
+  function safeNum(v: any, fallback = 0): number {
+    if (typeof v === 'number' && Number.isFinite(v)) return v;
+    const n = parseFloat(String(v ?? ''));
+    return Number.isFinite(n) ? n : fallback;
+  }
+
   const loadProducts = async () => {
+    setLoadError(null);
     try {
-      const data = await productsApi.list();
-      setProducts(data.filter((p) => p.active));
-    } catch (e) {
+      const data = await productsApi.list({ size: 100 });
+      const safe = Array.isArray(data) ? data : [];
+      setProducts(safe.filter((p) => p.active));
+    } catch (e: any) {
       console.warn('Error loading products for POS:', e);
+      setLoadError(e?.message || 'Failed to load products');
     }
   };
 
@@ -84,12 +96,11 @@ export const PosScreen: React.FC = () => {
 
   const filteredProducts = products.filter((p) => {
     if (!searchQuery.trim()) return false;
-    const q = searchQuery.toLowerCase();
-    return (
-      p.name.toLowerCase().includes(q) ||
-      (p.sku && p.sku.toLowerCase().includes(q)) ||
-      (p.brand && p.brand.toLowerCase().includes(q))
-    );
+    const q = searchQuery.trim().toLowerCase().slice(0, 100);
+    const name = (p.name || '').toLowerCase();
+    const sku = (p.sku || '').toLowerCase();
+    const brand = (p.brand || '').toLowerCase();
+    return name.includes(q) || sku.includes(q) || brand.includes(q);
   });
 
   const handleCheckoutSubmit = async () => {
@@ -126,14 +137,17 @@ export const PosScreen: React.FC = () => {
 
       {/* Top Search & Barcode Trigger */}
       <View style={styles.topControl}>
-        <View style={styles.searchBox}>
+        <View style={ui.searchBox}>
           <Search size={18} color={colors.textMuted} />
           <TextInput
-            style={styles.searchInput}
+            style={ui.searchInput}
             placeholder="Search product name or SKU..."
             placeholderTextColor={colors.textLight}
             value={searchQuery}
             onChangeText={setSearchQuery}
+            maxLength={100}
+            autoCorrect={false}
+            autoCapitalize="none"
           />
           {searchQuery ? (
             <TouchableOpacity onPress={() => setSearchQuery('')}>
@@ -151,6 +165,12 @@ export const PosScreen: React.FC = () => {
           <Text style={styles.scanCameraText}>Scan</Text>
         </TouchableOpacity>
       </View>
+
+      {loadError ? (
+        <View style={{ marginHorizontal: 16, marginTop: 8, backgroundColor: colors.dangerLight, borderRadius: 8, padding: 10, borderWidth: 1, borderColor: '#fecaca' }}>
+          <Text style={{ color: colors.danger, fontSize: 12, fontWeight: '700' }}>{loadError}</Text>
+        </View>
+      ) : null}
 
       {/* Search Result Overlay if typing */}
       {searchQuery.trim().length > 0 && (
@@ -177,7 +197,7 @@ export const PosScreen: React.FC = () => {
                     </Text>
                   </View>
                   <View style={{ alignItems: 'flex-end' }}>
-                    <Text style={styles.searchItemPrice}>₹{item.sellingPrice.toFixed(2)}</Text>
+                    <Text style={styles.searchItemPrice}>₹{safeNum(item.sellingPrice).toFixed(2)}</Text>
                     <Text style={styles.addTapText}>+ Add</Text>
                   </View>
                 </TouchableOpacity>
@@ -214,7 +234,7 @@ export const PosScreen: React.FC = () => {
                       {item.product.name}
                     </Text>
                     <Text style={styles.cartItemUnit}>
-                      ₹{item.unitPrice.toFixed(2)} / {item.product.unit || 'unit'} • Stock: {item.product.currentQuantity}
+                      ₹{safeNum(item.unitPrice).toFixed(2)} / {item.product.unit || 'unit'} • Stock: {safeNum(item.product.currentQuantity)}
                     </Text>
                   </View>
 
@@ -242,7 +262,7 @@ export const PosScreen: React.FC = () => {
                   </View>
 
                   <Text style={styles.cartItemTotal}>
-                    ₹{(item.quantity * item.unitPrice).toFixed(2)}
+                    ₹{(safeNum(item.quantity) * safeNum(item.unitPrice)).toFixed(2)}
                   </Text>
 
                   <TouchableOpacity
@@ -275,8 +295,8 @@ export const PosScreen: React.FC = () => {
         <View style={styles.checkoutBar}>
           <View style={styles.checkoutInfo}>
             <Text style={styles.checkoutLabel}>Grand Total ({totalItems} items)</Text>
-            <Text style={styles.checkoutTotal}>₹{totalAmount.toFixed(2)}</Text>
-            <Text style={styles.checkoutProfit}>Est. Profit: +₹{estimatedProfit.toFixed(2)}</Text>
+            <Text style={styles.checkoutTotal}>₹{safeNum(totalAmount).toFixed(2)}</Text>
+            <Text style={styles.checkoutProfit}>Est. Profit: +₹{safeNum(estimatedProfit).toFixed(2)}</Text>
           </View>
 
           <TouchableOpacity
@@ -299,10 +319,10 @@ export const PosScreen: React.FC = () => {
 
       {/* Checkout Confirmation Modal */}
       <Modal visible={checkoutModalOpen} animationType="slide" transparent>
-        <View style={styles.modalOverlay}>
-          <View style={styles.modalContent}>
-            <Text style={styles.modalTitle}>Confirm & Complete Sale</Text>
-            <Text style={styles.modalSubtitle}>Total Amount: ₹{totalAmount.toFixed(2)}</Text>
+        <View style={ui.modalOverlay}>
+          <View style={ui.modalContent}>
+            <Text style={ui.modalTitle}>Confirm & Complete Sale</Text>
+            <Text style={styles.modalSubtitle}>Total Amount: ₹{safeNum(totalAmount).toFixed(2)}</Text>
 
             {/* Payment Method Selector */}
             <Text style={styles.inputLabel}>Payment Method</Text>
@@ -350,13 +370,13 @@ export const PosScreen: React.FC = () => {
             />
 
             {/* Action Buttons */}
-            <View style={styles.modalActions}>
+            <View style={ui.modalActions}>
               <TouchableOpacity
-                style={styles.cancelBtn}
+                style={ui.btnGhost}
                 onPress={() => setCheckoutModalOpen(false)}
                 disabled={submitting}
               >
-                <Text style={styles.cancelBtnText}>Back</Text>
+                <Text style={ui.btnGhostText}>Back</Text>
               </TouchableOpacity>
 
               <TouchableOpacity
@@ -407,23 +427,8 @@ const styles = StyleSheet.create({
     borderBottomWidth: 1,
     borderBottomColor: colors.border,
   },
-  searchBox: {
-    flex: 1,
-    flexDirection: 'row',
-    alignItems: 'center',
-    backgroundColor: colors.bg,
-    borderRadius: 12,
-    borderWidth: 1,
-    borderColor: colors.border,
-    paddingHorizontal: 10,
-  },
-  searchInput: {
-    flex: 1,
-    height: 42,
-    fontSize: 13,
-    color: colors.text,
-    marginLeft: 6,
-  },
+  
+  
   clearSearchText: {
     fontSize: 11,
     fontWeight: '700',
@@ -662,23 +667,9 @@ const styles = StyleSheet.create({
     fontSize: 15,
     fontWeight: '800',
   },
-  modalOverlay: {
-    flex: 1,
-    backgroundColor: 'rgba(0,0,0,0.6)',
-    justifyContent: 'flex-end',
-  },
-  modalContent: {
-    backgroundColor: colors.surface,
-    borderTopLeftRadius: 24,
-    borderTopRightRadius: 24,
-    padding: 20,
-    paddingBottom: 30,
-  },
-  modalTitle: {
-    fontSize: 18,
-    fontWeight: '800',
-    color: colors.text,
-  },
+  
+  
+  
   modalSubtitle: {
     fontSize: 14,
     fontWeight: '700',
@@ -733,25 +724,9 @@ const styles = StyleSheet.create({
     color: colors.text,
     marginBottom: 18,
   },
-  modalActions: {
-    flexDirection: 'row',
-    gap: 10,
-  },
-  cancelBtn: {
-    flex: 1,
-    alignItems: 'center',
-    justifyContent: 'center',
-    backgroundColor: colors.bg,
-    paddingVertical: 12,
-    borderRadius: 12,
-    borderWidth: 1,
-    borderColor: colors.border,
-  },
-  cancelBtnText: {
-    fontSize: 14,
-    fontWeight: '700',
-    color: colors.text,
-  },
+  
+  
+  
   confirmBtn: {
     flex: 2,
     flexDirection: 'row',

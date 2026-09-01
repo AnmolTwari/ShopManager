@@ -27,14 +27,27 @@ export const RegisterScreen: React.FC<RegisterScreenProps> = ({ onSwitchToLogin 
   const [loading, setLoading] = useState(false);
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
 
+  const isValidEmail = (v: string) => /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(v);
+
   const handleRegister = async () => {
-    if (!username.trim() || !email.trim() || !password.trim()) {
+    const cleanUser = username.trim().slice(0, 50).replace(/[\x00-\x1F\x7F]/g, '');
+    const cleanEmail = email.trim().slice(0, 254).toLowerCase();
+    const cleanName = name.trim().slice(0, 80).replace(/[\x00-\x1F\x7F]/g, '');
+
+    if (!cleanUser || !cleanEmail || !password.trim()) {
       setErrorMessage('Please fill in all required fields (username, email, password).');
       return;
     }
-
-    if (password.length < 6) {
-      setErrorMessage('Password must be at least 6 characters.');
+    if (cleanUser.length < 3 || !/^[a-zA-Z0-9._-]+$/.test(cleanUser)) {
+      setErrorMessage('Username must be 3+ chars, only letters, numbers, . _ - allowed.');
+      return;
+    }
+    if (!isValidEmail(cleanEmail)) {
+      setErrorMessage('Please enter a valid email address.');
+      return;
+    }
+    if (password.length < 6 || password.length > 128) {
+      setErrorMessage('Password must be 6 to 128 characters.');
       return;
     }
 
@@ -43,10 +56,10 @@ export const RegisterScreen: React.FC<RegisterScreenProps> = ({ onSwitchToLogin 
 
     try {
       await register({
-        username: username.trim(),
-        email: email.trim(),
+        username: cleanUser,
+        email: cleanEmail,
         password,
-        name: name.trim() || undefined,
+        name: cleanName || undefined,
       });
     } catch (err: any) {
       setErrorMessage(err.message || 'Registration failed. Username or email may already be taken.');
@@ -91,7 +104,9 @@ export const RegisterScreen: React.FC<RegisterScreenProps> = ({ onSwitchToLogin 
                 placeholder="e.g. Green Grocery Store"
                 placeholderTextColor={colors.textLight}
                 value={name}
-                onChangeText={setName}
+                onChangeText={(v) => setName(v.slice(0, 80))}
+                maxLength={80}
+                autoCorrect={false}
               />
             </View>
           </View>
@@ -107,10 +122,12 @@ export const RegisterScreen: React.FC<RegisterScreenProps> = ({ onSwitchToLogin 
                 placeholderTextColor={colors.textLight}
                 value={username}
                 onChangeText={(text) => {
-                  setUsername(text);
+                  setUsername(text.slice(0, 50));
                   setErrorMessage(null);
                 }}
                 autoCapitalize="none"
+                autoCorrect={false}
+                maxLength={50}
               />
             </View>
           </View>
@@ -126,11 +143,13 @@ export const RegisterScreen: React.FC<RegisterScreenProps> = ({ onSwitchToLogin 
                 placeholderTextColor={colors.textLight}
                 value={email}
                 onChangeText={(text) => {
-                  setEmail(text);
+                  setEmail(text.slice(0, 254));
                   setErrorMessage(null);
                 }}
                 keyboardType="email-address"
                 autoCapitalize="none"
+                autoCorrect={false}
+                maxLength={254}
               />
             </View>
           </View>
@@ -147,10 +166,11 @@ export const RegisterScreen: React.FC<RegisterScreenProps> = ({ onSwitchToLogin 
                 secureTextEntry
                 value={password}
                 onChangeText={(text) => {
-                  setPassword(text);
+                  setPassword(text.slice(0, 128));
                   setErrorMessage(null);
                 }}
                 autoCapitalize="none"
+                maxLength={128}
               />
             </View>
           </View>

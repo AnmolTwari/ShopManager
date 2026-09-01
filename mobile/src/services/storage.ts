@@ -99,4 +99,16 @@ export const storage = {
       return null;
     }
   },
+
+  async removeCustomApiUrl(): Promise<void> {
+    try {
+      if (Platform.OS === 'web') {
+        localStorage.removeItem(API_URL_KEY);
+      } else {
+        await SecureStore.deleteItemAsync(API_URL_KEY);
+      }
+    } catch (e) {
+      console.warn('Failed to delete custom API URL', e);
+    }
+  },
 };

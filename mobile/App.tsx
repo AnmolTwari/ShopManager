@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import { ActivityIndicator, SafeAreaView, StatusBar, StyleSheet, View } from 'react-native';
 import { BottomTabBar, TabScreen } from './src/components/BottomTabBar';
+import { ErrorBoundary } from './src/components/ErrorBoundary';
 import { AuthProvider, useAuth } from './src/context/AuthContext';
 import { CartProvider } from './src/context/CartContext';
 import { DashboardScreen } from './src/screens/DashboardScreen';
@@ -65,11 +66,13 @@ const MainNavigator: React.FC = () => {
 
 export default function App() {
   return (
-    <AuthProvider>
-      <CartProvider>
-        <MainNavigator />
-      </CartProvider>
-    </AuthProvider>
+    <ErrorBoundary>
+      <AuthProvider>
+        <CartProvider>
+          <MainNavigator />
+        </CartProvider>
+      </AuthProvider>
+    </ErrorBoundary>
   );
 }
 

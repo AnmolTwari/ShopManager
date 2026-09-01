@@ -12,6 +12,7 @@ import { Header } from '../components/Header';
 import { MetricCard } from '../components/MetricCard';
 import { reportsApi } from '../services/shopApi';
 import { colors } from '../theme/colors';
+import { ui } from '../theme/ui';
 import { ReportSummary } from '../types';
 import {
   IndianRupee,
@@ -105,7 +106,7 @@ export const ReportsScreen: React.FC = () => {
         </View>
 
         {loading && !summary ? (
-          <View style={styles.centerBox}>
+          <View style={ui.emptyBox}>
             <ActivityIndicator size="large" color={colors.primary} />
           </View>
         ) : (
@@ -273,9 +274,5 @@ const styles = StyleSheet.create({
     color: colors.textMuted,
     lineHeight: 18,
   },
-  centerBox: {
-    paddingVertical: 50,
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
+  
 });

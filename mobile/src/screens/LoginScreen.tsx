@@ -27,8 +27,13 @@ export const LoginScreen: React.FC<LoginScreenProps> = ({ onSwitchToRegister }) 
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
 
   const handleLogin = async () => {
-    if (!username.trim() || !password.trim()) {
+    const cleanUser = username.trim().slice(0, 100).replace(/[\x00-\x1F\x7F]/g, '');
+    if (!cleanUser || !password.trim()) {
       setErrorMessage('Please enter both username/email and password.');
+      return;
+    }
+    if (password.length < 1 || password.length > 128) {
+      setErrorMessage('Password must be between 1 and 128 characters.');
       return;
     }
 
@@ -36,7 +41,7 @@ export const LoginScreen: React.FC<LoginScreenProps> = ({ onSwitchToRegister }) 
     setLoading(true);
 
     try {
-      await login({ username: username.trim(), password });
+      await login({ username: cleanUser, password });
     } catch (err: any) {
       setErrorMessage(err.message || 'Login failed. Please check your credentials.');
     } finally {
@@ -81,11 +86,13 @@ export const LoginScreen: React.FC<LoginScreenProps> = ({ onSwitchToRegister }) 
                 placeholderTextColor={colors.textLight}
                 value={username}
                 onChangeText={(text) => {
-                  setUsername(text);
+                  setUsername(text.slice(0, 100));
                   setErrorMessage(null);
                 }}
                 autoCapitalize="none"
                 autoCorrect={false}
+                maxLength={100}
+                keyboardType="default"
               />
             </View>
           </View>
@@ -102,10 +109,11 @@ export const LoginScreen: React.FC<LoginScreenProps> = ({ onSwitchToRegister }) 
                 secureTextEntry={!showPassword}
                 value={password}
                 onChangeText={(text) => {
-                  setPassword(text);
+                  setPassword(text.slice(0, 128));
                   setErrorMessage(null);
                 }}
                 autoCapitalize="none"
+                maxLength={128}
               />
               <TouchableOpacity
                 onPress={() => setShowPassword((p) => !p)}

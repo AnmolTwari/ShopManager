@@ -15,6 +15,7 @@ import { BarcodeScannerModal } from '../components/BarcodeScannerModal';
 import { Header } from '../components/Header';
 import { inventoryApi, productsApi } from '../services/shopApi';
 import { colors } from '../theme/colors';
+import { ui } from '../theme/ui';
 import { Product, StockAdjustmentRequest, StockInRequest, StockMovement } from '../types';
 import {
   Layers,
@@ -51,30 +52,42 @@ export const InventoryScreen: React.FC = () => {
     loadData();
   }, []);
 
+  const [errorMsg, setErrorMsg] = useState<string | null>(null);
+
+  function safeQty(v: any): string {
+    if (v == null) return '0';
+    const n = typeof v === 'number' ? v : parseFloat(String(v));
+    return Number.isFinite(n) ? String(n) : '0';
+  }
+
   const loadData = async () => {
+    setErrorMsg(null);
     try {
       const [movData, prodData] = await Promise.all([
         inventoryApi.listMovements(),
-        productsApi.list(),
+        productsApi.list({ size: 100 }),
       ]);
-      setMovements(movData);
-      setProducts(prodData.filter((p) => p.active));
-    } catch (e) {
+      setMovements(Array.isArray(movData) ? movData : []);
+      const safeProds = Array.isArray(prodData) ? prodData : [];
+      setProducts(safeProds.filter((p) => p.active));
+    } catch (e: any) {
       console.warn('Error loading inventory data:', e);
+      setErrorMsg(e?.message || 'Failed to load inventory data');
     } finally {
       setLoading(false);
     }
   };
 
   const handleBarcodeScanned = (code: string) => {
+    const clean = code.trim().slice(0, 100).toLowerCase();
     const matched = products.find(
-      (p) => p.sku?.toLowerCase() === code.toLowerCase() || p.name.toLowerCase().includes(code.toLowerCase())
+      (p) => (p.sku && p.sku.toLowerCase() === clean) || (p.name && p.name.toLowerCase().includes(clean))
     );
 
     if (matched) {
       setSelectedProductId(matched.id);
       if (scannerTarget === 'adjust') {
-        setAdjustNewQty(matched.currentQuantity.toString());
+        setAdjustNewQty(safeQty(matched.currentQuantity));
       }
       setScannerOpen(false);
     } else {
@@ -87,13 +100,18 @@ export const InventoryScreen: React.FC = () => {
       Alert.alert('Missing Fields', 'Please select a product and enter quantity to add.');
       return;
     }
+    const qty = parseFloat(stockInQty);
+    if (!Number.isFinite(qty) || qty <= 0 || qty > 100000) {
+      Alert.alert('Invalid Quantity', 'Quantity must be between 0 and 100,000.');
+      return;
+    }
 
     setSubmitting(true);
     try {
       const payload: StockInRequest = {
         productId: selectedProductId,
-        quantity: parseFloat(stockInQty) || 0,
-        reason: stockInReason.trim() || null,
+        quantity: qty,
+        reason: stockInReason.trim().slice(0, 200) || null,
       };
 
       await inventoryApi.stockIn(payload);
@@ -112,13 +130,18 @@ export const InventoryScreen: React.FC = () => {
       Alert.alert('Missing Fields', 'Please select a product and enter the updated quantity.');
       return;
     }
+    const newQ = parseFloat(adjustNewQty);
+    if (!Number.isFinite(newQ) || newQ < 0 || newQ > 100000) {
+      Alert.alert('Invalid Quantity', 'New quantity must be between 0 and 100,000.');
+      return;
+    }
 
     setSubmitting(true);
     try {
       const payload: StockAdjustmentRequest = {
         productId: selectedProductId,
-        newQuantity: parseFloat(adjustNewQty) || 0,
-        reason: adjustReason.trim() || null,
+        newQuantity: newQ,
+        reason: adjustReason.trim().slice(0, 200) || null,
       };
 
       await inventoryApi.adjust(payload);
@@ -149,6 +172,11 @@ export const InventoryScreen: React.FC = () => {
   return (
     <View style={styles.container}>
       <Header title="Stock & Inventory" subtitle="Inflow, Adjustments & History" />
+      {errorMsg ? (
+        <View style={{ marginHorizontal: 16, marginTop: 8, backgroundColor: colors.dangerLight, borderRadius: 8, padding: 10, borderWidth: 1, borderColor: '#fecaca' }}>
+          <Text style={{ color: colors.danger, fontSize: 12, fontWeight: '700' }}>{errorMsg}</Text>
+        </View>
+      ) : null}
 
       {/* Quick Action Trigger Cards */}
       <View style={styles.actionRow}>
@@ -190,7 +218,7 @@ export const InventoryScreen: React.FC = () => {
       </View>
 
       {loading ? (
-        <View style={styles.centerBox}>
+        <View style={ui.emptyBox}>
           <ActivityIndicator size="large" color={colors.primary} />
         </View>
       ) : movements.length > 0 ? (
@@ -250,7 +278,7 @@ export const InventoryScreen: React.FC = () => {
           }}
         />
       ) : (
-        <View style={styles.emptyBox}>
+        <View style={ui.emptyBox}>
           <Layers size={40} color={colors.textLight} />
           <Text style={styles.emptyTitle}>No Stock Movements Yet</Text>
           <Text style={styles.emptyDesc}>Recorded stock-ins and adjustments will appear here</Text>
@@ -259,10 +287,10 @@ export const InventoryScreen: React.FC = () => {
 
       {/* Stock In Modal */}
       <Modal visible={stockInModalOpen} animationType="slide" transparent>
-        <View style={styles.modalOverlay}>
-          <View style={styles.modalContent}>
-            <View style={styles.modalHeader}>
-              <Text style={styles.modalTitle}>Stock-In (Restock Goods)</Text>
+        <View style={ui.modalOverlay}>
+          <View style={ui.modalContent}>
+            <View style={ui.modalHeader}>
+              <Text style={ui.modalTitle}>Stock-In (Restock Goods)</Text>
               <TouchableOpacity onPress={() => setStockInModalOpen(false)}>
                 <X size={20} color={colors.text} />
               </TouchableOpacity>
@@ -311,7 +339,7 @@ export const InventoryScreen: React.FC = () => {
 
               <Text style={styles.inputLabel}>Quantity to Add *</Text>
               <TextInput
-                style={styles.formInput}
+                style={ui.input}
                 placeholder="e.g. 50"
                 placeholderTextColor={colors.textLight}
                 keyboardType="numeric"
@@ -321,7 +349,7 @@ export const InventoryScreen: React.FC = () => {
 
               <Text style={styles.inputLabel}>Invoice / Reason / Notes</Text>
               <TextInput
-                style={styles.formInput}
+                style={ui.input}
                 placeholder="e.g. Supplier Batch #902"
                 placeholderTextColor={colors.textLight}
                 value={stockInReason}
@@ -329,12 +357,12 @@ export const InventoryScreen: React.FC = () => {
               />
             </ScrollView>
 
-            <View style={styles.modalActions}>
-              <TouchableOpacity style={styles.cancelBtn} onPress={() => setStockInModalOpen(false)}>
-                <Text style={styles.cancelBtnText}>Cancel</Text>
+            <View style={ui.modalActions}>
+              <TouchableOpacity style={ui.btnGhost} onPress={() => setStockInModalOpen(false)}>
+                <Text style={ui.btnGhostText}>Cancel</Text>
               </TouchableOpacity>
               <TouchableOpacity
-                style={[styles.saveBtn, submitting && styles.saveBtnDisabled]}
+                style={[ui.btnPrimary, submitting && styles.saveBtnDisabled]}
                 onPress={handleStockInSubmit}
                 disabled={submitting}
               >
@@ -343,7 +371,7 @@ export const InventoryScreen: React.FC = () => {
                 ) : (
                   <>
                     <CheckCircle size={18} color="#fff" />
-                    <Text style={styles.saveBtnText}>Record Stock In</Text>
+                    <Text style={ui.btnPrimaryText}>Record Stock In</Text>
                   </>
                 )}
               </TouchableOpacity>
@@ -354,10 +382,10 @@ export const InventoryScreen: React.FC = () => {
 
       {/* Adjust Stock Modal */}
       <Modal visible={adjustModalOpen} animationType="slide" transparent>
-        <View style={styles.modalOverlay}>
-          <View style={styles.modalContent}>
-            <View style={styles.modalHeader}>
-              <Text style={styles.modalTitle}>Stock Adjustment</Text>
+        <View style={ui.modalOverlay}>
+          <View style={ui.modalContent}>
+            <View style={ui.modalHeader}>
+              <Text style={ui.modalTitle}>Stock Adjustment</Text>
               <TouchableOpacity onPress={() => setAdjustModalOpen(false)}>
                 <X size={20} color={colors.text} />
               </TouchableOpacity>
@@ -391,7 +419,7 @@ export const InventoryScreen: React.FC = () => {
                     style={[styles.quickProdPill, selectedProductId === p.id && styles.quickProdPillActive]}
                     onPress={() => {
                       setSelectedProductId(p.id);
-                      setAdjustNewQty(p.currentQuantity.toString());
+                      setAdjustNewQty(safeQty(p.currentQuantity));
                     }}
                   >
                     <Text
@@ -408,7 +436,7 @@ export const InventoryScreen: React.FC = () => {
 
               <Text style={styles.inputLabel}>New Total Quantity *</Text>
               <TextInput
-                style={styles.formInput}
+                style={ui.input}
                 placeholder="Enter exact shelf count"
                 placeholderTextColor={colors.textLight}
                 keyboardType="numeric"
@@ -432,12 +460,12 @@ export const InventoryScreen: React.FC = () => {
               </View>
             </ScrollView>
 
-            <View style={styles.modalActions}>
-              <TouchableOpacity style={styles.cancelBtn} onPress={() => setAdjustModalOpen(false)}>
-                <Text style={styles.cancelBtnText}>Cancel</Text>
+            <View style={ui.modalActions}>
+              <TouchableOpacity style={ui.btnGhost} onPress={() => setAdjustModalOpen(false)}>
+                <Text style={ui.btnGhostText}>Cancel</Text>
               </TouchableOpacity>
               <TouchableOpacity
-                style={[styles.saveBtn, submitting && styles.saveBtnDisabled]}
+                style={[ui.btnPrimary, submitting && styles.saveBtnDisabled]}
                 onPress={handleAdjustSubmit}
                 disabled={submitting}
               >
@@ -446,7 +474,7 @@ export const InventoryScreen: React.FC = () => {
                 ) : (
                   <>
                     <CheckCircle size={18} color="#fff" />
-                    <Text style={styles.saveBtnText}>Apply Adjustment</Text>
+                    <Text style={ui.btnPrimaryText}>Apply Adjustment</Text>
                   </>
                 )}
               </TouchableOpacity>
@@ -612,17 +640,8 @@ const styles = StyleSheet.create({
     color: colors.textMuted,
     marginTop: 2,
   },
-  centerBox: {
-    flex: 1,
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  emptyBox: {
-    flex: 1,
-    alignItems: 'center',
-    justifyContent: 'center',
-    padding: 30,
-  },
+  
+  
   emptyTitle: {
     fontSize: 14,
     fontWeight: '700',
@@ -634,29 +653,10 @@ const styles = StyleSheet.create({
     color: colors.textMuted,
     marginTop: 2,
   },
-  modalOverlay: {
-    flex: 1,
-    backgroundColor: 'rgba(0,0,0,0.6)',
-    justifyContent: 'flex-end',
-  },
-  modalContent: {
-    backgroundColor: colors.surface,
-    borderTopLeftRadius: 24,
-    borderTopRightRadius: 24,
-    padding: 20,
-    maxHeight: '90%',
-  },
-  modalHeader: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    marginBottom: 16,
-  },
-  modalTitle: {
-    fontSize: 18,
-    fontWeight: '800',
-    color: colors.text,
-  },
+  
+  
+  
+  
   formScroll: {
     paddingBottom: 16,
   },
@@ -719,17 +719,7 @@ const styles = StyleSheet.create({
     color: colors.primary,
     fontWeight: '700',
   },
-  formInput: {
-    height: 44,
-    backgroundColor: colors.bg,
-    borderRadius: 10,
-    borderWidth: 1,
-    borderColor: colors.border,
-    paddingHorizontal: 12,
-    fontSize: 13,
-    color: colors.text,
-    marginBottom: 12,
-  },
+  
   reasonRow: {
     flexDirection: 'row',
     flexWrap: 'wrap',
@@ -756,28 +746,9 @@ const styles = StyleSheet.create({
   reasonTextActive: {
     color: colors.warning,
   },
-  modalActions: {
-    flexDirection: 'row',
-    gap: 10,
-    paddingTop: 10,
-    borderTopWidth: 1,
-    borderTopColor: colors.border,
-  },
-  cancelBtn: {
-    flex: 1,
-    alignItems: 'center',
-    justifyContent: 'center',
-    backgroundColor: colors.bg,
-    paddingVertical: 12,
-    borderRadius: 12,
-    borderWidth: 1,
-    borderColor: colors.border,
-  },
-  cancelBtnText: {
-    fontSize: 13,
-    fontWeight: '700',
-    color: colors.text,
-  },
+  
+  
+  
   saveBtn: {
     flex: 2,
     flexDirection: 'row',
@@ -791,9 +762,5 @@ const styles = StyleSheet.create({
   saveBtnDisabled: {
     opacity: 0.6,
   },
-  saveBtnText: {
-    color: '#fff',
-    fontSize: 13,
-    fontWeight: '800',
-  },
+  
 });

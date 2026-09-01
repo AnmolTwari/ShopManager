@@ -16,6 +16,7 @@ import { api, DEFAULT_BASE_URL } from '../services/api';
 import { settingsApi } from '../services/shopApi';
 import { storage } from '../services/storage';
 import { colors } from '../theme/colors';
+import { ui } from '../theme/ui';
 import {
   User,
   Mail,
@@ -183,10 +184,10 @@ export const SettingsScreen: React.FC = () => {
 
       {/* Change Password Modal */}
       <Modal visible={passwordModalOpen} animationType="slide" transparent>
-        <View style={styles.modalOverlay}>
-          <View style={styles.modalContent}>
-            <View style={styles.modalHeader}>
-              <Text style={styles.modalTitle}>Change Password</Text>
+        <View style={ui.modalOverlay}>
+          <View style={ui.modalContent}>
+            <View style={ui.modalHeader}>
+              <Text style={ui.modalTitle}>Change Password</Text>
               <TouchableOpacity onPress={() => setPasswordModalOpen(false)}>
                 <X size={20} color={colors.text} />
               </TouchableOpacity>
@@ -194,7 +195,7 @@ export const SettingsScreen: React.FC = () => {
 
             <Text style={styles.inputLabel}>Current Password</Text>
             <TextInput
-              style={styles.formInput}
+              style={ui.input}
               placeholder="Enter current password"
               placeholderTextColor={colors.textLight}
               secureTextEntry
@@ -204,7 +205,7 @@ export const SettingsScreen: React.FC = () => {
 
             <Text style={styles.inputLabel}>New Password (min 6 chars)</Text>
             <TextInput
-              style={styles.formInput}
+              style={ui.input}
               placeholder="Enter new password"
               placeholderTextColor={colors.textLight}
               secureTextEntry
@@ -212,19 +213,19 @@ export const SettingsScreen: React.FC = () => {
               onChangeText={setNewPassword}
             />
 
-            <View style={styles.modalActions}>
-              <TouchableOpacity style={styles.cancelBtn} onPress={() => setPasswordModalOpen(false)}>
-                <Text style={styles.cancelBtnText}>Cancel</Text>
+            <View style={ui.modalActions}>
+              <TouchableOpacity style={[ui.btnGhost, {flex:1}]} onPress={() => setPasswordModalOpen(false)}>
+                <Text style={ui.btnGhostText}>Cancel</Text>
               </TouchableOpacity>
               <TouchableOpacity
-                style={[styles.saveBtn, passwordSubmitting && styles.saveBtnDisabled]}
+                style={[ui.btnPrimary, {flex:2}, passwordSubmitting && {opacity:0.6}]}
                 onPress={handlePasswordSubmit}
                 disabled={passwordSubmitting}
               >
                 {passwordSubmitting ? (
                   <ActivityIndicator color="#fff" />
                 ) : (
-                  <Text style={styles.saveBtnText}>Update Password</Text>
+                  <Text style={ui.btnPrimaryText}>Update Password</Text>
                 )}
               </TouchableOpacity>
             </View>
@@ -234,10 +235,10 @@ export const SettingsScreen: React.FC = () => {
 
       {/* Change Email Modal */}
       <Modal visible={emailModalOpen} animationType="slide" transparent>
-        <View style={styles.modalOverlay}>
-          <View style={styles.modalContent}>
-            <View style={styles.modalHeader}>
-              <Text style={styles.modalTitle}>Change Email Address</Text>
+        <View style={ui.modalOverlay}>
+          <View style={ui.modalContent}>
+            <View style={ui.modalHeader}>
+              <Text style={ui.modalTitle}>Change Email Address</Text>
               <TouchableOpacity onPress={() => setEmailModalOpen(false)}>
                 <X size={20} color={colors.text} />
               </TouchableOpacity>
@@ -245,7 +246,7 @@ export const SettingsScreen: React.FC = () => {
 
             <Text style={styles.inputLabel}>New Email Address</Text>
             <TextInput
-              style={styles.formInput}
+              style={ui.input}
               placeholder="new@example.com"
               placeholderTextColor={colors.textLight}
               keyboardType="email-address"
@@ -256,7 +257,7 @@ export const SettingsScreen: React.FC = () => {
 
             <Text style={styles.inputLabel}>Current Password (for security)</Text>
             <TextInput
-              style={styles.formInput}
+              style={ui.input}
               placeholder="Confirm with your password"
               placeholderTextColor={colors.textLight}
               secureTextEntry
@@ -264,19 +265,19 @@ export const SettingsScreen: React.FC = () => {
               onChangeText={setEmailPassword}
             />
 
-            <View style={styles.modalActions}>
-              <TouchableOpacity style={styles.cancelBtn} onPress={() => setEmailModalOpen(false)}>
-                <Text style={styles.cancelBtnText}>Cancel</Text>
+            <View style={ui.modalActions}>
+              <TouchableOpacity style={[ui.btnGhost, {flex:1}]} onPress={() => setEmailModalOpen(false)}>
+                <Text style={ui.btnGhostText}>Cancel</Text>
               </TouchableOpacity>
               <TouchableOpacity
-                style={[styles.saveBtn, emailSubmitting && styles.saveBtnDisabled]}
+                style={[ui.btnPrimary, {flex:2}, emailSubmitting && {opacity:0.6}]}
                 onPress={handleEmailSubmit}
                 disabled={emailSubmitting}
               >
                 {emailSubmitting ? (
                   <ActivityIndicator color="#fff" />
                 ) : (
-                  <Text style={styles.saveBtnText}>Update Email</Text>
+                  <Text style={ui.btnPrimaryText}>Update Email</Text>
                 )}
               </TouchableOpacity>
             </View>
@@ -286,10 +287,10 @@ export const SettingsScreen: React.FC = () => {
 
       {/* Backend URL Modal */}
       <Modal visible={urlModalOpen} animationType="slide" transparent>
-        <View style={styles.modalOverlay}>
-          <View style={styles.modalContent}>
-            <View style={styles.modalHeader}>
-              <Text style={styles.modalTitle}>Backend API Target</Text>
+        <View style={ui.modalOverlay}>
+          <View style={ui.modalContent}>
+            <View style={ui.modalHeader}>
+              <Text style={ui.modalTitle}>Backend API Target</Text>
               <TouchableOpacity onPress={() => setUrlModalOpen(false)}>
                 <X size={20} color={colors.text} />
               </TouchableOpacity>
@@ -297,7 +298,7 @@ export const SettingsScreen: React.FC = () => {
 
             <Text style={styles.inputLabel}>API Base URL</Text>
             <TextInput
-              style={styles.formInput}
+              style={ui.input}
               placeholder="https://your-backend.onrender.com/api"
               placeholderTextColor={colors.textLight}
               autoCapitalize="none"
@@ -312,12 +313,12 @@ export const SettingsScreen: React.FC = () => {
               <Text style={styles.presetUrlText}>Reset to Live Render Cloud URL</Text>
             </TouchableOpacity>
 
-            <View style={styles.modalActions}>
-              <TouchableOpacity style={styles.cancelBtn} onPress={() => setUrlModalOpen(false)}>
-                <Text style={styles.cancelBtnText}>Cancel</Text>
+            <View style={ui.modalActions}>
+              <TouchableOpacity style={[ui.btnGhost, {flex:1}]} onPress={() => setUrlModalOpen(false)}>
+                <Text style={ui.btnGhostText}>Cancel</Text>
               </TouchableOpacity>
-              <TouchableOpacity style={styles.saveBtn} onPress={handleSaveApiUrl}>
-                <Text style={styles.saveBtnText}>Save URL</Text>
+              <TouchableOpacity style={[ui.btnPrimary, {flex:2}]} onPress={handleSaveApiUrl}>
+                <Text style={ui.btnPrimaryText}>Save URL</Text>
               </TouchableOpacity>
             </View>
           </View>
@@ -447,28 +448,10 @@ const styles = StyleSheet.create({
     color: colors.textLight,
     marginTop: 20,
   },
-  modalOverlay: {
-    flex: 1,
-    backgroundColor: 'rgba(0,0,0,0.6)',
-    justifyContent: 'flex-end',
-  },
-  modalContent: {
-    backgroundColor: colors.surface,
-    borderTopLeftRadius: 24,
-    borderTopRightRadius: 24,
-    padding: 20,
-  },
-  modalHeader: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    marginBottom: 16,
-  },
-  modalTitle: {
-    fontSize: 18,
-    fontWeight: '800',
-    color: colors.text,
-  },
+  
+  
+  
+  
   inputLabel: {
     fontSize: 11,
     fontWeight: '700',
@@ -476,17 +459,7 @@ const styles = StyleSheet.create({
     textTransform: 'uppercase',
     marginBottom: 5,
   },
-  formInput: {
-    height: 44,
-    backgroundColor: colors.bg,
-    borderRadius: 10,
-    borderWidth: 1,
-    borderColor: colors.border,
-    paddingHorizontal: 12,
-    fontSize: 13,
-    color: colors.text,
-    marginBottom: 12,
-  },
+  
   presetUrlBtn: {
     paddingVertical: 8,
     marginBottom: 12,
@@ -496,40 +469,10 @@ const styles = StyleSheet.create({
     fontWeight: '700',
     color: colors.primary,
   },
-  modalActions: {
-    flexDirection: 'row',
-    gap: 10,
-    marginTop: 6,
-  },
-  cancelBtn: {
-    flex: 1,
-    alignItems: 'center',
-    justifyContent: 'center',
-    backgroundColor: colors.bg,
-    paddingVertical: 12,
-    borderRadius: 12,
-    borderWidth: 1,
-    borderColor: colors.border,
-  },
-  cancelBtnText: {
-    fontSize: 13,
-    fontWeight: '700',
-    color: colors.text,
-  },
-  saveBtn: {
-    flex: 2,
-    alignItems: 'center',
-    justifyContent: 'center',
-    backgroundColor: colors.primary,
-    paddingVertical: 12,
-    borderRadius: 12,
-  },
-  saveBtnDisabled: {
-    opacity: 0.6,
-  },
-  saveBtnText: {
-    color: '#fff',
-    fontSize: 13,
-    fontWeight: '800',
-  },
+  
+  
+  
+  
+  
+  
 });
