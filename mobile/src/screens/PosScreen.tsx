@@ -311,11 +311,13 @@ export const PosScreen: React.FC = () => {
       )}
 
       {/* Barcode Scanner Modal */}
-      <BarcodeScannerModal
-        visible={scannerOpen}
-        onClose={() => setScannerOpen(false)}
-        onScan={handleBarcodeScanned}
-      />
+      {scannerOpen && (
+        <BarcodeScannerModal
+          visible={scannerOpen}
+          onClose={() => setScannerOpen(false)}
+          onScan={handleBarcodeScanned}
+        />
+      )}
 
       {/* Checkout Confirmation Modal */}
       <Modal visible={checkoutModalOpen} animationType="slide" transparent>

@@ -32,6 +32,12 @@ export const BarcodeScannerModal: React.FC<BarcodeScannerModalProps> = ({
   const [manualSku, setManualSku] = useState<string>('');
   const [scannedRecently, setScannedRecently] = useState<boolean>(false);
 
+  // CRITICAL: Do not mount CameraView or modal in the background when not visible.
+  // This prevents native Android/iOS Camera2 hardware lock and crashes.
+  if (!visible) {
+    return null;
+  }
+
   const handleBarcodeScanned = ({ data }: { data: string }) => {
     if (scannedRecently || !data) return;
 

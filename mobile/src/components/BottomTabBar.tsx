@@ -1,5 +1,6 @@
 import React from 'react';
 import { Platform, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { colors } from '../theme/colors';
 import { useCart } from '../context/CartContext';
 import {
@@ -20,6 +21,13 @@ interface BottomTabBarProps {
 
 export const BottomTabBar: React.FC<BottomTabBarProps> = ({ currentTab, onTabChange }) => {
   const { totalItems } = useCart();
+  const insets = useSafeAreaInsets();
+
+  // Dynamic bottom padding: lifts the menu cleanly above Android 3-button navigation, gesture bars, and iOS home indicator
+  const safeBottomPadding = Math.max(
+    insets.bottom > 0 ? insets.bottom + 6 : 0,
+    Platform.OS === 'android' ? 28 : 16
+  );
 
   const tabs: { id: TabScreen; label: string; icon: React.ComponentType<{ size: number; color: string; strokeWidth?: number }> }[] = [
     { id: 'dashboard', label: 'Home', icon: LayoutDashboard },
@@ -31,7 +39,7 @@ export const BottomTabBar: React.FC<BottomTabBarProps> = ({ currentTab, onTabCha
   ];
 
   return (
-    <View style={styles.container}>
+    <View style={[styles.container, { paddingBottom: safeBottomPadding }]}>
       {tabs.map((tab) => {
         const isActive = currentTab === tab.id;
         const IconComponent = tab.icon;
@@ -69,7 +77,6 @@ const styles = StyleSheet.create({
     borderTopWidth: 1,
     borderTopColor: colors.border,
     paddingTop: 8,
-    paddingBottom: Platform.OS === 'android' ? 12 : 24,
     paddingHorizontal: 6,
     justifyContent: 'space-around',
     alignItems: 'center',

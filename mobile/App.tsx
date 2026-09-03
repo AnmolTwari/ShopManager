@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
-import { ActivityIndicator, SafeAreaView, StatusBar, StyleSheet, View } from 'react-native';
+import { ActivityIndicator, StatusBar, StyleSheet, View } from 'react-native';
+import { SafeAreaProvider } from 'react-native-safe-area-context';
 import { BottomTabBar, TabScreen } from './src/components/BottomTabBar';
 import { ErrorBoundary } from './src/components/ErrorBoundary';
 import { AuthProvider, useAuth } from './src/context/AuthContext';
@@ -56,23 +57,25 @@ const MainNavigator: React.FC = () => {
   };
 
   return (
-    <SafeAreaView style={styles.mainContainer}>
+    <View style={styles.mainContainer}>
       <StatusBar barStyle="dark-content" backgroundColor={colors.surface} />
       <View style={styles.screenContainer}>{renderTabScreen()}</View>
       <BottomTabBar currentTab={currentTab} onTabChange={setCurrentTab} />
-    </SafeAreaView>
+    </View>
   );
 };
 
 export default function App() {
   return (
-    <ErrorBoundary>
-      <AuthProvider>
-        <CartProvider>
-          <MainNavigator />
-        </CartProvider>
-      </AuthProvider>
-    </ErrorBoundary>
+    <SafeAreaProvider>
+      <ErrorBoundary>
+        <AuthProvider>
+          <CartProvider>
+            <MainNavigator />
+          </CartProvider>
+        </AuthProvider>
+      </ErrorBoundary>
+    </SafeAreaProvider>
   );
 }
 

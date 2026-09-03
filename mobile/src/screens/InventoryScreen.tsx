@@ -484,13 +484,15 @@ export const InventoryScreen: React.FC = () => {
       </Modal>
 
       {/* Barcode Scanner */}
-      <BarcodeScannerModal
-        visible={scannerOpen}
-        onClose={() => setScannerOpen(false)}
-        onScan={handleBarcodeScanned}
-        title="Scan Item to Update Stock"
-        subtitle="Align barcode to select product"
-      />
+      {scannerOpen && (
+        <BarcodeScannerModal
+          visible={scannerOpen}
+          onClose={() => setScannerOpen(false)}
+          onScan={handleBarcodeScanned}
+          title="Scan Item to Update Stock"
+          subtitle="Align barcode to select product"
+        />
+      )}
     </View>
   );
 };

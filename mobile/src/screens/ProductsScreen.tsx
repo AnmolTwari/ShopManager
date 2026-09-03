@@ -261,9 +261,10 @@ export const ProductsScreen: React.FC = () => {
     ]);
   };
 
-  const filtered = useMemo(() => products, [products]);
+  const filtered = useMemo(() => (Array.isArray(products) ? products : []), [products]);
 
   const renderProductCard = ({ item }: { item: Product }) => {
+    if (!item) return null;
     const selling = safeNumber(item.sellingPrice, 0);
     const purchase = safeNumber(item.purchasePrice, 0);
     const margin = selling - purchase;
@@ -274,7 +275,7 @@ export const ProductsScreen: React.FC = () => {
         <View style={styles.cardHeader}>
           <View style={{ flex: 1, paddingRight: 8 }}>
             <Text style={styles.productName} numberOfLines={2}>
-              {item.name}
+              {item.name || 'Unnamed Product'}
             </Text>
             <Text style={styles.productSku} numberOfLines={1}>
               {item.categoryName ? `${item.categoryName} • ` : ''}
@@ -297,7 +298,7 @@ export const ProductsScreen: React.FC = () => {
           <View style={styles.priceCell}>
             <Text style={styles.priceLabel}>Unit / Margin</Text>
             <Text style={[styles.marginText, margin < 0 && { color: colors.danger }]}>
-              {item.unit} {margin >= 0 ? `(+${fmtCurrency(margin)})` : `(${fmtCurrency(margin)})`}
+              {item.unit || 'PIECE'} {margin >= 0 ? `(+${fmtCurrency(margin)})` : `(${fmtCurrency(margin)})`}
             </Text>
           </View>
         </View>
@@ -318,7 +319,7 @@ export const ProductsScreen: React.FC = () => {
 
   return (
     <View style={ui.screen}>
-      <Header title="Product Catalog" subtitle={`${products.length} active products`} onRefresh={onRefresh} isRefreshing={refreshing} />
+      <Header title="Product Catalog" subtitle={`${(products || []).length} active products`} onRefresh={onRefresh} isRefreshing={refreshing} />
 
       {/* Search & Add - uses framework ui.searchBox/ui.searchInput */}
       <View style={styles.searchBarRow}>
@@ -355,14 +356,14 @@ export const ProductsScreen: React.FC = () => {
           >
             <Text style={[styles.categoryPillText, selectedCategory === 'ALL' && styles.categoryPillTextActive]}>All</Text>
           </TouchableOpacity>
-          {categories.map((c) => (
+          {(categories || []).filter((c) => c && c.id != null).map((c) => (
             <TouchableOpacity
               key={c.id}
               style={[styles.categoryPill, selectedCategory === c.id && styles.categoryPillActive]}
               onPress={() => setSelectedCategory(c.id)}
             >
               <Text style={[styles.categoryPillText, selectedCategory === c.id && styles.categoryPillTextActive]} numberOfLines={1}>
-                {c.name}
+                {c.name || 'Category'}
               </Text>
             </TouchableOpacity>
           ))}
@@ -394,7 +395,7 @@ export const ProductsScreen: React.FC = () => {
       ) : (
         <FlatList
           data={filtered}
-          keyExtractor={(item) => item.id.toString()}
+          keyExtractor={(item, index) => (item?.id != null ? String(item.id) : String(index))}
           contentContainerStyle={styles.listContent}
           renderItem={renderProductCard}
           refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} colors={[colors.primary]} tintColor={colors.primary} />}
@@ -440,16 +441,16 @@ export const ProductsScreen: React.FC = () => {
                 </TouchableOpacity>
               </View>
               <ScrollView horizontal showsHorizontalScrollIndicator={false} style={styles.unitPickerScroll}>
-                {categories.length === 0 ? (
+                {(categories || []).length === 0 ? (
                   <Text style={styles.hintText}>No categories yet — create one.</Text>
                 ) : (
-                  categories.map((cat) => (
+                  (categories || []).filter((cat) => cat && cat.id != null).map((cat) => (
                     <TouchableOpacity
                       key={cat.id}
                       style={[styles.unitPill, categoryId === cat.id && styles.unitPillActive]}
                       onPress={() => setCategoryId(cat.id)}
                     >
-                      <Text style={[styles.unitText, categoryId === cat.id && styles.unitTextActive]}>{cat.name}</Text>
+                      <Text style={[styles.unitText, categoryId === cat.id && styles.unitTextActive]}>{cat.name || 'Category'}</Text>
                     </TouchableOpacity>
                   ))
                 )}
@@ -612,16 +613,18 @@ export const ProductsScreen: React.FC = () => {
         </View>
       </Modal>
 
-      <BarcodeScannerModal
-        visible={scannerOpen}
-        onClose={() => setScannerOpen(false)}
-        onScan={(scanned) => {
-          setSku(sanitizeSku(scanned));
-          setScannerOpen(false);
-        }}
-        title="Scan Product Barcode"
-        subtitle="Align barcode to auto-fill SKU"
-      />
+      {scannerOpen && (
+        <BarcodeScannerModal
+          visible={scannerOpen}
+          onClose={() => setScannerOpen(false)}
+          onScan={(scanned) => {
+            setSku(sanitizeSku(scanned));
+            setScannerOpen(false);
+          }}
+          title="Scan Product Barcode"
+          subtitle="Align barcode to auto-fill SKU"
+        />
+      )}
     </View>
   );
 };
