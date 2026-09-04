@@ -5,7 +5,6 @@ import {
   KeyboardAvoidingView,
   Platform,
   ScrollView,
-  StyleSheet,
   Text,
   TextInput,
   TouchableOpacity,
@@ -74,36 +73,36 @@ export const RegisterScreen: React.FC<RegisterScreenProps> = ({ onSwitchToLogin 
   return (
     <KeyboardAvoidingView
       behavior={Platform.OS === 'ios' ? 'padding' : undefined}
-      style={styles.container}
+      className="flex-1 bg-[#0f172a]"
     >
-      <ScrollView contentContainerStyle={styles.scrollContent} keyboardShouldPersistTaps="handled">
+      <ScrollView contentContainerClassName="flex-grow justify-center p-5" keyboardShouldPersistTaps="handled">
         {/* Header */}
-        <View style={styles.brandContainer}>
-          <View style={styles.logoBadge}>
-            <Image source={APP_LOGO} style={styles.logoImage} resizeMode="contain" />
+        <View className="mb-5 items-center">
+          <View className="mb-2.5 h-16 w-16 items-center justify-center overflow-hidden rounded-[18px] border-[1.5px] border-[rgba(5,150,105,0.4)] bg-[#0f172a]">
+            <Image source={APP_LOGO} className="h-16 w-16" resizeMode="contain" />
           </View>
-          <Text style={styles.brandTitle}>ShopManager</Text>
-          <Text style={styles.brandTagline}>Register Your Shop in Seconds</Text>
+          <Text className="text-2xl font-black text-white">ShopManager</Text>
+          <Text className="mt-0.5 text-center text-xs text-[#94a3b8]">Register Your Shop in Seconds</Text>
         </View>
 
         {/* Card */}
-        <View style={styles.card}>
-          <Text style={styles.cardTitle}>Create Shop Account</Text>
-          <Text style={styles.cardSubtitle}>Get full inventory, billing & analytics access</Text>
+        <View className="rounded-[22px] bg-white p-5 shadow-lg">
+          <Text className="text-[19px] font-extrabold text-[#0f172a]">Create Shop Account</Text>
+          <Text className="mb-3.5 mt-0.5 text-xs text-[#64748b]">Get full inventory, billing & analytics access</Text>
 
           {errorMessage && (
-            <View style={styles.errorBox}>
-              <Text style={styles.errorText}>{errorMessage}</Text>
+            <View className="mb-3 rounded-[10px] bg-[#fee2e2] p-2.5">
+              <Text className="text-xs font-semibold text-[#ef4444]">{errorMessage}</Text>
             </View>
           )}
 
           {/* Shop / Owner Name */}
-          <View style={styles.inputGroup}>
-            <Text style={styles.label}>Shop Name / Your Name</Text>
-            <View style={styles.inputWrapper}>
-              <Building2 size={18} color={colors.textMuted} style={styles.inputIcon} />
+          <View className="mb-3">
+            <Text className="mb-1.5 text-[11px] font-bold uppercase tracking-[0.4px] text-[#0f172a]">Shop Name / Your Name</Text>
+            <View className="h-11 flex-row items-center rounded-xl border border-[#e2e8f0] bg-[#f8fafc] px-3">
+              <Building2 size={18} color={colors.textMuted} className="mr-2" />
               <TextInput
-                style={styles.input}
+                className="h-11 flex-1 text-sm text-[#0f172a]"
                 placeholder="e.g. Green Grocery Store"
                 placeholderTextColor={colors.textLight}
                 value={name}
@@ -115,12 +114,12 @@ export const RegisterScreen: React.FC<RegisterScreenProps> = ({ onSwitchToLogin 
           </View>
 
           {/* Username */}
-          <View style={styles.inputGroup}>
-            <Text style={styles.label}>Username *</Text>
-            <View style={styles.inputWrapper}>
-              <User size={18} color={colors.textMuted} style={styles.inputIcon} />
+          <View className="mb-3">
+            <Text className="mb-1.5 text-[11px] font-bold uppercase tracking-[0.4px] text-[#0f172a]">Username *</Text>
+            <View className="h-11 flex-row items-center rounded-xl border border-[#e2e8f0] bg-[#f8fafc] px-3">
+              <User size={18} color={colors.textMuted} className="mr-2" />
               <TextInput
-                style={styles.input}
+                className="h-11 flex-1 text-sm text-[#0f172a]"
                 placeholder="e.g. greengrocery"
                 placeholderTextColor={colors.textLight}
                 value={username}
@@ -136,12 +135,12 @@ export const RegisterScreen: React.FC<RegisterScreenProps> = ({ onSwitchToLogin 
           </View>
 
           {/* Email */}
-          <View style={styles.inputGroup}>
-            <Text style={styles.label}>Email Address *</Text>
-            <View style={styles.inputWrapper}>
-              <Mail size={18} color={colors.textMuted} style={styles.inputIcon} />
+          <View className="mb-3">
+            <Text className="mb-1.5 text-[11px] font-bold uppercase tracking-[0.4px] text-[#0f172a]">Email Address *</Text>
+            <View className="h-11 flex-row items-center rounded-xl border border-[#e2e8f0] bg-[#f8fafc] px-3">
+              <Mail size={18} color={colors.textMuted} className="mr-2" />
               <TextInput
-                style={styles.input}
+                className="h-11 flex-1 text-sm text-[#0f172a]"
                 placeholder="owner@example.com"
                 placeholderTextColor={colors.textLight}
                 value={email}
@@ -158,12 +157,12 @@ export const RegisterScreen: React.FC<RegisterScreenProps> = ({ onSwitchToLogin 
           </View>
 
           {/* Password */}
-          <View style={styles.inputGroup}>
-            <Text style={styles.label}>Password (min 6 chars) *</Text>
-            <View style={styles.inputWrapper}>
-              <Lock size={18} color={colors.textMuted} style={styles.inputIcon} />
+          <View className="mb-3">
+            <Text className="mb-1.5 text-[11px] font-bold uppercase tracking-[0.4px] text-[#0f172a]">Password (min 6 chars) *</Text>
+            <View className="h-11 flex-row items-center rounded-xl border border-[#e2e8f0] bg-[#f8fafc] px-3">
+              <Lock size={18} color={colors.textMuted} className="mr-2" />
               <TextInput
-                style={styles.input}
+                className="h-11 flex-1 text-sm text-[#0f172a]"
                 placeholder="Create a strong password"
                 placeholderTextColor={colors.textLight}
                 secureTextEntry
@@ -180,25 +179,27 @@ export const RegisterScreen: React.FC<RegisterScreenProps> = ({ onSwitchToLogin 
 
           {/* Submit */}
           <TouchableOpacity
-            style={[styles.submitBtn, loading && styles.submitBtnDisabled]}
+            className="mt-2 h-12 flex-row items-center justify-center gap-2 rounded-[14px] bg-[#059669]"
+            style={loading ? { opacity: 0.6 } : undefined}
             onPress={handleRegister}
             disabled={loading}
+            activeOpacity={0.8}
           >
             {loading ? (
               <ActivityIndicator color="#fff" />
             ) : (
               <>
-                <Text style={styles.submitBtnText}>Create Shop Account</Text>
+                <Text className="text-sm font-extrabold text-white">Create Shop Account</Text>
                 <Sparkles size={16} color="#fff" />
               </>
             )}
           </TouchableOpacity>
 
           {/* Switch to Login */}
-          <View style={styles.switchRow}>
-            <Text style={styles.switchText}>Already have an account? </Text>
+          <View className="mt-4 flex-row justify-center">
+            <Text className="text-[13px] text-[#64748b]">Already have an account? </Text>
             <TouchableOpacity onPress={onSwitchToLogin}>
-              <Text style={styles.switchLink}>Sign In</Text>
+              <Text className="text-[13px] font-extrabold text-[#059669]">Sign In</Text>
             </TouchableOpacity>
           </View>
         </View>
@@ -206,139 +207,3 @@ export const RegisterScreen: React.FC<RegisterScreenProps> = ({ onSwitchToLogin 
     </KeyboardAvoidingView>
   );
 };
-
-const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-    backgroundColor: '#0f172a',
-  },
-  scrollContent: {
-    flexGrow: 1,
-    justifyContent: 'center',
-    padding: 20,
-  },
-  brandContainer: {
-    alignItems: 'center',
-    marginBottom: 20,
-  },
-  logoBadge: {
-    width: 64,
-    height: 64,
-    borderRadius: 20,
-    backgroundColor: '#0f172a',
-    alignItems: 'center',
-    justifyContent: 'center',
-    marginBottom: 10,
-    overflow: 'hidden',
-    borderWidth: 1.5,
-    borderColor: 'rgba(5, 150, 105, 0.4)',
-    elevation: 6,
-  },
-  logoImage: {
-    width: 64,
-    height: 64,
-  },
-  brandTitle: {
-    fontSize: 24,
-    fontWeight: '900',
-    color: '#fff',
-  },
-  brandTagline: {
-    fontSize: 13,
-    color: '#94a3b8',
-    marginTop: 2,
-  },
-  card: {
-    backgroundColor: colors.surface,
-    borderRadius: 24,
-    padding: 22,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 8 },
-    shadowOpacity: 0.15,
-    shadowRadius: 20,
-    elevation: 10,
-  },
-  cardTitle: {
-    fontSize: 20,
-    fontWeight: '800',
-    color: colors.text,
-  },
-  cardSubtitle: {
-    fontSize: 13,
-    color: colors.textMuted,
-    marginTop: 3,
-    marginBottom: 14,
-  },
-  errorBox: {
-    backgroundColor: colors.dangerLight,
-    padding: 10,
-    borderRadius: 10,
-    marginBottom: 12,
-  },
-  errorText: {
-    color: colors.danger,
-    fontSize: 12,
-    fontWeight: '600',
-  },
-  inputGroup: {
-    marginBottom: 12,
-  },
-  label: {
-    fontSize: 11,
-    fontWeight: '700',
-    color: colors.text,
-    marginBottom: 5,
-    textTransform: 'uppercase',
-    letterSpacing: 0.4,
-  },
-  inputWrapper: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    backgroundColor: colors.bg,
-    borderRadius: 12,
-    borderWidth: 1,
-    borderColor: colors.border,
-    paddingHorizontal: 12,
-  },
-  inputIcon: {
-    marginRight: 8,
-  },
-  input: {
-    flex: 1,
-    height: 44,
-    fontSize: 14,
-    color: colors.text,
-  },
-  submitBtn: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'center',
-    backgroundColor: colors.primary,
-    height: 48,
-    borderRadius: 14,
-    marginTop: 8,
-    gap: 8,
-  },
-  submitBtnDisabled: {
-    opacity: 0.6,
-  },
-  submitBtnText: {
-    color: '#fff',
-    fontSize: 14,
-    fontWeight: '800',
-  },
-  switchRow: {
-    flexDirection: 'row',
-    justifyContent: 'center',
-    marginTop: 16,
-  },
-  switchText: {
-    fontSize: 13,
-    color: colors.textMuted,
-  },
-  switchLink: {
-    fontSize: 13,
-    fontWeight: '800',
-    color: colors.primary,
-  },
-});

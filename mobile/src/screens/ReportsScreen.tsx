@@ -3,7 +3,6 @@ import {
   ActivityIndicator,
   RefreshControl,
   ScrollView,
-  StyleSheet,
   Text,
   TouchableOpacity,
   View,
@@ -12,7 +11,6 @@ import { Header } from '../components/Header';
 import { MetricCard } from '../components/MetricCard';
 import { reportsApi } from '../services/shopApi';
 import { colors } from '../theme/colors';
-import { ui } from '../theme/ui';
 import { ReportSummary } from '../types';
 import {
   IndianRupee,
@@ -78,15 +76,15 @@ export const ReportsScreen: React.FC = () => {
   const marginPct = totalRev > 0 ? (totalProfit / totalRev) * 100 : 0;
 
   return (
-    <View style={styles.container}>
+    <View className="flex-1 bg-[#f8fafc]">
       <Header title="Sales & Reports" subtitle="Revenue & Profit Analysis" onRefresh={onRefresh} isRefreshing={refreshing} />
 
       <ScrollView
-        contentContainerStyle={styles.scrollBody}
+        contentContainerClassName="p-4 pb-10"
         refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} colors={[colors.primary]} />}
       >
         {/* Preset Date Filter Pills */}
-        <View style={styles.presetRow}>
+        <View className="mb-4 flex-row gap-2">
           {[
             { id: 'today', label: 'Today' },
             { id: '7d', label: 'Last 7 Days' },
@@ -95,10 +93,10 @@ export const ReportsScreen: React.FC = () => {
           ].map((p) => (
             <TouchableOpacity
               key={p.id}
-              style={[styles.presetPill, preset === p.id && styles.presetPillActive]}
+              className={`flex-1 items-center justify-center rounded-[10px] border px-1 py-2 ${preset === p.id ? 'border-[#059669] bg-[#059669]' : 'border-[#e2e8f0] bg-white'}`}
               onPress={() => setPreset(p.id as DatePreset)}
             >
-              <Text style={[styles.presetText, preset === p.id && styles.presetTextActive]}>
+              <Text className={`text-[11px] font-bold ${preset === p.id ? 'text-white' : 'text-[#64748b]'}`}>
                 {p.label}
               </Text>
             </TouchableOpacity>
@@ -106,13 +104,13 @@ export const ReportsScreen: React.FC = () => {
         </View>
 
         {loading && !summary ? (
-          <View style={ui.emptyBox}>
+          <View className="items-center justify-center p-7 py-[60px]">
             <ActivityIndicator size="large" color={colors.primary} />
           </View>
         ) : (
           <>
             {/* Metric Summary Grid */}
-            <View style={styles.metricsGrid}>
+            <View className="flex-row gap-2.5">
               <MetricCard
                 label="Total Revenue"
                 value={`₹${totalRev.toLocaleString('en-IN', { minimumFractionDigits: 2 })}`}
@@ -130,7 +128,7 @@ export const ReportsScreen: React.FC = () => {
               />
             </View>
 
-            <View style={[styles.metricsGrid, { marginTop: 10 }]}>
+            <View className="mt-2.5 flex-row gap-2.5">
               <MetricCard
                 label="Total Bills"
                 value={totalSales}
@@ -149,21 +147,21 @@ export const ReportsScreen: React.FC = () => {
             </View>
 
             {/* Performance Summary Banner */}
-            <View style={styles.summaryCard}>
-              <View style={styles.summaryTitleRow}>
+            <View className="mt-3.5 rounded-2xl border border-[#e2e8f0] bg-white p-[18px]">
+              <View className="mb-3 flex-row items-center gap-1.5">
                 <Percent size={18} color={colors.primary} />
-                <Text style={styles.summaryTitle}>Profit Margin Overview</Text>
+                <Text className="text-sm font-extrabold text-[#0f172a]">Profit Margin Overview</Text>
               </View>
 
-              <View style={styles.marginRow}>
-                <Text style={styles.marginValueText}>{marginPct.toFixed(1)}%</Text>
-                <Text style={styles.marginLabelText}>Overall Profit Margin</Text>
+              <View className="mb-2">
+                <Text className="text-[28px] font-black text-[#059669]">{marginPct.toFixed(1)}%</Text>
+                <Text className="mt-0.5 text-xs font-semibold text-[#64748b]">Overall Profit Margin</Text>
               </View>
 
-              <View style={styles.progressTrack}>
+              <View className="mb-2.5 h-2 overflow-hidden rounded bg-[#f8fafc]">
                 <View
+                  className="h-full rounded"
                   style={[
-                    styles.progressBar,
                     {
                       width: `${Math.min(Math.max(marginPct, 5), 100)}%`,
                       backgroundColor: marginPct >= 15 ? colors.success : colors.warning,
@@ -172,7 +170,7 @@ export const ReportsScreen: React.FC = () => {
                 />
               </View>
 
-              <Text style={styles.summaryNote}>
+              <Text className="text-xs leading-[18px] text-[#64748b]">
                 {totalRev > 0
                   ? `For every ₹100 of sales, you earned ₹${marginPct.toFixed(1)} in net profit.`
                   : 'Record sales to track your profit margins in real-time.'}
@@ -185,94 +183,3 @@ export const ReportsScreen: React.FC = () => {
   );
 };
 
-const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-    backgroundColor: colors.bg,
-  },
-  scrollBody: {
-    padding: 16,
-    paddingBottom: 40,
-  },
-  presetRow: {
-    flexDirection: 'row',
-    gap: 8,
-    marginBottom: 16,
-  },
-  presetPill: {
-    flex: 1,
-    alignItems: 'center',
-    justifyContent: 'center',
-    backgroundColor: colors.surface,
-    paddingVertical: 9,
-    borderRadius: 10,
-    borderWidth: 1,
-    borderColor: colors.border,
-  },
-  presetPillActive: {
-    backgroundColor: colors.primary,
-    borderColor: colors.primary,
-  },
-  presetText: {
-    fontSize: 11,
-    fontWeight: '700',
-    color: colors.textMuted,
-  },
-  presetTextActive: {
-    color: '#fff',
-  },
-  metricsGrid: {
-    flexDirection: 'row',
-    gap: 10,
-  },
-  summaryCard: {
-    backgroundColor: colors.surface,
-    borderRadius: 16,
-    borderWidth: 1,
-    borderColor: colors.border,
-    padding: 18,
-    marginTop: 14,
-  },
-  summaryTitleRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 6,
-    marginBottom: 12,
-  },
-  summaryTitle: {
-    fontSize: 14,
-    fontWeight: '800',
-    color: colors.text,
-  },
-  marginRow: {
-    marginBottom: 8,
-  },
-  marginValueText: {
-    fontSize: 28,
-    fontWeight: '900',
-    color: colors.primary,
-  },
-  marginLabelText: {
-    fontSize: 12,
-    color: colors.textMuted,
-    fontWeight: '600',
-    marginTop: 2,
-  },
-  progressTrack: {
-    height: 8,
-    backgroundColor: colors.bg,
-    borderRadius: 4,
-    overflow: 'hidden',
-    marginBottom: 10,
-  },
-  progressBar: {
-    height: '100%',
-    borderRadius: 4,
-  },
-  summaryNote: {
-    fontSize: 12,
-    color: colors.textMuted,
-    lineHeight: 18,
-  },
-  
-});

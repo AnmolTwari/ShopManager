@@ -4,7 +4,6 @@ import {
   Alert,
   FlatList,
   Modal,
-  StyleSheet,
   Text,
   TextInput,
   TouchableOpacity,
@@ -16,7 +15,6 @@ import { ReceiptModal } from '../components/ReceiptModal';
 import { useCart } from '../context/CartContext';
 import { productsApi, salesApi } from '../services/shopApi';
 import { colors } from '../theme/colors';
-import { ui } from '../theme/ui';
 import { Product, SaleResponse } from '../types';
 import * as Haptics from 'expo-haptics';
 import {
@@ -132,15 +130,15 @@ export const PosScreen: React.FC = () => {
   };
 
   return (
-    <View style={styles.container}>
+    <View className="flex-1 bg-[#f8fafc]">
       <Header title="POS Billing" subtitle="Scan & Instant Checkout" />
 
       {/* Top Search & Barcode Trigger */}
-      <View style={styles.topControl}>
-        <View style={ui.searchBox}>
+      <View className="flex-row gap-2.5 border-b border-[#e2e8f0] bg-white px-4 py-2.5">
+        <View className="flex-1 flex-row items-center rounded-lg border border-[#e2e8f0] bg-[#f8fafc] px-2.5">
           <Search size={18} color={colors.textMuted} />
           <TextInput
-            style={ui.searchInput}
+            className="flex-1 text-sm text-[#0f172a]"
             placeholder="Search product name or SKU..."
             placeholderTextColor={colors.textLight}
             value={searchQuery}
@@ -151,18 +149,18 @@ export const PosScreen: React.FC = () => {
           />
           {searchQuery ? (
             <TouchableOpacity onPress={() => setSearchQuery('')}>
-              <Text style={styles.clearSearchText}>Clear</Text>
+              <Text className="text-[11px] font-bold text-[#059669]">Clear</Text>
             </TouchableOpacity>
           ) : null}
         </View>
 
         <TouchableOpacity
-          style={styles.scanCameraBtn}
+          className="flex-row items-center gap-1.5 rounded-xl bg-[#059669] px-4"
           onPress={() => setScannerOpen(true)}
           activeOpacity={0.8}
         >
           <Camera size={20} color="#fff" />
-          <Text style={styles.scanCameraText}>Scan</Text>
+          <Text className="text-[13px] font-extrabold text-white">Scan</Text>
         </TouchableOpacity>
       </View>
 
@@ -174,8 +172,8 @@ export const PosScreen: React.FC = () => {
 
       {/* Search Result Overlay if typing */}
       {searchQuery.trim().length > 0 && (
-        <View style={styles.searchOverlay}>
-          <Text style={styles.searchOverlayTitle}>
+        <View className="absolute left-4 right-4 top-[115px] z-[99] max-h-[260px] rounded-2xl border border-[#e2e8f0] bg-white p-3 shadow-lg">
+          <Text className="mb-2 text-xs font-extrabold uppercase text-[#64748b]">
             Matching Products ({filteredProducts.length})
           </Text>
           {filteredProducts.length > 0 ? (
@@ -184,38 +182,38 @@ export const PosScreen: React.FC = () => {
               keyExtractor={(item) => item.id.toString()}
               renderItem={({ item }) => (
                 <TouchableOpacity
-                  style={styles.searchItem}
+                  className="flex-row items-center justify-between border-b border-[#e2e8f0] py-2.5"
                   onPress={() => {
                     addItem(item, 1);
                     setSearchQuery('');
                   }}
                 >
-                  <View style={{ flex: 1 }}>
-                    <Text style={styles.searchItemName}>{item.name}</Text>
-                    <Text style={styles.searchItemSku}>
+                  <View className="flex-1">
+                    <Text className="text-sm font-bold text-[#0f172a]">{item.name}</Text>
+                    <Text className="mt-0.5 text-[11px] text-[#64748b]">
                       SKU: {item.sku || 'N/A'} • Stock: {item.currentQuantity}
                     </Text>
                   </View>
-                  <View style={{ alignItems: 'flex-end' }}>
-                    <Text style={styles.searchItemPrice}>₹{safeNum(item.sellingPrice).toFixed(2)}</Text>
-                    <Text style={styles.addTapText}>+ Add</Text>
+                  <View className="items-end">
+                    <Text className="text-sm font-extrabold text-[#059669]">₹{safeNum(item.sellingPrice).toFixed(2)}</Text>
+                    <Text className="mt-0.5 text-[11px] font-bold text-[#10b981]">+ Add</Text>
                   </View>
                 </TouchableOpacity>
               )}
             />
           ) : (
-            <Text style={styles.noSearchText}>No matching products found</Text>
+            <Text className="py-4 text-center text-[13px] text-[#64748b]">No matching products found</Text>
           )}
         </View>
       )}
 
       {/* Cart Items List */}
-      <View style={styles.cartContainer}>
-        <View style={styles.cartHeader}>
-          <Text style={styles.cartTitle}>Billing Cart ({totalItems} items)</Text>
+      <View className="flex-1 p-4">
+        <View className="mb-2.5 flex-row items-center justify-between">
+          <Text className="text-[15px] font-extrabold text-[#0f172a]">Billing Cart ({totalItems} items)</Text>
           {items.length > 0 && (
             <TouchableOpacity onPress={clearCart}>
-              <Text style={styles.clearCartText}>Clear All</Text>
+              <Text className="text-xs font-bold text-[#ef4444]">Clear All</Text>
             </TouchableOpacity>
           )}
         </View>
@@ -224,33 +222,33 @@ export const PosScreen: React.FC = () => {
           <FlatList
             data={items}
             keyExtractor={(item) => item.product.id.toString()}
-            contentContainerStyle={styles.cartList}
+            contentContainerClassName="gap-2 pb-20"
             renderItem={({ item }) => {
               const maxQty = item.product.currentQuantity !== undefined ? item.product.currentQuantity : 9999;
               return (
-                <View style={styles.cartCard}>
-                  <View style={styles.cartCardLeft}>
-                    <Text style={styles.cartItemName} numberOfLines={1}>
+                <View className="flex-row items-center rounded-[14px] border border-[#e2e8f0] bg-white p-3">
+                  <View className="mr-2 flex-1">
+                    <Text className="text-[13px] font-bold text-[#0f172a]" numberOfLines={1}>
                       {item.product.name}
                     </Text>
-                    <Text style={styles.cartItemUnit}>
+                    <Text className="mt-0.5 text-[11px] text-[#64748b]">
                       ₹{safeNum(item.unitPrice).toFixed(2)} / {item.product.unit || 'unit'} • Stock: {safeNum(item.product.currentQuantity)}
                     </Text>
                   </View>
 
                   {/* Quantity Controls */}
-                  <View style={styles.qtyRow}>
+                  <View className="mr-2.5 flex-row items-center rounded-lg border border-[#e2e8f0] bg-[#f8fafc]">
                     <TouchableOpacity
-                      style={styles.qtyBtn}
+                      className="p-1.5"
                       onPress={() => updateQuantity(item.product.id, item.quantity - 1)}
                     >
                       <Minus size={14} color={colors.text} />
                     </TouchableOpacity>
 
-                    <Text style={styles.qtyText}>{item.quantity}</Text>
+                    <Text className="px-2 text-[13px] font-extrabold text-[#0f172a]">{item.quantity}</Text>
 
                     <TouchableOpacity
-                      style={styles.qtyBtn}
+                      className="p-1.5"
                       onPress={() => updateQuantity(item.product.id, item.quantity + 1)}
                       disabled={item.quantity >= maxQty}
                     >
@@ -261,12 +259,12 @@ export const PosScreen: React.FC = () => {
                     </TouchableOpacity>
                   </View>
 
-                  <Text style={styles.cartItemTotal}>
+                  <Text className="mr-2.5 text-[13px] font-extrabold text-[#0f172a]">
                     ₹{(safeNum(item.quantity) * safeNum(item.unitPrice)).toFixed(2)}
                   </Text>
 
                   <TouchableOpacity
-                    style={styles.trashBtn}
+                    className="p-1.5"
                     onPress={() => removeItem(item.product.id)}
                   >
                     <Trash2 size={16} color={colors.danger} />
@@ -276,15 +274,15 @@ export const PosScreen: React.FC = () => {
             }}
           />
         ) : (
-          <View style={styles.emptyCartBox}>
+          <View className="flex-1 items-center justify-center p-6">
             <ShoppingBag size={48} color={colors.textLight} />
-            <Text style={styles.emptyCartTitle}>Cart is Empty</Text>
-            <Text style={styles.emptyCartDesc}>
+            <Text className="mt-3 text-base font-extrabold text-[#0f172a]">Cart is Empty</Text>
+            <Text className="mb-4 mt-1 text-center text-xs leading-[18px] text-[#64748b]">
               Tap the green "Scan" button or search above to add items to bill
             </Text>
-            <TouchableOpacity style={styles.startScanBtn} onPress={() => setScannerOpen(true)}>
+            <TouchableOpacity className="flex-row items-center gap-2 rounded-[14px] bg-[#059669] px-5 py-3" onPress={() => setScannerOpen(true)}>
               <Camera size={18} color="#fff" />
-              <Text style={styles.startScanText}>Open Barcode Scanner</Text>
+              <Text className="text-sm font-extrabold text-white">Open Barcode Scanner</Text>
             </TouchableOpacity>
           </View>
         )}
@@ -292,19 +290,19 @@ export const PosScreen: React.FC = () => {
 
       {/* Bottom Floating Checkout Bar */}
       {items.length > 0 && (
-        <View style={styles.checkoutBar}>
-          <View style={styles.checkoutInfo}>
-            <Text style={styles.checkoutLabel}>Grand Total ({totalItems} items)</Text>
-            <Text style={styles.checkoutTotal}>₹{safeNum(totalAmount).toFixed(2)}</Text>
-            <Text style={styles.checkoutProfit}>Est. Profit: +₹{safeNum(estimatedProfit).toFixed(2)}</Text>
+        <View className="absolute bottom-0 left-0 right-0 flex-row items-center justify-between border-t border-[#e2e8f0] bg-white px-4 py-3 shadow-lg">
+          <View className="flex-1">
+            <Text className="text-[11px] font-bold uppercase text-[#64748b]">Grand Total ({totalItems} items)</Text>
+            <Text className="text-xl font-black text-[#059669]">₹{safeNum(totalAmount).toFixed(2)}</Text>
+            <Text className="text-[11px] font-bold text-[#10b981]">Est. Profit: +₹{safeNum(estimatedProfit).toFixed(2)}</Text>
           </View>
 
           <TouchableOpacity
-            style={styles.checkoutBtn}
+            className="flex-row items-center gap-2 rounded-[14px] bg-[#059669] px-[22px] py-3"
             onPress={() => setCheckoutModalOpen(true)}
             activeOpacity={0.8}
           >
-            <Text style={styles.checkoutBtnText}>Checkout</Text>
+            <Text className="text-[15px] font-extrabold text-white">Checkout</Text>
             <Sparkles size={16} color="#fff" />
           </TouchableOpacity>
         </View>
@@ -321,49 +319,49 @@ export const PosScreen: React.FC = () => {
 
       {/* Checkout Confirmation Modal */}
       <Modal visible={checkoutModalOpen} animationType="slide" transparent>
-        <View style={ui.modalOverlay}>
-          <View style={ui.modalContent}>
-            <Text style={ui.modalTitle}>Confirm & Complete Sale</Text>
-            <Text style={styles.modalSubtitle}>Total Amount: ₹{safeNum(totalAmount).toFixed(2)}</Text>
+        <View className="flex-1 justify-end bg-black/60">
+          <View className="max-h-[90%] rounded-t-3xl bg-white p-5">
+            <Text className="text-2xl font-extrabold text-[#0f172a]">Confirm & Complete Sale</Text>
+            <Text className="mb-4 mt-0.5 text-sm font-bold text-[#059669]">Total Amount: ₹{safeNum(totalAmount).toFixed(2)}</Text>
 
             {/* Payment Method Selector */}
-            <Text style={styles.inputLabel}>Payment Method</Text>
-            <View style={styles.paymentMethodsRow}>
+            <Text className="mb-1.5 text-[11px] font-bold uppercase text-[#64748b]">Payment Method</Text>
+            <View className="mb-4 flex-row gap-2.5">
               <TouchableOpacity
-                style={[styles.pmBtn, paymentMethod === 'CASH' && styles.pmBtnActive]}
+                className={`flex-1 flex-row items-center justify-center gap-1.5 rounded-xl border px-1 py-3 ${paymentMethod === 'CASH' ? 'border-[#059669] bg-[#d1fae5]' : 'border-[#e2e8f0] bg-[#f8fafc]'}`}
                 onPress={() => setPaymentMethod('CASH')}
               >
                 <Banknote size={20} color={paymentMethod === 'CASH' ? colors.primary : colors.textMuted} />
-                <Text style={[styles.pmText, paymentMethod === 'CASH' && styles.pmTextActive]}>
+                <Text className={`text-xs font-bold ${paymentMethod === 'CASH' ? 'text-[#059669]' : 'text-[#64748b]'}`}>
                   Cash
                 </Text>
               </TouchableOpacity>
 
               <TouchableOpacity
-                style={[styles.pmBtn, paymentMethod === 'UPI' && styles.pmBtnActive]}
+                className={`flex-1 flex-row items-center justify-center gap-1.5 rounded-xl border px-1 py-3 ${paymentMethod === 'UPI' ? 'border-[#059669] bg-[#d1fae5]' : 'border-[#e2e8f0] bg-[#f8fafc]'}`}
                 onPress={() => setPaymentMethod('UPI')}
               >
                 <QrCode size={20} color={paymentMethod === 'UPI' ? colors.primary : colors.textMuted} />
-                <Text style={[styles.pmText, paymentMethod === 'UPI' && styles.pmTextActive]}>
+                <Text className={`text-xs font-bold ${paymentMethod === 'UPI' ? 'text-[#059669]' : 'text-[#64748b]'}`}>
                   UPI / QR
                 </Text>
               </TouchableOpacity>
 
               <TouchableOpacity
-                style={[styles.pmBtn, paymentMethod === 'CARD' && styles.pmBtnActive]}
+                className={`flex-1 flex-row items-center justify-center gap-1.5 rounded-xl border px-1 py-3 ${paymentMethod === 'CARD' ? 'border-[#059669] bg-[#d1fae5]' : 'border-[#e2e8f0] bg-[#f8fafc]'}`}
                 onPress={() => setPaymentMethod('CARD')}
               >
                 <CreditCard size={20} color={paymentMethod === 'CARD' ? colors.primary : colors.textMuted} />
-                <Text style={[styles.pmText, paymentMethod === 'CARD' && styles.pmTextActive]}>
+                <Text className={`text-xs font-bold ${paymentMethod === 'CARD' ? 'text-[#059669]' : 'text-[#64748b]'}`}>
                   Card
                 </Text>
               </TouchableOpacity>
             </View>
 
             {/* Optional Customer Phone for WhatsApp Receipt */}
-            <Text style={styles.inputLabel}>Customer WhatsApp Phone (Optional)</Text>
+            <Text className="mb-1.5 text-[11px] font-bold uppercase text-[#64748b]">Customer WhatsApp Phone (Optional)</Text>
             <TextInput
-              style={styles.modalInput}
+              className="mb-[18px] h-[46px] rounded-xl border border-[#e2e8f0] bg-[#f8fafc] px-3 text-sm text-[#0f172a]"
               placeholder="e.g. 9876543210"
               placeholderTextColor={colors.textLight}
               keyboardType="phone-pad"
@@ -372,17 +370,18 @@ export const PosScreen: React.FC = () => {
             />
 
             {/* Action Buttons */}
-            <View style={ui.modalActions}>
+            <View className="flex-row gap-2.5 border-t border-[#e2e8f0] pt-3">
               <TouchableOpacity
-                style={ui.btnGhost}
+                className="flex-1 flex-row items-center justify-center rounded-lg border border-[#e2e8f0] bg-[#f8fafc] py-3"
                 onPress={() => setCheckoutModalOpen(false)}
                 disabled={submitting}
               >
-                <Text style={ui.btnGhostText}>Back</Text>
+                <Text className="text-base font-bold text-[#0f172a]">Back</Text>
               </TouchableOpacity>
 
               <TouchableOpacity
-                style={[styles.confirmBtn, submitting && styles.confirmBtnDisabled]}
+                className="flex-[2] flex-row items-center justify-center gap-1.5 rounded-xl bg-[#059669] py-3"
+                style={submitting ? { opacity: 0.6 } : undefined}
                 onPress={handleCheckoutSubmit}
                 disabled={submitting}
               >
@@ -391,7 +390,7 @@ export const PosScreen: React.FC = () => {
                 ) : (
                   <>
                     <CircleCheck size={18} color="#fff" />
-                    <Text style={styles.confirmBtnText}>Complete Sale</Text>
+                    <Text className="text-sm font-extrabold text-white" numberOfLines={1} adjustsFontSizeToFit>Complete Sale</Text>
                   </>
                 )}
               </TouchableOpacity>
@@ -415,7 +414,7 @@ export const PosScreen: React.FC = () => {
   );
 };
 
-const styles = StyleSheet.create({
+/*
   container: {
     flex: 1,
     backgroundColor: colors.bg,
@@ -747,4 +746,4 @@ const styles = StyleSheet.create({
     fontSize: 14,
     fontWeight: '800',
   },
-});
+*/

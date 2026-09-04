@@ -3,7 +3,6 @@ import {
   ActivityIndicator,
   RefreshControl,
   ScrollView,
-  StyleSheet,
   Text,
   TouchableOpacity,
   View,
@@ -89,9 +88,9 @@ export const DashboardScreen: React.FC<DashboardScreenProps> = ({ onNavigateTab 
 
   if (loading && !summary) {
     return (
-      <View style={styles.centerContainer}>
+      <View className="flex-1 items-center justify-center bg-[#f8fafc]">
         <ActivityIndicator size="large" color={colors.primary} />
-        <Text style={styles.loadingText}>Loading shop insights...</Text>
+        <Text className="mt-3.5 text-sm text-[#64748b]">Loading shop insights...</Text>
       </View>
     );
   }
@@ -108,39 +107,39 @@ export const DashboardScreen: React.FC<DashboardScreenProps> = ({ onNavigateTab 
   const maxRev = Math.max(...dailyPoints.map((d) => (typeof d.total === 'number' ? d.total : parseFloat(String(d.total || 0)))), 100);
 
   return (
-    <View style={styles.container}>
+    <View className="flex-1 bg-[#f8fafc]">
       <Header title="Shop Dashboard" onRefresh={onRefresh} isRefreshing={refreshing} />
 
       <ScrollView
-        contentContainerStyle={styles.scrollBody}
+        contentContainerClassName="p-4 pb-10"
         refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} colors={[colors.primary]} />}
       >
         {/* Quick Action Bar */}
-        <View style={styles.quickBar}>
+        <View className="mb-4 gap-2">
           <TouchableOpacity
-            style={styles.actionPosBtn}
+            className="flex-row items-center justify-center gap-2 rounded-2xl bg-[#059669] py-3.5 shadow-lg"
             onPress={() => onNavigateTab('pos')}
             activeOpacity={0.8}
           >
             <Zap size={20} color="#fff" />
-            <Text style={styles.actionPosText}>Instant Barcode Billing (POS)</Text>
+            <Text className="text-[15px] font-extrabold text-white">Instant Barcode Billing (POS)</Text>
           </TouchableOpacity>
 
-          <View style={styles.quickSubRow}>
+          <View className="flex-row gap-2">
             <TouchableOpacity
-              style={styles.quickSmallBtn}
+              className="flex-1 flex-row items-center justify-center gap-1.5 rounded-xl border border-[#e2e8f0] bg-white py-2.5"
               onPress={() => onNavigateTab('products')}
             >
               <CirclePlus size={16} color={colors.primary} />
-              <Text style={styles.quickSmallText}>Add Product</Text>
+              <Text className="text-[13px] font-bold text-[#0f172a]">Add Product</Text>
             </TouchableOpacity>
 
             <TouchableOpacity
-              style={styles.quickSmallBtn}
+              className="flex-1 flex-row items-center justify-center gap-1.5 rounded-xl border border-[#e2e8f0] bg-white py-2.5"
               onPress={() => onNavigateTab('inventory')}
             >
               <Package size={16} color={colors.accent} />
-              <Text style={styles.quickSmallText}>Stock Inflow</Text>
+              <Text className="text-[13px] font-bold text-[#0f172a]">Stock Inflow</Text>
             </TouchableOpacity>
           </View>
         </View>
@@ -148,36 +147,36 @@ export const DashboardScreen: React.FC<DashboardScreenProps> = ({ onNavigateTab 
         {/* Low Stock Warning Alert */}
         {attentionCount > 0 && (
           <TouchableOpacity
-            style={styles.alertCard}
+            className="mb-4 flex-row items-center justify-between rounded-[14px] border border-[#fde68a] bg-[#fef3c7] p-3"
             onPress={() => onNavigateTab('inventory')}
             activeOpacity={0.8}
           >
-            <View style={styles.alertLeft}>
-              <View style={styles.alertIconBox}>
+            <View className="flex-1 flex-row items-center gap-2.5">
+              <View className="h-8 w-8 items-center justify-center rounded-lg bg-[#fef3c7]">
                 <TriangleAlert size={18} color={colors.warning} />
               </View>
               <View style={{ flex: 1 }}>
-                <Text style={styles.alertTitle}>Inventory Alert</Text>
-                <Text style={styles.alertDesc}>
+                <Text className="text-[13px] font-extrabold text-[#92400e]">Inventory Alert</Text>
+                <Text className="mt-px text-xs text-[#b45309]">
                   {outOfStock > 0 ? `${outOfStock} out of stock` : ''}
                   {outOfStock > 0 && lowStock > 0 ? ', ' : ''}
                   {lowStock > 0 ? `${lowStock} low in stock` : ''}
                 </Text>
               </View>
             </View>
-            <View style={styles.alertAction}>
-              <Text style={styles.alertActionText}>Restock</Text>
+            <View className="flex-row items-center gap-1 rounded-lg bg-white px-2.5 py-1.5">
+              <Text className="text-xs font-extrabold text-[#92400e]">Restock</Text>
               <ArrowRight size={14} color={colors.warning} />
             </View>
           </TouchableOpacity>
         )}
 
         {/* Metrics Grid */}
-        <View style={styles.sectionHeader}>
-          <Text style={styles.sectionTitle}>Today's Business</Text>
+        <View className="mb-2.5 mt-1.5 flex-row items-center justify-between">
+          <Text className="text-[15px] font-extrabold text-[#0f172a]">Today's Business</Text>
         </View>
 
-        <View style={styles.metricsGrid}>
+        <View className="flex-row gap-2.5">
           <MetricCard
             label="Today Revenue"
             value={`₹${todayRev.toLocaleString('en-IN', { minimumFractionDigits: 2 })}`}
@@ -195,7 +194,7 @@ export const DashboardScreen: React.FC<DashboardScreenProps> = ({ onNavigateTab 
           />
         </View>
 
-        <View style={[styles.metricsGrid, { marginTop: 10 }]}>
+        <View className="mt-2.5 flex-row gap-2.5">
           <MetricCard
             label="Total Bills"
             value={todaySales}
@@ -215,35 +214,33 @@ export const DashboardScreen: React.FC<DashboardScreenProps> = ({ onNavigateTab 
 
         {/* 7-Day Revenue Trend Chart */}
         {dailyPoints.length > 0 && (
-          <View style={styles.chartCard}>
-            <View style={styles.chartHeader}>
-              <View style={styles.chartTitleRow}>
+          <View className="mt-3.5 rounded-2xl border border-[#e2e8f0] bg-white p-4">
+            <View className="mb-3 flex-row items-center justify-between">
+              <View className="flex-row items-center gap-1.5">
                 <ChartBar size={18} color={colors.primary} />
-                <Text style={styles.chartTitle}>7-Day Revenue Trend</Text>
+                <Text className="text-sm font-extrabold text-[#0f172a]">7-Day Revenue Trend</Text>
               </View>
             </View>
 
-            <View style={styles.barChartContainer}>
+            <View className="h-[120px] flex-row items-end justify-between pt-3.5">
               {dailyPoints.map((point, index) => {
                 const total = typeof point.total === 'number' ? point.total : parseFloat(String(point.total || 0));
                 const heightPct = Math.max((total / maxRev) * 100, 8);
                 const dayLabel = new Date(point.date).toLocaleDateString('en-US', { weekday: 'narrow' });
 
                 return (
-                  <View key={index} style={styles.barColumn}>
-                    <Text style={styles.barAmountText}>
+                  <View key={index} className="h-full flex-1 items-center justify-end">
+                    <Text className="mb-1 text-[9px] font-bold text-[#64748b]">
                       {total > 0 ? `₹${Math.round(total)}` : ''}
                     </Text>
-                    <View style={styles.barTrack}>
+                    <View className="h-20 w-[22px] justify-end overflow-hidden rounded-md bg-[#f8fafc]">
                       <View
                         style={[
-                          styles.barFill,
-                          { height: `${heightPct}%` },
-                          total > 0 ? styles.barFillActive : styles.barFillInactive,
+                          { height: `${heightPct}%`, backgroundColor: total > 0 ? colors.primary : colors.border },
                         ]}
                       />
                     </View>
-                    <Text style={styles.barDayLabel}>{dayLabel}</Text>
+                    <Text className="mt-1.5 text-[11px] font-bold text-[#64748b]">{dayLabel}</Text>
                   </View>
                 );
               })}
@@ -252,50 +249,50 @@ export const DashboardScreen: React.FC<DashboardScreenProps> = ({ onNavigateTab 
         )}
 
         {/* Recent Sales Section */}
-        <View style={styles.sectionHeader}>
-          <Text style={styles.sectionTitle}>Recent Invoices</Text>
+        <View className="mb-2.5 mt-1.5 flex-row items-center justify-between">
+          <Text className="text-[15px] font-extrabold text-[#0f172a]">Recent Invoices</Text>
           <TouchableOpacity onPress={() => onNavigateTab('reports')}>
-            <Text style={styles.seeAllText}>View Reports →</Text>
+            <Text className="text-xs font-bold text-[#059669]">View Reports →</Text>
           </TouchableOpacity>
         </View>
 
         {summary?.recentSales && summary.recentSales.length > 0 ? (
-          <View style={styles.salesList}>
+          <View className="overflow-hidden rounded-2xl border border-[#e2e8f0] bg-white">
             {summary.recentSales.slice(0, 5).map((sale) => {
               const total = typeof sale.totalAmount === 'number' ? sale.totalAmount : parseFloat(String(sale.totalAmount || 0));
               return (
                 <TouchableOpacity
                   key={sale.id}
-                  style={styles.saleItem}
+                  className="flex-row items-center justify-between border-b border-[#e2e8f0] p-3.5"
                   onPress={() => handleOpenReceipt(sale)}
                   activeOpacity={0.7}
                 >
-                  <View style={styles.saleLeft}>
-                    <View style={styles.receiptIconBox}>
+                  <View className="flex-row items-center gap-2.5">
+                    <View className="h-9 w-9 items-center justify-center rounded-[10px] bg-[#d1fae5]">
                       <Receipt size={18} color={colors.primary} />
                     </View>
                     <View>
-                      <Text style={styles.saleNumber}>Invoice #{sale.id}</Text>
-                      <Text style={styles.saleTime}>
+                      <Text className="text-[13px] font-extrabold text-[#0f172a]">Invoice #{sale.id}</Text>
+                      <Text className="mt-0.5 text-[11px] text-[#64748b]">
                         {new Date(sale.createdAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })} •{' '}
                         {sale.itemCount || (sale.items ? sale.items.length : 1)} items
                       </Text>
                     </View>
                   </View>
 
-                  <View style={styles.saleRight}>
-                    <Text style={styles.saleAmount}>₹{total.toFixed(2)}</Text>
-                    <Text style={styles.tapReceiptText}>View Receipt →</Text>
+                  <View className="items-end">
+                    <Text className="text-sm font-extrabold text-[#0f172a]">₹{total.toFixed(2)}</Text>
+                    <Text className="mt-px text-[11px] font-bold text-[#059669]">View Receipt →</Text>
                   </View>
                 </TouchableOpacity>
               );
             })}
           </View>
         ) : (
-          <View style={styles.emptyCard}>
+          <View className="items-center justify-center rounded-2xl border border-[#e2e8f0] bg-white p-6">
             <ShoppingCart size={32} color={colors.textLight} />
-            <Text style={styles.emptyTitle}>No Sales Recorded Today</Text>
-            <Text style={styles.emptyDesc}>Tap the Barcode POS button above to start billing</Text>
+            <Text className="mt-2.5 text-sm font-bold text-[#0f172a]">No Sales Recorded Today</Text>
+            <Text className="mt-1 text-center text-xs text-[#64748b]">Tap the Barcode POS button above to start billing</Text>
           </View>
         )}
       </ScrollView>
@@ -310,7 +307,7 @@ export const DashboardScreen: React.FC<DashboardScreenProps> = ({ onNavigateTab 
   );
 };
 
-const styles = StyleSheet.create({
+/*
   container: {
     flex: 1,
     backgroundColor: colors.bg,
@@ -584,4 +581,4 @@ const styles = StyleSheet.create({
     textAlign: 'center',
     marginTop: 4,
   },
-});
+*/

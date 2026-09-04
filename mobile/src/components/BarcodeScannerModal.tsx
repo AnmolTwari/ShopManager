@@ -1,7 +1,6 @@
 import React, { useState } from 'react';
 import {
   Modal,
-  StyleSheet,
   Text,
   TextInput,
   TouchableOpacity,
@@ -65,39 +64,39 @@ export const BarcodeScannerModal: React.FC<BarcodeScannerModalProps> = ({
 
   return (
     <Modal visible={visible} animationType="slide" transparent onRequestClose={onClose}>
-      <View style={styles.overlay}>
-        <View style={styles.container}>
+      <View className="flex-1 justify-end bg-black/70">
+        <View className="max-h-[90%] rounded-t-[24px] bg-white pb-6">
           {/* Header */}
-          <View style={styles.header}>
+          <View className="flex-row items-center justify-between px-5 pb-3 pt-[18px]">
             <View>
-              <Text style={styles.title}>{title}</Text>
-              <Text style={styles.subtitle}>{subtitle}</Text>
+              <Text className="text-lg font-extrabold text-[#0f172a]">{title}</Text>
+              <Text className="mt-0.5 text-xs text-[#64748b]">{subtitle}</Text>
             </View>
-            <TouchableOpacity style={styles.closeBtn} onPress={onClose}>
+            <TouchableOpacity className="h-9 w-9 items-center justify-center rounded-full bg-[#f8fafc]" onPress={onClose}>
               <X size={20} color={colors.text} />
             </TouchableOpacity>
           </View>
 
           {/* Camera Viewfinder or Permission Request */}
-          <View style={styles.cameraContainer}>
+          <View className="mx-4 h-[280px] overflow-hidden rounded-2xl bg-black">
             {!permission ? (
-              <View style={styles.permissionBox}>
-                <Text style={styles.permissionText}>Loading camera...</Text>
+              <View className="flex-1 items-center justify-center bg-[#f8fafc] p-6">
+                <Text className="text-sm text-[#64748b]">Loading camera...</Text>
               </View>
             ) : !permission.granted ? (
-              <View style={styles.permissionBox}>
+              <View className="flex-1 items-center justify-center bg-[#f8fafc] p-6">
                 <CameraIcon size={44} color={colors.primary} />
-                <Text style={styles.permissionTitle}>Camera Access Required</Text>
-                <Text style={styles.permissionDesc}>
+                <Text className="mb-1.5 mt-3 text-base font-bold text-[#0f172a]">Camera Access Required</Text>
+                <Text className="mb-4 text-center text-xs leading-[18px] text-[#64748b]">
                   ShopManager uses your camera to scan barcodes for instant billing and inventory management.
                 </Text>
-                <TouchableOpacity style={styles.grantBtn} onPress={requestPermission}>
-                  <Text style={styles.grantBtnText}>Grant Camera Permission</Text>
+                <TouchableOpacity className="rounded-[10px] bg-[#059669] px-[18px] py-2.5" onPress={requestPermission}>
+                  <Text className="text-[13px] font-bold text-white">Grant Camera Permission</Text>
                 </TouchableOpacity>
               </View>
             ) : (
               <CameraView
-                style={styles.camera}
+                className="flex-1 items-center justify-center"
                 enableTorch={torch}
                 barcodeScannerSettings={{
                   barcodeTypes: [
@@ -116,34 +115,34 @@ export const BarcodeScannerModal: React.FC<BarcodeScannerModalProps> = ({
                 onBarcodeScanned={scannedRecently ? undefined : handleBarcodeScanned}
               >
                 {/* Target Reticle Overlay */}
-                <View style={styles.reticleContainer}>
-                  <View style={styles.reticle}>
-                    <View style={[styles.corner, styles.topLeft]} />
-                    <View style={[styles.corner, styles.topRight]} />
-                    <View style={[styles.corner, styles.bottomLeft]} />
-                    <View style={[styles.corner, styles.bottomRight]} />
-                    <View style={styles.laserLine} />
+                <View className="flex-1 w-full items-center justify-center">
+                  <View className="relative h-[140px] w-[240px] justify-center">
+                    <View className="absolute left-0 top-0 h-6 w-6 rounded-tl-lg border-l-[3px] border-t-[3px] border-[#059669]" />
+                    <View className="absolute right-0 top-0 h-6 w-6 rounded-tr-lg border-r-[3px] border-t-[3px] border-[#059669]" />
+                    <View className="absolute bottom-0 left-0 h-6 w-6 rounded-bl-lg border-b-[3px] border-l-[3px] border-[#059669]" />
+                    <View className="absolute bottom-0 right-0 h-6 w-6 rounded-br-lg border-b-[3px] border-r-[3px] border-[#059669]" />
+                    <View className="h-0.5 bg-[#059669]" />
                   </View>
                 </View>
 
                 {/* Torch Toggle */}
                 <TouchableOpacity
-                  style={styles.torchBtn}
+                  className="absolute bottom-3.5 flex-row items-center gap-1.5 rounded-full bg-black/60 px-3.5 py-1.5"
                   onPress={() => setTorch((t) => !t)}
                 >
                   {torch ? <ZapOff size={20} color="#fff" /> : <Zap size={20} color="#fff" />}
-                  <Text style={styles.torchText}>{torch ? 'Flash Off' : 'Flash On'}</Text>
+                  <Text className="text-xs font-semibold text-white">{torch ? 'Flash Off' : 'Flash On'}</Text>
                 </TouchableOpacity>
               </CameraView>
             )}
           </View>
 
           {/* Manual Input Fallback */}
-          <View style={styles.manualContainer}>
-            <Text style={styles.manualLabel}>Or enter SKU / Barcode manually:</Text>
-            <View style={styles.inputRow}>
+          <View className="px-4 pt-4">
+            <Text className="mb-2 text-xs font-semibold text-[#64748b]">Or enter SKU / Barcode manually:</Text>
+            <View className="flex-row gap-2">
               <TextInput
-                style={styles.input}
+                className="h-11 flex-1 rounded-[10px] border border-[#e2e8f0] bg-[#f8fafc] px-3 text-sm text-[#0f172a]"
                 placeholder="e.g. 8901030383820"
                 placeholderTextColor={colors.textLight}
                 value={manualSku}
@@ -153,12 +152,13 @@ export const BarcodeScannerModal: React.FC<BarcodeScannerModalProps> = ({
                 onSubmitEditing={handleManualSubmit}
               />
               <TouchableOpacity
-                style={[styles.searchBtn, !manualSku.trim() && styles.searchBtnDisabled]}
+                className="flex-row items-center gap-1.5 rounded-[10px] bg-[#059669] px-4"
+                style={!manualSku.trim() ? { opacity: 0.5 } : undefined}
                 onPress={handleManualSubmit}
                 disabled={!manualSku.trim()}
               >
                 <Search size={18} color="#fff" />
-                <Text style={styles.searchBtnText}>Add</Text>
+                <Text className="text-sm font-bold text-white">Add</Text>
               </TouchableOpacity>
             </View>
           </View>
@@ -168,203 +168,3 @@ export const BarcodeScannerModal: React.FC<BarcodeScannerModalProps> = ({
   );
 };
 
-const styles = StyleSheet.create({
-  overlay: {
-    flex: 1,
-    backgroundColor: 'rgba(0,0,0,0.7)',
-    justifyContent: 'flex-end',
-  },
-  container: {
-    backgroundColor: colors.surface,
-    borderTopLeftRadius: 24,
-    borderTopRightRadius: 24,
-    maxHeight: '90%',
-    paddingBottom: 24,
-  },
-  header: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-    paddingHorizontal: 20,
-    paddingTop: 18,
-    paddingBottom: 12,
-  },
-  title: {
-    fontSize: 18,
-    fontWeight: '800',
-    color: colors.text,
-  },
-  subtitle: {
-    fontSize: 12,
-    color: colors.textMuted,
-    marginTop: 2,
-  },
-  closeBtn: {
-    width: 36,
-    height: 36,
-    borderRadius: 18,
-    backgroundColor: colors.bg,
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  cameraContainer: {
-    height: 280,
-    marginHorizontal: 16,
-    borderRadius: 16,
-    overflow: 'hidden',
-    backgroundColor: '#000',
-  },
-  camera: {
-    flex: 1,
-    justifyContent: 'center',
-    alignItems: 'center',
-  },
-  reticleContainer: {
-    flex: 1,
-    justifyContent: 'center',
-    alignItems: 'center',
-    width: '100%',
-  },
-  reticle: {
-    width: 240,
-    height: 140,
-    position: 'relative',
-    justifyContent: 'center',
-  },
-  corner: {
-    position: 'absolute',
-    width: 24,
-    height: 24,
-    borderColor: colors.primary,
-  },
-  topLeft: {
-    top: 0,
-    left: 0,
-    borderTopWidth: 3,
-    borderLeftWidth: 3,
-    borderTopLeftRadius: 8,
-  },
-  topRight: {
-    top: 0,
-    right: 0,
-    borderTopWidth: 3,
-    borderRightWidth: 3,
-    borderTopRightRadius: 8,
-  },
-  bottomLeft: {
-    bottom: 0,
-    left: 0,
-    borderBottomWidth: 3,
-    borderLeftWidth: 3,
-    borderBottomLeftRadius: 8,
-  },
-  bottomRight: {
-    bottom: 0,
-    right: 0,
-    borderBottomWidth: 3,
-    borderRightWidth: 3,
-    borderBottomRightRadius: 8,
-  },
-  laserLine: {
-    height: 2,
-    backgroundColor: colors.primary,
-    shadowColor: colors.primary,
-    shadowOffset: { width: 0, height: 0 },
-    shadowOpacity: 0.8,
-    shadowRadius: 4,
-    elevation: 2,
-  },
-  torchBtn: {
-    position: 'absolute',
-    bottom: 14,
-    flexDirection: 'row',
-    alignItems: 'center',
-    backgroundColor: 'rgba(0,0,0,0.6)',
-    paddingHorizontal: 14,
-    paddingVertical: 7,
-    borderRadius: 20,
-    gap: 6,
-  },
-  torchText: {
-    color: '#fff',
-    fontSize: 12,
-    fontWeight: '600',
-  },
-  permissionBox: {
-    flex: 1,
-    alignItems: 'center',
-    justifyContent: 'center',
-    padding: 24,
-    backgroundColor: colors.bg,
-  },
-  permissionTitle: {
-    fontSize: 16,
-    fontWeight: '700',
-    color: colors.text,
-    marginTop: 12,
-    marginBottom: 6,
-  },
-  permissionDesc: {
-    fontSize: 12,
-    color: colors.textMuted,
-    textAlign: 'center',
-    marginBottom: 16,
-    lineHeight: 18,
-  },
-  permissionText: {
-    color: colors.textMuted,
-    fontSize: 14,
-  },
-  grantBtn: {
-    backgroundColor: colors.primary,
-    paddingHorizontal: 18,
-    paddingVertical: 10,
-    borderRadius: 10,
-  },
-  grantBtnText: {
-    color: '#fff',
-    fontWeight: '700',
-    fontSize: 13,
-  },
-  manualContainer: {
-    paddingHorizontal: 16,
-    paddingTop: 16,
-  },
-  manualLabel: {
-    fontSize: 12,
-    fontWeight: '600',
-    color: colors.textMuted,
-    marginBottom: 8,
-  },
-  inputRow: {
-    flexDirection: 'row',
-    gap: 8,
-  },
-  input: {
-    flex: 1,
-    height: 44,
-    backgroundColor: colors.bg,
-    borderRadius: 10,
-    borderWidth: 1,
-    borderColor: colors.border,
-    paddingHorizontal: 12,
-    fontSize: 14,
-    color: colors.text,
-  },
-  searchBtn: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    backgroundColor: colors.primary,
-    paddingHorizontal: 16,
-    borderRadius: 10,
-    gap: 6,
-  },
-  searchBtnDisabled: {
-    opacity: 0.5,
-  },
-  searchBtnText: {
-    color: '#fff',
-    fontWeight: '700',
-    fontSize: 14,
-  },
-});

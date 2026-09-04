@@ -3,7 +3,6 @@ import {
   Linking,
   Modal,
   ScrollView,
-  StyleSheet,
   Text,
   TouchableOpacity,
   View,
@@ -170,77 +169,77 @@ export const ReceiptModal: React.FC<ReceiptModalProps> = ({
 
   return (
     <Modal visible={visible} animationType="fade" transparent onRequestClose={onClose}>
-      <View style={styles.overlay}>
-        <View style={styles.container}>
+      <View className="flex-1 items-center justify-center bg-black/70 p-4">
+        <View className="max-h-[90%] w-full overflow-hidden rounded-3xl bg-white">
           {/* Top Success Banner */}
-          <View style={styles.successHeader}>
+          <View className="items-center border-b border-[#bbf7d0] bg-[#d1fae5] pb-3 pt-5">
             <CircleCheck size={32} color={colors.success} />
-            <Text style={styles.successTitle}>Sale Recorded Successfully!</Text>
-            <Text style={styles.invoiceNumber}>Invoice #{sale.id}</Text>
+            <Text className="mt-1.5 text-base font-extrabold text-[#10b981]">Sale Recorded Successfully!</Text>
+            <Text className="mt-0.5 text-xs font-semibold text-[#64748b]">Invoice #{sale.id}</Text>
           </View>
 
           {/* Receipt Card */}
-          <ScrollView style={styles.receiptScroll} contentContainerStyle={styles.receiptBody}>
-            <View style={styles.receiptCard}>
-              <Text style={styles.storeName}>{shopName}</Text>
-              <Text style={styles.dateTime}>{formattedDate}</Text>
-              <View style={styles.dashLine} />
+          <ScrollView className="max-h-80" contentContainerClassName="p-4">
+            <View className="rounded-2xl border border-[#e2e8f0] bg-[#f8fafc] p-4">
+              <Text className="text-center text-[15px] font-extrabold text-[#0f172a]">{shopName}</Text>
+              <Text className="mt-0.5 text-center text-[11px] text-[#64748b]">{formattedDate}</Text>
+              <View className="my-3 h-px border border-dashed border-[#e2e8f0]" />
 
               {/* Items Table */}
-              <View style={styles.itemsTable}>
+              <View className="gap-2.5">
                 {items.map((item, index) => {
                   const qty = typeof item.quantity === 'number' ? item.quantity : parseFloat(String(item.quantity)) || 0;
                   const rate = typeof item.unitPrice === 'number' ? item.unitPrice : parseFloat(String(item.unitPrice)) || 0;
                   const total = typeof item.lineTotal === 'number' ? item.lineTotal : parseFloat(String(item.lineTotal)) || 0;
 
                   return (
-                    <View key={index} style={styles.itemRow}>
-                      <View style={styles.itemLeft}>
-                        <Text style={styles.itemName} numberOfLines={1}>
+                    <View key={index} className="flex-row items-center justify-between">
+                      <View className="mr-2.5 flex-1">
+                        <Text className="text-[13px] font-bold text-[#0f172a]" numberOfLines={1}>
                           {item.productName}
                         </Text>
-                        <Text style={styles.itemQtyRate}>
+                        <Text className="mt-px text-[11px] text-[#64748b]">
                           {qty} x ₹{rate.toFixed(2)}
                         </Text>
                       </View>
-                      <Text style={styles.itemTotal}>₹{total.toFixed(2)}</Text>
+                      <Text className="text-[13px] font-bold text-[#0f172a]">₹{total.toFixed(2)}</Text>
                     </View>
                   );
                 })}
               </View>
 
-              <View style={styles.dashLine} />
+              <View className="my-3 h-px border border-dashed border-[#e2e8f0]" />
 
               {/* Total & Profit */}
-              <View style={styles.totalRow}>
-                <Text style={styles.totalLabel}>Total Amount</Text>
-                <Text style={styles.totalValue}>₹{totalAmount.toFixed(2)}</Text>
+              <View className="flex-row items-center justify-between">
+                <Text className="text-sm font-extrabold text-[#0f172a]">Total Amount</Text>
+                <Text className="text-lg font-black text-[#059669]">₹{totalAmount.toFixed(2)}</Text>
               </View>
 
               {calculatedProfit > 0 && (
-                <View style={styles.profitRow}>
-                  <Text style={styles.profitLabel}>Net Profit</Text>
-                  <Text style={styles.profitValue}>+₹{calculatedProfit.toFixed(2)}</Text>
+                <View className="mt-1 flex-row items-center justify-between">
+                  <Text className="text-[11px] font-semibold text-[#64748b]">Net Profit</Text>
+                  <Text className="text-xs font-bold text-[#10b981]">+₹{calculatedProfit.toFixed(2)}</Text>
                 </View>
               )}
             </View>
           </ScrollView>
 
           {/* Action Buttons */}
-          <View style={styles.actionButtons}>
-            <TouchableOpacity style={styles.whatsappBtn} onPress={handleWhatsAppShare}>
+          <View className="gap-2.5 border-t border-[#e2e8f0] bg-white p-4">
+            <TouchableOpacity className="flex-row items-center justify-center gap-2 rounded-xl bg-[#25D366] py-3" onPress={handleWhatsAppShare}>
               <MessageSquare size={18} color="#fff" />
-              <Text style={styles.whatsappText}>Share on WhatsApp</Text>
+              <Text className="text-sm font-bold text-white">Share on WhatsApp</Text>
             </TouchableOpacity>
 
-            <View style={styles.bottomRow}>
-              <TouchableOpacity style={styles.pdfBtn} onPress={handlePrintPdf}>
+            <View className="flex-row gap-2.5">
+              <TouchableOpacity className="flex-1 flex-row items-center justify-center gap-1.5 rounded-xl border border-[#e2e8f0] bg-[#f8fafc] py-2.5" onPress={handlePrintPdf}>
                 <Printer size={16} color={colors.text} />
-                <Text style={styles.pdfText}>Print / PDF</Text>
+                <Text className="text-[13px] font-bold text-[#0f172a]">Print / PDF</Text>
               </TouchableOpacity>
 
-              <TouchableOpacity style={styles.doneBtn} onPress={onClose}>
-                <Text style={styles.doneText}>Done</Text>
+              <TouchableOpacity className="flex-1 items-center justify-center rounded-xl bg-[#059669] py-2.5" onPress={onClose}>
+                <Text className="text-[13px] font-bold text-white">Done</Text>
               </TouchableOpacity>
             </View>
           </View>
@@ -250,182 +249,3 @@ export const ReceiptModal: React.FC<ReceiptModalProps> = ({
   );
 };
 
-const styles = StyleSheet.create({
-  overlay: {
-    flex: 1,
-    backgroundColor: 'rgba(0,0,0,0.7)',
-    justifyContent: 'center',
-    padding: 16,
-  },
-  container: {
-    backgroundColor: colors.surface,
-    borderRadius: 24,
-    maxHeight: '90%',
-    overflow: 'hidden',
-  },
-  successHeader: {
-    alignItems: 'center',
-    paddingTop: 20,
-    paddingBottom: 12,
-    backgroundColor: colors.successLight,
-    borderBottomWidth: 1,
-    borderBottomColor: '#bbf7d0',
-  },
-  successTitle: {
-    fontSize: 16,
-    fontWeight: '800',
-    color: colors.success,
-    marginTop: 6,
-  },
-  invoiceNumber: {
-    fontSize: 12,
-    color: colors.textMuted,
-    marginTop: 2,
-    fontWeight: '600',
-  },
-  receiptScroll: {
-    maxHeight: 320,
-  },
-  receiptBody: {
-    padding: 16,
-  },
-  receiptCard: {
-    backgroundColor: colors.bg,
-    borderRadius: 16,
-    padding: 16,
-    borderWidth: 1,
-    borderColor: colors.border,
-  },
-  storeName: {
-    fontSize: 15,
-    fontWeight: '800',
-    textAlign: 'center',
-    color: colors.text,
-  },
-  dateTime: {
-    fontSize: 11,
-    color: colors.textMuted,
-    textAlign: 'center',
-    marginTop: 2,
-  },
-  dashLine: {
-    height: 1,
-    borderWidth: 1,
-    borderColor: colors.border,
-    borderStyle: 'dashed',
-    marginVertical: 12,
-  },
-  itemsTable: {
-    gap: 10,
-  },
-  itemRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-  },
-  itemLeft: {
-    flex: 1,
-    marginRight: 10,
-  },
-  itemName: {
-    fontSize: 13,
-    fontWeight: '700',
-    color: colors.text,
-  },
-  itemQtyRate: {
-    fontSize: 11,
-    color: colors.textMuted,
-    marginTop: 1,
-  },
-  itemTotal: {
-    fontSize: 13,
-    fontWeight: '700',
-    color: colors.text,
-  },
-  totalRow: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-  },
-  totalLabel: {
-    fontSize: 14,
-    fontWeight: '800',
-    color: colors.text,
-  },
-  totalValue: {
-    fontSize: 18,
-    fontWeight: '900',
-    color: colors.primary,
-  },
-  profitRow: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    marginTop: 4,
-  },
-  profitLabel: {
-    fontSize: 11,
-    fontWeight: '600',
-    color: colors.textMuted,
-  },
-  profitValue: {
-    fontSize: 12,
-    fontWeight: '700',
-    color: colors.success,
-  },
-  actionButtons: {
-    padding: 16,
-    gap: 10,
-    backgroundColor: colors.surface,
-    borderTopWidth: 1,
-    borderTopColor: colors.border,
-  },
-  whatsappBtn: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'center',
-    backgroundColor: '#25D366',
-    paddingVertical: 12,
-    borderRadius: 12,
-    gap: 8,
-  },
-  whatsappText: {
-    color: '#fff',
-    fontSize: 14,
-    fontWeight: '700',
-  },
-  bottomRow: {
-    flexDirection: 'row',
-    gap: 10,
-  },
-  pdfBtn: {
-    flex: 1,
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'center',
-    backgroundColor: colors.bg,
-    borderWidth: 1,
-    borderColor: colors.border,
-    paddingVertical: 10,
-    borderRadius: 12,
-    gap: 6,
-  },
-  pdfText: {
-    color: colors.text,
-    fontSize: 13,
-    fontWeight: '700',
-  },
-  doneBtn: {
-    flex: 1,
-    alignItems: 'center',
-    justifyContent: 'center',
-    backgroundColor: colors.primary,
-    paddingVertical: 10,
-    borderRadius: 12,
-  },
-  doneText: {
-    color: '#fff',
-    fontSize: 13,
-    fontWeight: '700',
-  },
-});

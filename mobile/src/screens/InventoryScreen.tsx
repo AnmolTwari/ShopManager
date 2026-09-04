@@ -5,7 +5,6 @@ import {
   FlatList,
   Modal,
   ScrollView,
-  StyleSheet,
   Text,
   TextInput,
   TouchableOpacity,
@@ -15,7 +14,6 @@ import { BarcodeScannerModal } from '../components/BarcodeScannerModal';
 import { Header } from '../components/Header';
 import { inventoryApi, productsApi } from '../services/shopApi';
 import { colors } from '../theme/colors';
-import { ui } from '../theme/ui';
 import { Product, StockAdjustmentRequest, StockInRequest, StockMovement } from '../types';
 import {
   Layers,
@@ -170,18 +168,18 @@ export const InventoryScreen: React.FC = () => {
   const selectedProduct = products.find((p) => p.id === selectedProductId);
 
   return (
-    <View style={styles.container}>
+    <View className="flex-1 bg-[#f8fafc]">
       <Header title="Stock & Inventory" subtitle="Inflow, Adjustments & History" />
       {errorMsg ? (
-        <View style={{ marginHorizontal: 16, marginTop: 8, backgroundColor: colors.dangerLight, borderRadius: 8, padding: 10, borderWidth: 1, borderColor: '#fecaca' }}>
-          <Text style={{ color: colors.danger, fontSize: 12, fontWeight: '700' }}>{errorMsg}</Text>
+        <View className="mx-4 mt-2 rounded-lg border border-[#fecaca] bg-[#fee2e2] p-2.5">
+          <Text className="text-xs font-bold text-[#ef4444]">{errorMsg}</Text>
         </View>
       ) : null}
 
       {/* Quick Action Trigger Cards */}
-      <View style={styles.actionRow}>
+      <View className="flex-row gap-2.5 p-4">
         <TouchableOpacity
-          style={styles.stockInBtn}
+          className="flex-1 flex-row items-center gap-2.5 rounded-2xl bg-[#059669] p-3.5"
           onPress={() => {
             resetStockInForm();
             setStockInModalOpen(true);
@@ -189,14 +187,14 @@ export const InventoryScreen: React.FC = () => {
           activeOpacity={0.8}
         >
           <ArrowDownLeft size={20} color="#fff" />
-          <View>
-            <Text style={styles.stockInTitle}>Stock-In</Text>
-            <Text style={styles.stockInSub}>Add received goods</Text>
+          <View className="flex-1">
+            <Text className="text-sm font-extrabold text-white" numberOfLines={1}>Stock-In</Text>
+            <Text className="mt-px text-[11px] text-[#d1fae5]" numberOfLines={1}>Add received goods</Text>
           </View>
         </TouchableOpacity>
 
         <TouchableOpacity
-          style={styles.adjustBtn}
+          className="flex-1 flex-row items-center gap-2.5 rounded-2xl border border-[#e2e8f0] bg-white p-3.5"
           onPress={() => {
             resetAdjustForm();
             setAdjustModalOpen(true);
@@ -204,59 +202,57 @@ export const InventoryScreen: React.FC = () => {
           activeOpacity={0.8}
         >
           <SlidersHorizontal size={20} color={colors.text} />
-          <View>
-            <Text style={styles.adjustTitle}>Adjust Stock</Text>
-            <Text style={styles.adjustSub}>Damages, expiry, recount</Text>
+          <View className="flex-1">
+            <Text className="text-sm font-extrabold text-[#0f172a]" numberOfLines={1}>Adjust Stock</Text>
+            <Text className="mt-px text-[11px] text-[#64748b]" numberOfLines={1}>Damages, recount</Text>
           </View>
         </TouchableOpacity>
       </View>
 
       {/* Movement Audit Log */}
-      <View style={styles.logHeader}>
+      <View className="mb-2 flex-row items-center gap-1.5 px-4">
         <RotateCcw size={16} color={colors.textMuted} />
-        <Text style={styles.logTitle}>Recent Stock Movements</Text>
+        <Text className="text-sm font-extrabold text-[#0f172a]">Recent Stock Movements</Text>
       </View>
 
       {loading ? (
-        <View style={ui.emptyBox}>
+        <View className="flex-1 items-center justify-center p-7">
           <ActivityIndicator size="large" color={colors.primary} />
         </View>
       ) : movements.length > 0 ? (
         <FlatList
           data={movements}
           keyExtractor={(item) => item.id.toString()}
-          contentContainerStyle={styles.logList}
+          contentContainerClassName="gap-2.5 px-4 pb-10 pt-1"
           renderItem={({ item }) => {
             const isPositive = item.quantityChanged > 0;
             return (
-              <View style={styles.movementCard}>
-                <View style={styles.movLeft}>
+              <View className="flex-row items-center justify-between rounded-xl border border-[#e2e8f0] bg-white p-3">
+                <View className="mr-2.5 flex-1">
                   <View
-                    style={[
-                      styles.typeBadge,
+                    className={`mb-1 self-start rounded-md px-2 py-0.5 ${
                       item.type === 'STOCK_IN'
-                        ? styles.bgStockIn
+                        ? 'bg-[#d1fae5]'
                         : item.type === 'ADJUSTMENT'
-                        ? styles.bgAdjust
-                        : styles.bgSale,
-                    ]}
+                        ? 'bg-[#fef3c7]'
+                        : 'bg-[#eff6ff]'
+                    }`}
                   >
                     <Text
-                      style={[
-                        styles.typeText,
+                      className={`text-[10px] font-extrabold uppercase ${
                         item.type === 'STOCK_IN'
-                          ? styles.textStockIn
+                          ? 'text-[#10b981]'
                           : item.type === 'ADJUSTMENT'
-                          ? styles.textAdjust
-                          : styles.textSale,
-                      ]}
+                          ? 'text-[#f59e0b]'
+                          : 'text-[#3b82f6]'
+                      }`}
                     >
                       {item.type}
                     </Text>
                   </View>
 
-                  <Text style={styles.movProductName}>{item.productName}</Text>
-                  <Text style={styles.movDate}>
+                  <Text className="text-[13px] font-bold text-[#0f172a]">{item.productName}</Text>
+                  <Text className="mt-0.5 text-[11px] text-[#64748b]">
                     {new Date(item.createdAt).toLocaleString('en-IN', {
                       day: '2-digit',
                       month: 'short',
@@ -267,47 +263,47 @@ export const InventoryScreen: React.FC = () => {
                   </Text>
                 </View>
 
-                <View style={styles.movRight}>
-                  <Text style={[styles.deltaText, isPositive ? styles.textPositive : styles.textNegative]}>
+                <View className="items-end">
+                  <Text className={`text-base font-extrabold ${isPositive ? 'text-[#10b981]' : 'text-[#ef4444]'}`}>
                     {isPositive ? `+${item.quantityChanged}` : `${item.quantityChanged}`}
                   </Text>
-                  <Text style={styles.resultingText}>Bal: {item.newQuantity}</Text>
+                  <Text className="mt-0.5 text-[11px] text-[#64748b]">Bal: {item.newQuantity}</Text>
                 </View>
               </View>
             );
           }}
         />
       ) : (
-        <View style={ui.emptyBox}>
+        <View className="flex-1 items-center justify-center p-7">
           <Layers size={40} color={colors.textLight} />
-          <Text style={styles.emptyTitle}>No Stock Movements Yet</Text>
-          <Text style={styles.emptyDesc}>Recorded stock-ins and adjustments will appear here</Text>
+          <Text className="mt-2 text-sm font-bold text-[#0f172a]">No Stock Movements Yet</Text>
+          <Text className="mt-0.5 text-xs text-[#64748b]">Recorded stock-ins and adjustments will appear here</Text>
         </View>
       )}
 
       {/* Stock In Modal */}
       <Modal visible={stockInModalOpen} animationType="slide" transparent>
-        <View style={ui.modalOverlay}>
-          <View style={ui.modalContent}>
-            <View style={ui.modalHeader}>
-              <Text style={ui.modalTitle}>Stock-In (Restock Goods)</Text>
+        <View className="flex-1 justify-end bg-black/60">
+          <View className="max-h-[90%] rounded-t-3xl bg-white p-5">
+            <View className="mb-4 flex-row items-center justify-between">
+              <Text className="text-2xl font-extrabold text-[#0f172a]">Stock-In (Restock Goods)</Text>
               <TouchableOpacity onPress={() => setStockInModalOpen(false)}>
                 <X size={20} color={colors.text} />
               </TouchableOpacity>
             </View>
 
-            <ScrollView contentContainerStyle={styles.formScroll}>
-              <Text style={styles.inputLabel}>Select Product *</Text>
-              <View style={styles.scannerPickRow}>
-                <View style={[styles.pickerContainer, { flex: 1 }]}>
-                  <Text style={styles.pickerSelectedText}>
+            <ScrollView contentContainerClassName="pb-4">
+              <Text className="mb-1.5 text-[11px] font-bold uppercase text-[#64748b]">Select Product *</Text>
+              <View className="mb-2.5 flex-row gap-2">
+                <View className="h-11 flex-1 justify-center rounded-[10px] border border-[#e2e8f0] bg-[#f8fafc] px-3">
+                  <Text className="text-sm text-[#0f172a]">
                     {selectedProduct
                       ? `${selectedProduct.name} (Stock: ${selectedProduct.currentQuantity})`
                       : 'Choose a product below or scan...'}
                   </Text>
                 </View>
                 <TouchableOpacity
-                  style={styles.scanBtn}
+                  className="h-11 w-11 items-center justify-center rounded-[10px] bg-[#059669]"
                   onPress={() => {
                     setScannerTarget('stock-in');
                     setScannerOpen(true);
@@ -318,18 +314,15 @@ export const InventoryScreen: React.FC = () => {
               </View>
 
               {/* Product quick pill selector */}
-              <ScrollView horizontal showsHorizontalScrollIndicator={false} style={styles.quickProdList}>
+              <ScrollView horizontal showsHorizontalScrollIndicator={false} className="mb-3">
                 {products.map((p) => (
                   <TouchableOpacity
                     key={p.id}
-                    style={[styles.quickProdPill, selectedProductId === p.id && styles.quickProdPillActive]}
+                    className={`mr-1.5 rounded-lg border px-3 py-1.5 ${selectedProductId === p.id ? 'border-[#059669] bg-[#d1fae5]' : 'border-[#e2e8f0] bg-[#f8fafc]'}`}
                     onPress={() => setSelectedProductId(p.id)}
                   >
                     <Text
-                      style={[
-                        styles.quickProdText,
-                        selectedProductId === p.id && styles.quickProdTextActive,
-                      ]}
+                      className={`text-[11px] font-bold ${selectedProductId === p.id ? 'text-[#059669]' : 'text-[#64748b]'}`}
                     >
                       {p.name}
                     </Text>
@@ -337,9 +330,9 @@ export const InventoryScreen: React.FC = () => {
                 ))}
               </ScrollView>
 
-              <Text style={styles.inputLabel}>Quantity to Add *</Text>
+              <Text className="mb-1.5 text-[11px] font-bold uppercase text-[#64748b]">Quantity to Add *</Text>
               <TextInput
-                style={ui.input}
+                className="h-11 rounded-md border border-[#e2e8f0] bg-[#f8fafc] px-3 text-base text-[#0f172a]"
                 placeholder="e.g. 50"
                 placeholderTextColor={colors.textLight}
                 keyboardType="numeric"
@@ -347,9 +340,9 @@ export const InventoryScreen: React.FC = () => {
                 onChangeText={setStockInQty}
               />
 
-              <Text style={styles.inputLabel}>Invoice / Reason / Notes</Text>
+              <Text className="mb-1.5 text-[11px] font-bold uppercase text-[#64748b]">Invoice / Reason / Notes</Text>
               <TextInput
-                style={ui.input}
+                className="h-11 rounded-md border border-[#e2e8f0] bg-[#f8fafc] px-3 text-base text-[#0f172a]"
                 placeholder="e.g. Supplier Batch #902"
                 placeholderTextColor={colors.textLight}
                 value={stockInReason}
@@ -357,12 +350,12 @@ export const InventoryScreen: React.FC = () => {
               />
             </ScrollView>
 
-            <View style={ui.modalActions}>
-              <TouchableOpacity style={ui.btnGhost} onPress={() => setStockInModalOpen(false)}>
-                <Text style={ui.btnGhostText}>Cancel</Text>
+            <View className="flex-row gap-2.5 border-t border-[#e2e8f0] pt-3">
+              <TouchableOpacity className="flex-1 flex-row items-center justify-center rounded-lg border border-[#e2e8f0] bg-[#f8fafc] py-3" onPress={() => setStockInModalOpen(false)}>
+                <Text className="text-base font-bold text-[#0f172a]">Cancel</Text>
               </TouchableOpacity>
               <TouchableOpacity
-                style={[ui.btnPrimary, submitting && styles.saveBtnDisabled]}
+                className="flex-row flex-[1.8] items-center justify-center gap-1.5 rounded-lg bg-[#059669] px-3 py-3"
                 onPress={handleStockInSubmit}
                 disabled={submitting}
               >
@@ -370,8 +363,8 @@ export const InventoryScreen: React.FC = () => {
                   <ActivityIndicator color="#fff" />
                 ) : (
                   <>
-                    <CircleCheck size={18} color="#fff" />
-                    <Text style={ui.btnPrimaryText}>Record Stock In</Text>
+                    <CircleCheck size={16} color="#fff" />
+                    <Text className="text-base font-extrabold text-white" numberOfLines={1} adjustsFontSizeToFit>Record Stock In</Text>
                   </>
                 )}
               </TouchableOpacity>
@@ -382,27 +375,27 @@ export const InventoryScreen: React.FC = () => {
 
       {/* Adjust Stock Modal */}
       <Modal visible={adjustModalOpen} animationType="slide" transparent>
-        <View style={ui.modalOverlay}>
-          <View style={ui.modalContent}>
-            <View style={ui.modalHeader}>
-              <Text style={ui.modalTitle}>Adjust Stock Level</Text>
+        <View className="flex-1 justify-end bg-black/60">
+          <View className="max-h-[90%] rounded-t-3xl bg-white p-5">
+            <View className="mb-4 flex-row items-center justify-between">
+              <Text className="text-2xl font-extrabold text-[#0f172a]">Adjust Stock Level</Text>
               <TouchableOpacity onPress={() => setAdjustModalOpen(false)}>
                 <X size={20} color={colors.text} />
               </TouchableOpacity>
             </View>
 
-            <ScrollView contentContainerStyle={styles.formScroll}>
-              <Text style={styles.inputLabel}>Select Product *</Text>
-              <View style={styles.scannerPickRow}>
-                <View style={[styles.pickerContainer, { flex: 1 }]}>
-                  <Text style={styles.pickerSelectedText} numberOfLines={1}>
+            <ScrollView contentContainerClassName="pb-4">
+              <Text className="mb-1.5 text-[11px] font-bold uppercase text-[#64748b]">Select Product *</Text>
+              <View className="mb-2.5 flex-row gap-2">
+                <View className="h-11 flex-1 justify-center rounded-[10px] border border-[#e2e8f0] bg-[#f8fafc] px-3">
+                  <Text className="text-sm text-[#0f172a]" numberOfLines={1}>
                     {selectedProduct
                       ? `${selectedProduct.name} (Stock: ${selectedProduct.currentQuantity})`
                       : 'Choose a product below or scan...'}
                   </Text>
                 </View>
                 <TouchableOpacity
-                  style={styles.scanBtn}
+                  className="h-11 w-11 items-center justify-center rounded-[10px] bg-[#059669]"
                   onPress={() => {
                     setScannerTarget('adjust');
                     setScannerOpen(true);
@@ -412,21 +405,18 @@ export const InventoryScreen: React.FC = () => {
                 </TouchableOpacity>
               </View>
 
-              <ScrollView horizontal showsHorizontalScrollIndicator={false} style={styles.quickProdList}>
+              <ScrollView horizontal showsHorizontalScrollIndicator={false} className="mb-3">
                 {products.map((p) => (
                   <TouchableOpacity
                     key={p.id}
-                    style={[styles.quickProdPill, selectedProductId === p.id && styles.quickProdPillActive]}
+                    className={`mr-1.5 rounded-lg border px-3 py-1.5 ${selectedProductId === p.id ? 'border-[#059669] bg-[#d1fae5]' : 'border-[#e2e8f0] bg-[#f8fafc]'}`}
                     onPress={() => {
                       setSelectedProductId(p.id);
                       setAdjustNewQty(safeQty(p.currentQuantity));
                     }}
                   >
                     <Text
-                      style={[
-                        styles.quickProdText,
-                        selectedProductId === p.id && styles.quickProdTextActive,
-                      ]}
+                      className={`text-[11px] font-bold ${selectedProductId === p.id ? 'text-[#059669]' : 'text-[#64748b]'}`}
                     >
                       {p.name}
                     </Text>
@@ -434,9 +424,9 @@ export const InventoryScreen: React.FC = () => {
                 ))}
               </ScrollView>
 
-              <Text style={styles.inputLabel}>New Total Quantity *</Text>
+              <Text className="mb-1.5 text-[11px] font-bold uppercase text-[#64748b]">New Total Quantity *</Text>
               <TextInput
-                style={ui.input}
+                className="h-11 rounded-md border border-[#e2e8f0] bg-[#f8fafc] px-3 text-base text-[#0f172a]"
                 placeholder="Enter exact shelf count"
                 placeholderTextColor={colors.textLight}
                 keyboardType="numeric"
@@ -444,15 +434,15 @@ export const InventoryScreen: React.FC = () => {
                 onChangeText={setAdjustNewQty}
               />
 
-              <Text style={styles.inputLabel}>Adjustment Reason</Text>
-              <View style={styles.reasonRow}>
+              <Text className="mb-1.5 text-[11px] font-bold uppercase text-[#64748b]">Adjustment Reason</Text>
+              <View className="flex-row flex-wrap gap-2">
                 {['DAMAGE', 'EXPIRY', 'COUNT_ERROR', 'THEFT', 'RECOUNT'].map((r) => (
                   <TouchableOpacity
                     key={r}
-                    style={[styles.reasonPill, adjustReason === r && styles.reasonPillActive]}
+                    className={`rounded-lg border px-2.5 py-1.5 ${adjustReason === r ? 'border-[#059669] bg-[#d1fae5]' : 'border-[#e2e8f0] bg-[#f8fafc]'}`}
                     onPress={() => setAdjustReason(r)}
                   >
-                    <Text style={[styles.reasonText, adjustReason === r && styles.reasonTextActive]}>
+                    <Text className={`text-[11px] font-bold ${adjustReason === r ? 'text-[#059669]' : 'text-[#64748b]'}`}>
                       {r.replace('_', ' ')}
                     </Text>
                   </TouchableOpacity>
@@ -460,12 +450,12 @@ export const InventoryScreen: React.FC = () => {
               </View>
             </ScrollView>
 
-            <View style={ui.modalActions}>
-              <TouchableOpacity style={ui.btnGhost} onPress={() => setAdjustModalOpen(false)}>
-                <Text style={ui.btnGhostText}>Cancel</Text>
+            <View className="flex-row gap-2.5 border-t border-[#e2e8f0] pt-3">
+              <TouchableOpacity className="flex-1 flex-row items-center justify-center rounded-lg border border-[#e2e8f0] bg-[#f8fafc] py-3" onPress={() => setAdjustModalOpen(false)}>
+                <Text className="text-base font-bold text-[#0f172a]">Cancel</Text>
               </TouchableOpacity>
               <TouchableOpacity
-                style={[ui.btnPrimary, submitting && styles.saveBtnDisabled]}
+                className="flex-row flex-[1.8] items-center justify-center gap-1.5 rounded-lg bg-[#059669] px-3 py-3"
                 onPress={handleAdjustSubmit}
                 disabled={submitting}
               >
@@ -473,8 +463,8 @@ export const InventoryScreen: React.FC = () => {
                   <ActivityIndicator color="#fff" />
                 ) : (
                   <>
-                    <CircleCheck size={18} color="#fff" />
-                    <Text style={ui.btnPrimaryText}>Apply Adjustment</Text>
+                    <CircleCheck size={16} color="#fff" />
+                    <Text className="text-base font-extrabold text-white" numberOfLines={1} adjustsFontSizeToFit>Apply Adjustment</Text>
                   </>
                 )}
               </TouchableOpacity>
@@ -497,168 +487,7 @@ export const InventoryScreen: React.FC = () => {
   );
 };
 
-const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-    backgroundColor: colors.bg,
-  },
-  actionRow: {
-    flexDirection: 'row',
-    padding: 16,
-    gap: 10,
-  },
-  stockInBtn: {
-    flex: 1,
-    flexDirection: 'row',
-    alignItems: 'center',
-    backgroundColor: colors.primary,
-    padding: 14,
-    borderRadius: 16,
-    gap: 10,
-    shadowColor: colors.primary,
-    shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.3,
-    shadowRadius: 8,
-    elevation: 4,
-  },
-  stockInTitle: {
-    color: '#fff',
-    fontSize: 14,
-    fontWeight: '800',
-  },
-  stockInSub: {
-    color: '#d1fae5',
-    fontSize: 11,
-    marginTop: 1,
-  },
-  adjustBtn: {
-    flex: 1,
-    flexDirection: 'row',
-    alignItems: 'center',
-    backgroundColor: colors.surface,
-    padding: 14,
-    borderRadius: 16,
-    borderWidth: 1,
-    borderColor: colors.border,
-    gap: 10,
-  },
-  adjustTitle: {
-    color: colors.text,
-    fontSize: 14,
-    fontWeight: '800',
-  },
-  adjustSub: {
-    color: colors.textMuted,
-    fontSize: 11,
-    marginTop: 1,
-  },
-  logHeader: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    paddingHorizontal: 16,
-    marginBottom: 8,
-    gap: 6,
-  },
-  logTitle: {
-    fontSize: 14,
-    fontWeight: '800',
-    color: colors.text,
-  },
-  logList: {
-    padding: 16,
-    paddingTop: 4,
-    gap: 10,
-    paddingBottom: 40,
-  },
-  movementCard: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-    backgroundColor: colors.surface,
-    padding: 12,
-    borderRadius: 14,
-    borderWidth: 1,
-    borderColor: colors.border,
-  },
-  movLeft: {
-    flex: 1,
-    marginRight: 10,
-  },
-  typeBadge: {
-    paddingHorizontal: 8,
-    paddingVertical: 2,
-    borderRadius: 6,
-    alignSelf: 'flex-start',
-    marginBottom: 4,
-  },
-  bgStockIn: {
-    backgroundColor: colors.successLight,
-  },
-  bgAdjust: {
-    backgroundColor: colors.warningLight,
-  },
-  bgSale: {
-    backgroundColor: colors.accentLight,
-  },
-  typeText: {
-    fontSize: 10,
-    fontWeight: '800',
-    textTransform: 'uppercase',
-  },
-  textStockIn: {
-    color: colors.success,
-  },
-  textAdjust: {
-    color: colors.warning,
-  },
-  textSale: {
-    color: colors.accent,
-  },
-  movProductName: {
-    fontSize: 13,
-    fontWeight: '700',
-    color: colors.text,
-  },
-  movDate: {
-    fontSize: 11,
-    color: colors.textMuted,
-    marginTop: 2,
-  },
-  movRight: {
-    alignItems: 'flex-end',
-  },
-  deltaText: {
-    fontSize: 16,
-    fontWeight: '800',
-  },
-  textPositive: {
-    color: colors.success,
-  },
-  textNegative: {
-    color: colors.danger,
-  },
-  resultingText: {
-    fontSize: 11,
-    color: colors.textMuted,
-    marginTop: 2,
-  },
-  
-  
-  emptyTitle: {
-    fontSize: 14,
-    fontWeight: '700',
-    color: colors.text,
-    marginTop: 8,
-  },
-  emptyDesc: {
-    fontSize: 12,
-    color: colors.textMuted,
-    marginTop: 2,
-  },
-  
-  
-  
-  
+/*
   formScroll: {
     paddingBottom: 16,
   },
@@ -748,21 +577,7 @@ const styles = StyleSheet.create({
   reasonTextActive: {
     color: colors.warning,
   },
-  
-  
-  
-  saveBtn: {
-    flex: 2,
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'center',
-    backgroundColor: colors.primary,
-    paddingVertical: 12,
-    borderRadius: 12,
-    gap: 6,
-  },
   saveBtnDisabled: {
     opacity: 0.6,
   },
-  
-});
+*/

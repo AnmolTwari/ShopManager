@@ -6,7 +6,6 @@ import {
   Modal,
   RefreshControl,
   ScrollView,
-  StyleSheet,
   Text,
   TextInput,
   TouchableOpacity,
@@ -17,7 +16,6 @@ import { Header } from '../components/Header';
 import { StockBadge } from '../components/StockBadge';
 import { productsApi } from '../services/shopApi';
 import { colors } from '../theme/colors';
-import { ui } from '../theme/ui';
 import { Category, Product, ProductRequest, ProductUnit } from '../types';
 import {
   Plus,
@@ -271,13 +269,13 @@ export const ProductsScreen: React.FC = () => {
     const qty = safeNumber(item.currentQuantity, 0);
     const minL = safeNumber(item.minimumStockLevel, 5);
     return (
-      <View style={styles.productCard}>
-        <View style={styles.cardHeader}>
+      <View className="rounded-[14px] border border-[#e2e8f0] bg-white p-3.5 shadow-sm">
+        <View className="mb-2.5 flex-row items-start justify-between">
           <View style={{ flex: 1, paddingRight: 8 }}>
-            <Text style={styles.productName} numberOfLines={2}>
+            <Text className="text-sm font-extrabold text-[#0f172a]" numberOfLines={2}>
               {item.name || 'Unnamed Product'}
             </Text>
-            <Text style={styles.productSku} numberOfLines={1}>
+            <Text className="mt-0.5 text-[11px] text-[#64748b]" numberOfLines={1}>
               {item.categoryName ? `${item.categoryName} • ` : ''}
               {item.brand ? `${item.brand} • ` : ''}
               SKU: {item.sku || 'N/A'}
@@ -286,31 +284,31 @@ export const ProductsScreen: React.FC = () => {
           <StockBadge status={item.stockStatus} quantity={qty} minLevel={minL} />
         </View>
 
-        <View style={styles.priceRow}>
-          <View style={styles.priceCell}>
-            <Text style={styles.priceLabel}>Selling</Text>
-            <Text style={styles.sellingPrice}>{fmtCurrency(selling)}</Text>
+        <View className="mb-2.5 flex-row justify-between gap-1.5 rounded-[10px] bg-[#f8fafc] p-2.5">
+          <View className="flex-1">
+            <Text className="text-[10px] font-semibold uppercase text-[#64748b]">Selling</Text>
+            <Text className="mt-0.5 text-sm font-extrabold text-[#059669]">{fmtCurrency(selling)}</Text>
           </View>
-          <View style={styles.priceCell}>
-            <Text style={styles.priceLabel}>Cost</Text>
-            <Text style={styles.costPrice}>{fmtCurrency(purchase)}</Text>
+          <View className="flex-1">
+            <Text className="text-[10px] font-semibold uppercase text-[#64748b]">Cost</Text>
+            <Text className="mt-0.5 text-sm font-bold text-[#0f172a]">{fmtCurrency(purchase)}</Text>
           </View>
-          <View style={styles.priceCell}>
-            <Text style={styles.priceLabel}>Unit / Margin</Text>
-            <Text style={[styles.marginText, margin < 0 && { color: colors.danger }]}>
+          <View className="flex-1">
+            <Text className="text-[10px] font-semibold uppercase text-[#64748b]">Unit / Margin</Text>
+            <Text className="mt-0.5 text-xs font-bold text-[#10b981]" style={margin < 0 ? { color: colors.danger } : undefined}>
               {item.unit || 'PIECE'} {margin >= 0 ? `(+${fmtCurrency(margin)})` : `(${fmtCurrency(margin)})`}
             </Text>
           </View>
         </View>
 
-        <View style={styles.cardActions}>
-          <TouchableOpacity style={styles.editBtn} onPress={() => openEditModal(item)} activeOpacity={0.7}>
+        <View className="flex-row gap-2">
+          <TouchableOpacity className="flex-1 flex-row items-center justify-center gap-1 rounded-lg border border-[#e2e8f0] bg-[#f8fafc] py-2" onPress={() => openEditModal(item)} activeOpacity={0.7}>
             <Pencil size={14} color={colors.text} />
-            <Text style={styles.editBtnText}>Edit</Text>
+            <Text className="text-xs font-bold text-[#0f172a]">Edit</Text>
           </TouchableOpacity>
-          <TouchableOpacity style={styles.archiveBtn} onPress={() => handleArchiveToggle(item)} activeOpacity={0.7}>
+          <TouchableOpacity className="flex-1 flex-row items-center justify-center gap-1 rounded-lg bg-[#fee2e2] py-2" onPress={() => handleArchiveToggle(item)} activeOpacity={0.7}>
             <Archive size={14} color={colors.danger} />
-            <Text style={styles.archiveBtnText}>Remove</Text>
+            <Text className="text-xs font-bold text-[#ef4444]">Remove</Text>
           </TouchableOpacity>
         </View>
       </View>
@@ -318,15 +316,15 @@ export const ProductsScreen: React.FC = () => {
   };
 
   return (
-    <View style={ui.screen}>
+    <View className="flex-1 bg-[#f8fafc]">
       <Header title="Product Catalog" subtitle={`${(products || []).length} active products`} onRefresh={onRefresh} isRefreshing={refreshing} />
 
       {/* Search & Add - uses framework ui.searchBox/ui.searchInput */}
-      <View style={styles.searchBarRow}>
-        <View style={ui.searchBox}>
+      <View className="flex-row gap-2 border-b border-[#e2e8f0] bg-white px-4 py-2.5">
+        <View className="flex-1 flex-row items-center rounded-lg border border-[#e2e8f0] bg-[#f8fafc] px-2.5">
           <Search size={16} color={colors.textMuted} />
           <TextInput
-            style={ui.searchInput}
+            className="flex-1 text-sm text-[#0f172a]"
             placeholder="Search products, brand or SKU…"
             placeholderTextColor={colors.textLight}
             value={searchQuery}
@@ -342,27 +340,27 @@ export const ProductsScreen: React.FC = () => {
             </TouchableOpacity>
           ) : null}
         </View>
-        <TouchableOpacity style={styles.addBtn} onPress={openCreateModal} activeOpacity={0.85}>
+        <TouchableOpacity className="flex-row items-center gap-1 rounded-[10px] bg-[#059669] px-3.5" onPress={openCreateModal} activeOpacity={0.85}>
           <Plus size={18} color="#fff" />
-          <Text style={styles.addBtnText}>Add</Text>
+          <Text className="text-[13px] font-bold text-white">Add</Text>
         </TouchableOpacity>
       </View>
 
-      <View style={styles.categoryBar}>
-        <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.categoryScroll}>
+      <View className=" py-3 border-b border-[#e2e8f0] bg-white">
+        <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerClassName="flex-row gap-2 px-4">
           <TouchableOpacity
-            style={[styles.categoryPill, selectedCategory === 'ALL' && styles.categoryPillActive]}
+            className={`rounded-full border px-3 py-1.5 ${selectedCategory === 'ALL' ? 'border-[#059669] bg-[#d1fae5]' : 'border-[#e2e8f0] bg-[#f8fafc]'}`}
             onPress={() => setSelectedCategory('ALL')}
           >
-            <Text style={[styles.categoryPillText, selectedCategory === 'ALL' && styles.categoryPillTextActive]}>All</Text>
+            <Text className={` text-xs font-semibold ${selectedCategory === 'ALL' ? 'text-[#059669]' : 'text-[#64748b]'}`}>All</Text>
           </TouchableOpacity>
           {(categories || []).filter((c) => c && c.id != null).map((c) => (
             <TouchableOpacity
               key={c.id}
-              style={[styles.categoryPill, selectedCategory === c.id && styles.categoryPillActive]}
+              className={`rounded-full border px-3 py-1.5 ${selectedCategory === c.id ? 'border-[#059669] bg-[#d1fae5]' : 'border-[#e2e8f0] bg-[#f8fafc]'}`}
               onPress={() => setSelectedCategory(c.id)}
             >
-              <Text style={[styles.categoryPillText, selectedCategory === c.id && styles.categoryPillTextActive]} numberOfLines={1}>
+              <Text className={`text-xs font-semibold ${selectedCategory === c.id ? 'text-[#059669]' : 'text-[#64748b]'}`} numberOfLines={1}>
                 {c.name || 'Category'}
               </Text>
             </TouchableOpacity>
@@ -370,40 +368,40 @@ export const ProductsScreen: React.FC = () => {
         </ScrollView>
       </View>
 
-      <View style={styles.metaRow}>
-        <Text style={styles.countText}>Showing {filtered.length} items {debouncedSearch ? `for "${debouncedSearch}"` : ''}</Text>
+      <View className="flex-row items-center justify-between px-4 py-2">
+        <Text className="flex-1 text-xs font-medium text-[#64748b]">Showing {filtered.length} items {debouncedSearch ? `for "${debouncedSearch}"` : ''}</Text>
         {error ? (
-          <TouchableOpacity style={styles.retryBtn} onPress={() => loadData()}>
+          <TouchableOpacity className="flex-row items-center gap-1 py-0.5" onPress={() => loadData()}>
             <RefreshCw size={14} color={colors.primary} />
-            <Text style={styles.retryText}>Retry</Text>
+            <Text className="text-xs font-bold text-[#059669]">Retry</Text>
           </TouchableOpacity>
         ) : null}
       </View>
 
       {error ? (
-        <View style={ui.errorBanner}>
+        <View className="mx-4 mb-2 flex-row items-center gap-2 rounded-md border border-[#fecaca] bg-[#fee2e2] p-2.5">
           <TriangleAlert size={16} color={colors.danger} />
-          <Text style={styles.errorText}>{error}</Text>
+          <Text className="flex-1 text-xs font-semibold text-[#ef4444]">{error}</Text>
         </View>
       ) : null}
 
       {loading ? (
-        <View style={ui.emptyBox}>
+        <View className="flex-1 items-center justify-center p-7">
           <ActivityIndicator size="large" color={colors.primary} />
-          <Text style={styles.loadingText}>Loading products…</Text>
+          <Text className="mt-2 text-[13px] font-semibold text-[#64748b]">Loading products…</Text>
         </View>
       ) : (
         <FlatList
           data={filtered}
           keyExtractor={(item, index) => (item?.id != null ? String(item.id) : String(index))}
-          contentContainerStyle={styles.listContent}
+          contentContainerClassName="gap-2.5 p-4 pb-10"
           renderItem={renderProductCard}
           refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} colors={[colors.primary]} tintColor={colors.primary} />}
           ListEmptyComponent={
-            <View style={ui.emptyBox}>
+            <View className="flex-1 items-center justify-center p-7">
               <Package size={40} color={colors.textLight} />
-              <Text style={styles.emptyTitle}>{debouncedSearch ? 'No Matches' : 'No Products Yet'}</Text>
-              <Text style={styles.emptyDesc}>
+              <Text className="mt-2 text-[15px] font-bold text-[#0f172a]">{debouncedSearch ? 'No Matches' : 'No Products Yet'}</Text>
+              <Text className="mt-1 text-center text-xs leading-[18px] text-[#64748b]">
                 {debouncedSearch ? `No products found for "${debouncedSearch}".` : 'Tap "+ Add" to create your first inventory item'}
               </Text>
             </View>
@@ -413,19 +411,19 @@ export const ProductsScreen: React.FC = () => {
 
       {/* Add / Edit Modal - uses framework ui.modalOverlay/ui.modalContent/ui.modalHeader/ui.input */}
       <Modal visible={formModalOpen} animationType="slide" transparent onRequestClose={() => setFormModalOpen(false)}>
-        <View style={ui.modalOverlay}>
-          <View style={ui.modalContent}>
-            <View style={ui.modalHeader}>
-              <Text style={ui.modalTitle}>{editingProduct ? 'Edit Product' : 'Add New Product'}</Text>
+        <View className="flex-1 justify-end bg-black/60">
+          <View className="max-h-[90%] rounded-t-3xl bg-white p-5">
+            <View className="mb-4 flex-row items-center justify-between">
+              <Text className="text-2xl font-extrabold text-[#0f172a]">{editingProduct ? 'Edit Product' : 'Add New Product'}</Text>
               <TouchableOpacity onPress={() => setFormModalOpen(false)} hitSlop={10}>
                 <X size={20} color={colors.text} />
               </TouchableOpacity>
             </View>
 
-            <ScrollView contentContainerStyle={styles.formBody} keyboardShouldPersistTaps="handled">
-              <Text style={styles.inputLabel}>Product Name *</Text>
+            <ScrollView contentContainerClassName="pb-4" keyboardShouldPersistTaps="handled">
+              <Text className="mb-1.5 text-[11px] font-bold uppercase text-[#64748b]">Product Name *</Text>
               <TextInput
-                style={ui.input}
+                className="h-11 rounded-md border border-[#e2e8f0] bg-[#f8fafc] px-3 text-base text-[#0f172a]"
                 placeholder="e.g. Basmati Rice 5kg"
                 placeholderTextColor={colors.textLight}
                 value={name}
@@ -434,45 +432,45 @@ export const ProductsScreen: React.FC = () => {
               />
               <View style={{ height: 12 }} />
 
-              <View style={styles.labelWithAction}>
-                <Text style={styles.inputLabel}>Category *</Text>
+              <View className="mb-1.5 flex-row items-center justify-between">
+                <Text className="text-[11px] font-bold uppercase text-[#64748b]">Category *</Text>
                 <TouchableOpacity onPress={() => setCategoryModalOpen(true)}>
-                  <Text style={styles.addCategoryLink}>+ New Category</Text>
+                  <Text className="text-[11px] font-bold text-[#059669]">+ New Category</Text>
                 </TouchableOpacity>
               </View>
-              <ScrollView horizontal showsHorizontalScrollIndicator={false} style={styles.unitPickerScroll}>
+              <ScrollView horizontal showsHorizontalScrollIndicator={false} className="mb-3">
                 {(categories || []).length === 0 ? (
-                  <Text style={styles.hintText}>No categories yet — create one.</Text>
+                  <Text className="py-1 text-xs italic text-[#64748b]">No categories yet — create one.</Text>
                 ) : (
                   (categories || []).filter((cat) => cat && cat.id != null).map((cat) => (
                     <TouchableOpacity
                       key={cat.id}
-                      style={[styles.unitPill, categoryId === cat.id && styles.unitPillActive]}
+                      className={`mr-1.5 rounded-lg border px-3 py-1.5 ${categoryId === cat.id ? 'border-[#059669] bg-[#d1fae5]' : 'border-[#e2e8f0] bg-[#f8fafc]'}`}
                       onPress={() => setCategoryId(cat.id)}
                     >
-                      <Text style={[styles.unitText, categoryId === cat.id && styles.unitTextActive]}>{cat.name || 'Category'}</Text>
+                      <Text className={`text-[11px] font-bold ${categoryId === cat.id ? 'text-[#059669]' : 'text-[#64748b]'}`}>{cat.name || 'Category'}</Text>
                     </TouchableOpacity>
                   ))
                 )}
               </ScrollView>
 
-              <Text style={styles.inputLabel}>Unit of Measure *</Text>
-              <ScrollView horizontal showsHorizontalScrollIndicator={false} style={styles.unitPickerScroll}>
+              <Text className="mb-1.5 text-[11px] font-bold uppercase text-[#64748b]">Unit of Measure *</Text>
+              <ScrollView horizontal showsHorizontalScrollIndicator={false} className="mb-3">
                 {UNITS.map((u) => (
                   <TouchableOpacity
                     key={u}
-                    style={[styles.unitPill, unit === u && styles.unitPillActive]}
+                    className={`mr-1.5 rounded-lg border px-3 py-1.5 ${unit === u ? 'border-[#059669] bg-[#d1fae5]' : 'border-[#e2e8f0] bg-[#f8fafc]'}`}
                     onPress={() => setUnit(u)}
                   >
-                    <Text style={[styles.unitText, unit === u && styles.unitTextActive]}>{u}</Text>
+                    <Text className={`text-[11px] font-bold ${unit === u ? 'text-[#059669]' : 'text-[#64748b]'}`}>{u}</Text>
                   </TouchableOpacity>
                 ))}
               </ScrollView>
 
-              <Text style={styles.inputLabel}>Barcode / SKU</Text>
-              <View style={styles.skuInputRow}>
+              <Text className="mb-1.5 text-[11px] font-bold uppercase text-[#64748b]">Barcode / SKU</Text>
+              <View className="mb-3 flex-row items-center gap-2">
                 <TextInput
-                  style={[ui.input, { flex: 1 }]}
+                  className="h-11 flex-1 rounded-md border border-[#e2e8f0] bg-[#f8fafc] px-3 text-base text-[#0f172a]"
                   placeholder="Scan or enter barcode"
                   placeholderTextColor={colors.textLight}
                   value={sku}
@@ -480,16 +478,16 @@ export const ProductsScreen: React.FC = () => {
                   autoCapitalize="characters"
                   maxLength={50}
                 />
-                <TouchableOpacity style={styles.scanSkuBtn} onPress={() => setScannerOpen(true)}>
+                <TouchableOpacity className="h-11 w-11 items-center justify-center rounded-[10px] bg-[#059669]" onPress={() => setScannerOpen(true)}>
                   <Camera size={18} color="#fff" />
                 </TouchableOpacity>
               </View>
 
-              <View style={styles.twoCol}>
+              <View className="flex-row gap-2.5">
                 <View style={{ flex: 1 }}>
-                  <Text style={styles.inputLabel}>Brand</Text>
+                  <Text className="mb-1.5 text-[11px] font-bold uppercase text-[#64748b]">Brand</Text>
                   <TextInput
-                    style={ui.input}
+                    className="h-11 rounded-md border border-[#e2e8f0] bg-[#f8fafc] px-3 text-base text-[#0f172a]"
                     placeholder="e.g. Nestle"
                     placeholderTextColor={colors.textLight}
                     value={brand}
@@ -498,9 +496,9 @@ export const ProductsScreen: React.FC = () => {
                   />
                 </View>
                 <View style={{ flex: 1 }}>
-                  <Text style={styles.inputLabel}>MRP (₹)</Text>
+                  <Text className="mb-1.5 text-[11px] font-bold uppercase text-[#64748b]">MRP (₹)</Text>
                   <TextInput
-                    style={ui.input}
+                    className="h-11 rounded-md border border-[#e2e8f0] bg-[#f8fafc] px-3 text-base text-[#0f172a]"
                     placeholder="Printed MRP"
                     placeholderTextColor={colors.textLight}
                     keyboardType="numeric"
@@ -512,11 +510,11 @@ export const ProductsScreen: React.FC = () => {
               </View>
               <View style={{ height: 12 }} />
 
-              <View style={styles.twoCol}>
+              <View className="flex-row gap-2.5">
                 <View style={{ flex: 1 }}>
-                  <Text style={styles.inputLabel}>Purchase Price (₹) *</Text>
+                  <Text className="mb-1.5 text-[11px] font-bold uppercase text-[#64748b]">Purchase Price (₹) *</Text>
                   <TextInput
-                    style={ui.input}
+                    className="h-11 rounded-md border border-[#e2e8f0] bg-[#f8fafc] px-3 text-base text-[#0f172a]"
                     placeholder="Cost price"
                     placeholderTextColor={colors.textLight}
                     keyboardType="numeric"
@@ -526,9 +524,9 @@ export const ProductsScreen: React.FC = () => {
                   />
                 </View>
                 <View style={{ flex: 1 }}>
-                  <Text style={styles.inputLabel}>Selling Price (₹) *</Text>
+                  <Text className="mb-1.5 text-[11px] font-bold uppercase text-[#64748b]">Selling Price (₹) *</Text>
                   <TextInput
-                    style={ui.input}
+                    className="h-11 rounded-md border border-[#e2e8f0] bg-[#f8fafc] px-3 text-base text-[#0f172a]"
                     placeholder="Selling price"
                     placeholderTextColor={colors.textLight}
                     keyboardType="numeric"
@@ -540,11 +538,11 @@ export const ProductsScreen: React.FC = () => {
               </View>
               <View style={{ height: 12 }} />
 
-              <View style={styles.twoCol}>
+              <View className="flex-row gap-2.5">
                 <View style={{ flex: 1 }}>
-                  <Text style={styles.inputLabel}>Initial Stock</Text>
+                  <Text className="mb-1.5 text-[11px] font-bold uppercase text-[#64748b]">Initial Stock</Text>
                   <TextInput
-                    style={ui.input}
+                    className="h-11 rounded-md border border-[#e2e8f0] bg-[#f8fafc] px-3 text-base text-[#0f172a]"
                     placeholder="Quantity"
                     placeholderTextColor={colors.textLight}
                     keyboardType="numeric"
@@ -554,9 +552,9 @@ export const ProductsScreen: React.FC = () => {
                   />
                 </View>
                 <View style={{ flex: 1 }}>
-                  <Text style={styles.inputLabel}>Min Alert Level</Text>
+                  <Text className="mb-1.5 text-[11px] font-bold uppercase text-[#64748b]">Min Alert Level</Text>
                   <TextInput
-                    style={ui.input}
+                    className="h-11 rounded-md border border-[#e2e8f0] bg-[#f8fafc] px-3 text-base text-[#0f172a]"
                     placeholder="Alert below"
                     placeholderTextColor={colors.textLight}
                     keyboardType="numeric"
@@ -568,17 +566,17 @@ export const ProductsScreen: React.FC = () => {
               </View>
             </ScrollView>
 
-            <View style={ui.modalActions}>
-              <TouchableOpacity style={[ui.btnGhost, { flex: 1 }]} onPress={() => setFormModalOpen(false)}>
-                <Text style={ui.btnGhostText}>Cancel</Text>
+            <View className="flex-row gap-2.5 border-t border-[#e2e8f0] pt-3">
+              <TouchableOpacity className="flex-1 flex-row items-center justify-center rounded-lg border border-[#e2e8f0] bg-[#f8fafc] py-3" onPress={() => setFormModalOpen(false)}>
+                <Text className="text-base font-bold text-[#0f172a]">Cancel</Text>
               </TouchableOpacity>
-              <TouchableOpacity style={[ui.btnPrimary, { flex: 2, opacity: saving ? 0.6 : 1 }]} onPress={handleSaveProduct} disabled={saving}>
+              <TouchableOpacity className="flex-[2] flex-row items-center justify-center gap-1.5 rounded-lg bg-[#059669] py-3" style={{ opacity: saving ? 0.6 : 1 }} onPress={handleSaveProduct} disabled={saving}>
                 {saving ? (
                   <ActivityIndicator color="#fff" />
                 ) : (
                   <>
                     <Check size={18} color="#fff" />
-                    <Text style={ui.btnPrimaryText}>Save Product</Text>
+                    <Text className="text-base font-extrabold text-white">Save Product</Text>
                   </>
                 )}
               </TouchableOpacity>
@@ -588,25 +586,25 @@ export const ProductsScreen: React.FC = () => {
       </Modal>
 
       <Modal visible={categoryModalOpen} animationType="fade" transparent onRequestClose={() => setCategoryModalOpen(false)}>
-        <View style={ui.modalOverlayCenter}>
-          <View style={ui.modalContentCenter}>
-            <Text style={ui.modalTitle}>Add New Category</Text>
+        <View className="flex-1 items-center justify-center bg-black/60 p-5">
+          <View className="max-h-[80%] rounded-2xl bg-white p-5">
+            <Text className="text-2xl font-extrabold text-[#0f172a]">Add New Category</Text>
             <View style={{ height: 12 }} />
-            <Text style={styles.inputLabel}>Category Name</Text>
+            <Text className="mb-1.5 text-[11px] font-bold uppercase text-[#64748b]">Category Name</Text>
             <TextInput
-              style={ui.input}
+              className="h-11 rounded-md border border-[#e2e8f0] bg-[#f8fafc] px-3 text-base text-[#0f172a]"
               placeholder="e.g. Dairy, Snacks, Beverages"
               placeholderTextColor={colors.textLight}
               value={newCatName}
               onChangeText={(v) => setNewCatName(v.slice(0, 80))}
               maxLength={80}
             />
-            <View style={ui.modalActions}>
-              <TouchableOpacity style={[ui.btnGhost, { flex: 1 }]} onPress={() => setCategoryModalOpen(false)}>
-                <Text style={ui.btnGhostText}>Cancel</Text>
+            <View className="flex-row gap-2.5 border-t border-[#e2e8f0] pt-3">
+              <TouchableOpacity className="flex-1 flex-row items-center justify-center rounded-lg border border-[#e2e8f0] bg-[#f8fafc] py-3" onPress={() => setCategoryModalOpen(false)}>
+                <Text className="text-base font-bold text-[#0f172a]">Cancel</Text>
               </TouchableOpacity>
-              <TouchableOpacity style={[ui.btnPrimary, { flex: 1 }]} onPress={handleCreateCategory}>
-                <Text style={ui.btnPrimaryText}>Add Category</Text>
+              <TouchableOpacity className="flex-1 flex-row items-center justify-center gap-1.5 rounded-lg bg-[#059669] py-3" onPress={handleCreateCategory}>
+                <Text className="text-base font-extrabold text-white">Add Category</Text>
               </TouchableOpacity>
             </View>
           </View>
@@ -629,118 +627,3 @@ export const ProductsScreen: React.FC = () => {
   );
 };
 
-// Only screen-specific styles remain - dead/shared CSS removed and moved to theme/ui.ts framework
-const styles = StyleSheet.create({
-  searchBarRow: {
-    flexDirection: 'row',
-    paddingHorizontal: 16,
-    paddingVertical: 10,
-    gap: 8,
-    backgroundColor: colors.surface,
-  },
-  addBtn: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    backgroundColor: colors.primary,
-    paddingHorizontal: 14,
-    borderRadius: 10,
-    gap: 4,
-    elevation: 2,
-  },
-  addBtnText: { color: '#fff', fontSize: 13, fontWeight: '700' },
-  categoryBar: { backgroundColor: colors.surface, borderBottomWidth: 1, borderBottomColor: colors.border, paddingBottom: 8 },
-  categoryScroll: { paddingHorizontal: 16, gap: 8, flexDirection: 'row' },
-  categoryPill: {
-    backgroundColor: colors.bg,
-    paddingHorizontal: 12,
-    paddingVertical: 7,
-    borderRadius: 20,
-    borderWidth: 1,
-    borderColor: colors.border,
-  },
-  categoryPillActive: { backgroundColor: colors.primaryLight, borderColor: colors.primary },
-  categoryPillText: { fontSize: 12, fontWeight: '600', color: colors.textMuted },
-  categoryPillTextActive: { color: colors.primary, fontWeight: '700' },
-  metaRow: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    paddingHorizontal: 16,
-    paddingVertical: 8,
-  },
-  countText: { fontSize: 12, color: colors.textMuted, fontWeight: '500', flex: 1 },
-  retryBtn: { flexDirection: 'row', alignItems: 'center', gap: 4, paddingVertical: 2 },
-  retryText: { fontSize: 12, color: colors.primary, fontWeight: '700' },
-  errorText: { flex: 1, fontSize: 12, color: colors.danger, fontWeight: '600' },
-  loadingText: { fontSize: 13, color: colors.textMuted, fontWeight: '600', marginTop: 8 },
-  emptyTitle: { fontSize: 15, fontWeight: '700', color: colors.text, marginTop: 8 },
-  emptyDesc: { fontSize: 12, color: colors.textMuted, textAlign: 'center', marginTop: 4, lineHeight: 18 },
-  listContent: { padding: 16, gap: 10, paddingBottom: 40 },
-  productCard: {
-    backgroundColor: colors.surface,
-    borderRadius: 14,
-    padding: 14,
-    borderWidth: 1,
-    borderColor: colors.border,
-    shadowColor: '#0f172a',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.06,
-    shadowRadius: 6,
-    elevation: 2,
-  },
-  cardHeader: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: 10 },
-  productName: { fontSize: 14, fontWeight: '800', color: colors.text },
-  productSku: { fontSize: 11, color: colors.textMuted, marginTop: 2 },
-  priceRow: { flexDirection: 'row', justifyContent: 'space-between', backgroundColor: colors.bg, padding: 10, borderRadius: 10, marginBottom: 10, gap: 6 },
-  priceCell: { flex: 1 },
-  priceLabel: { fontSize: 10, color: colors.textMuted, fontWeight: '600', textTransform: 'uppercase' },
-  sellingPrice: { fontSize: 14, fontWeight: '800', color: colors.primary, marginTop: 2 },
-  costPrice: { fontSize: 14, fontWeight: '700', color: colors.text, marginTop: 2 },
-  marginText: { fontSize: 12, fontWeight: '700', color: colors.success, marginTop: 2 },
-  cardActions: { flexDirection: 'row', gap: 8 },
-  editBtn: {
-    flex: 1,
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'center',
-    backgroundColor: colors.bg,
-    paddingVertical: 9,
-    borderRadius: 8,
-    borderWidth: 1,
-    borderColor: colors.border,
-    gap: 4,
-  },
-  editBtnText: { fontSize: 12, fontWeight: '700', color: colors.text },
-  archiveBtn: {
-    flex: 1,
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'center',
-    backgroundColor: colors.dangerLight,
-    paddingVertical: 9,
-    borderRadius: 8,
-    gap: 4,
-  },
-  archiveBtnText: { fontSize: 12, fontWeight: '700', color: colors.danger },
-  formBody: { paddingBottom: 16 },
-  inputLabel: { fontSize: 11, fontWeight: '700', color: colors.textMuted, textTransform: 'uppercase', marginBottom: 5 },
-  labelWithAction: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 5 },
-  addCategoryLink: { fontSize: 11, fontWeight: '700', color: colors.primary },
-  hintText: { fontSize: 12, color: colors.textMuted, fontStyle: 'italic', paddingVertical: 4 },
-  unitPickerScroll: { marginBottom: 12 },
-  unitPill: {
-    backgroundColor: colors.bg,
-    paddingHorizontal: 12,
-    paddingVertical: 7,
-    borderRadius: 8,
-    borderWidth: 1,
-    borderColor: colors.border,
-    marginRight: 6,
-  },
-  unitPillActive: { backgroundColor: colors.primaryLight, borderColor: colors.primary },
-  unitText: { fontSize: 11, fontWeight: '700', color: colors.textMuted },
-  unitTextActive: { color: colors.primary },
-  skuInputRow: { flexDirection: 'row', gap: 8, marginBottom: 12, alignItems: 'center' },
-  scanSkuBtn: { width: 44, height: 44, backgroundColor: colors.primary, borderRadius: 10, alignItems: 'center', justifyContent: 'center' },
-  twoCol: { flexDirection: 'row', gap: 10 },
-});

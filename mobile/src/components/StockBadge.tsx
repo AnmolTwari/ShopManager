@@ -1,5 +1,5 @@
 import React from 'react';
-import { StyleSheet, Text, View } from 'react-native';
+import { Text, View } from 'react-native';
 import { colors } from '../theme/colors';
 import { StockStatus } from '../types';
 
@@ -30,34 +30,12 @@ export const StockBadge: React.FC<StockBadgeProps> = ({ status, quantity, minLev
   }
 
   return (
-    <View style={[styles.badge, { backgroundColor: bg }]}>
-      <View style={[styles.dot, { backgroundColor: text }]} />
-      <Text style={[styles.text, { color: text }]}>
+    <View className="flex-row items-center self-start rounded-xl px-2 py-[3px]" style={{ backgroundColor: bg }}>
+      <View className="mr-1.5 h-1.5 w-1.5 rounded-full" style={{ backgroundColor: text }} />
+      <Text className="text-[11px] font-bold uppercase tracking-[0.3px]" style={{ color: text }}>
         {label} {quantity !== undefined ? `(${quantity})` : ''}
       </Text>
     </View>
   );
 };
 
-const styles = StyleSheet.create({
-  badge: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    paddingHorizontal: 8,
-    paddingVertical: 3,
-    borderRadius: 12,
-    alignSelf: 'flex-start',
-  },
-  dot: {
-    width: 6,
-    height: 6,
-    borderRadius: 3,
-    marginRight: 5,
-  },
-  text: {
-    fontSize: 11,
-    fontWeight: '700',
-    textTransform: 'uppercase',
-    letterSpacing: 0.3,
-  },
-});

@@ -5,7 +5,6 @@ import {
   KeyboardAvoidingView,
   Platform,
   ScrollView,
-  StyleSheet,
   Text,
   TextInput,
   TouchableOpacity,
@@ -55,36 +54,36 @@ export const LoginScreen: React.FC<LoginScreenProps> = ({ onSwitchToRegister }) 
   return (
     <KeyboardAvoidingView
       behavior={Platform.OS === 'ios' ? 'padding' : undefined}
-      style={styles.container}
+      className="flex-1 bg-[#0f172a]"
     >
-      <ScrollView contentContainerStyle={styles.scrollContent} keyboardShouldPersistTaps="handled">
+      <ScrollView contentContainerClassName="flex-grow justify-center p-5" keyboardShouldPersistTaps="handled">
         {/* Brand Header */}
-        <View style={styles.brandContainer}>
-          <View style={styles.logoBadge}>
-            <Image source={APP_LOGO} style={styles.logoImage} resizeMode="contain" />
+        <View className="mb-5 items-center">
+          <View className="mb-2.5 h-16 w-16 items-center justify-center overflow-hidden rounded-[18px] border-[1.5px] border-[rgba(5,150,105,0.4)] bg-[#0f172a]">
+            <Image source={APP_LOGO} className="h-16 w-16" resizeMode="contain" />
           </View>
-          <Text style={styles.brandTitle}>ShopManager</Text>
-          <Text style={styles.brandTagline}>Smart Point of Sale & Inventory for Retail</Text>
+          <Text className="text-2xl font-black text-white">ShopManager</Text>
+          <Text className="mt-1 text-center text-xs text-[#94a3b8]">Smart Point of Sale & Inventory for Retail</Text>
         </View>
 
         {/* Login Card */}
-        <View style={styles.card}>
-          <Text style={styles.cardTitle}>Welcome Back</Text>
-          <Text style={styles.cardSubtitle}>Sign in with your username or registered email</Text>
+        <View className="rounded-[22px] bg-white p-5 shadow-lg">
+          <Text className="text-[19px] font-extrabold text-[#0f172a]">Welcome Back</Text>
+          <Text className="mb-3.5 mt-0.5 text-xs text-[#64748b]">Sign in with your username or registered email</Text>
 
           {errorMessage && (
-            <View style={styles.errorBox}>
-              <Text style={styles.errorText}>{errorMessage}</Text>
+            <View className="mb-3 rounded-[10px] bg-[#fee2e2] p-2.5">
+              <Text className="text-xs font-semibold text-[#ef4444]">{errorMessage}</Text>
             </View>
           )}
 
           {/* Username / Email Field */}
-          <View style={styles.inputGroup}>
-            <Text style={styles.label}>Username or Email</Text>
-            <View style={styles.inputWrapper}>
-              <User size={18} color={colors.textMuted} style={styles.inputIcon} />
+          <View className="mb-3">
+            <Text className="mb-1.5 text-[11px] font-bold uppercase tracking-[0.4px] text-[#0f172a]">Username or Email</Text>
+            <View className="h-[46px] flex-row items-center rounded-xl border border-[#e2e8f0] bg-[#f8fafc] px-3">
+              <User size={18} color={colors.textMuted} className="mr-2" />
               <TextInput
-                style={styles.input}
+                className="h-[46px] flex-1 text-sm text-[#0f172a]"
                 placeholder="e.g. shopowner or name@store.com"
                 placeholderTextColor={colors.textLight}
                 value={username}
@@ -101,12 +100,12 @@ export const LoginScreen: React.FC<LoginScreenProps> = ({ onSwitchToRegister }) 
           </View>
 
           {/* Password Field */}
-          <View style={styles.inputGroup}>
-            <Text style={styles.label}>Password</Text>
-            <View style={styles.inputWrapper}>
-              <Lock size={18} color={colors.textMuted} style={styles.inputIcon} />
+          <View className="mb-3">
+            <Text className="mb-1.5 text-[11px] font-bold uppercase tracking-[0.4px] text-[#0f172a]">Password</Text>
+            <View className="h-[46px] flex-row items-center rounded-xl border border-[#e2e8f0] bg-[#f8fafc] px-3">
+              <Lock size={18} color={colors.textMuted} className="mr-2" />
               <TextInput
-                style={styles.input}
+                className="h-[46px] flex-1 text-sm text-[#0f172a]"
                 placeholder="Enter your password"
                 placeholderTextColor={colors.textLight}
                 secureTextEntry={!showPassword}
@@ -120,7 +119,7 @@ export const LoginScreen: React.FC<LoginScreenProps> = ({ onSwitchToRegister }) 
               />
               <TouchableOpacity
                 onPress={() => setShowPassword((p) => !p)}
-                style={styles.eyeBtn}
+                className="p-1.5"
               >
                 {showPassword ? (
                   <EyeOff size={18} color={colors.textMuted} />
@@ -133,32 +132,34 @@ export const LoginScreen: React.FC<LoginScreenProps> = ({ onSwitchToRegister }) 
 
           {/* Submit Button */}
           <TouchableOpacity
-            style={[styles.submitBtn, loading && styles.submitBtnDisabled]}
+            className="mt-2 h-12 flex-row items-center justify-center gap-2 rounded-[14px] bg-[#059669]"
+            style={loading ? { opacity: 0.6 } : undefined}
             onPress={handleLogin}
             disabled={loading}
+            activeOpacity={0.8}
           >
             {loading ? (
               <ActivityIndicator color="#fff" />
             ) : (
               <>
-                <Text style={styles.submitBtnText}>Sign In to Shop</Text>
+                <Text className="text-sm font-extrabold text-white">Sign In to Shop</Text>
                 <Sparkles size={16} color="#fff" />
               </>
             )}
           </TouchableOpacity>
 
           {/* Switch to Register */}
-          <View style={styles.switchRow}>
-            <Text style={styles.switchText}>New to ShopManager? </Text>
+          <View className="mt-4 flex-row justify-center">
+            <Text className="text-[13px] text-[#64748b]">New to ShopManager? </Text>
             <TouchableOpacity onPress={onSwitchToRegister}>
-              <Text style={styles.switchLink}>Create an Account</Text>
+              <Text className="text-[13px] font-extrabold text-[#059669]">Create an Account</Text>
             </TouchableOpacity>
           </View>
         </View>
 
         {/* Live Sync Banner */}
-        <View style={styles.syncBanner}>
-          <Text style={styles.syncBannerText}>
+        <View className="mt-[18px] self-center rounded-full bg-[rgba(255,255,255,0.06)] px-3.5 py-1.5">
+          <Text className="text-center text-[11px] font-semibold text-[#cbd5e1]">
             ⚡ Unified Database — Log in with the same account as your website
           </Text>
         </View>
@@ -167,166 +168,3 @@ export const LoginScreen: React.FC<LoginScreenProps> = ({ onSwitchToRegister }) 
   );
 };
 
-const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-    backgroundColor: '#0f172a',
-  },
-  scrollContent: {
-    flexGrow: 1,
-    justifyContent: 'center',
-    padding: 20,
-  },
-  brandContainer: {
-    alignItems: 'center',
-    marginBottom: 24,
-  },
-  logoBadge: {
-    width: 68,
-    height: 68,
-    borderRadius: 20,
-    backgroundColor: '#0f172a',
-    alignItems: 'center',
-    justifyContent: 'center',
-    marginBottom: 12,
-    shadowColor: colors.primary,
-    shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.5,
-    shadowRadius: 12,
-    elevation: 8,
-    overflow: 'hidden',
-    borderWidth: 1.5,
-    borderColor: 'rgba(5, 150, 105, 0.4)',
-  },
-  logoImage: {
-    width: 68,
-    height: 68,
-  },
-  brandTitle: {
-    fontSize: 26,
-    fontWeight: '900',
-    color: '#fff',
-    letterSpacing: -0.5,
-  },
-  brandTagline: {
-    fontSize: 13,
-    color: '#94a3b8',
-    marginTop: 4,
-    textAlign: 'center',
-  },
-  card: {
-    backgroundColor: colors.surface,
-    borderRadius: 24,
-    padding: 22,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 8 },
-    shadowOpacity: 0.15,
-    shadowRadius: 20,
-    elevation: 10,
-  },
-  cardTitle: {
-    fontSize: 20,
-    fontWeight: '800',
-    color: colors.text,
-  },
-  cardSubtitle: {
-    fontSize: 13,
-    color: colors.textMuted,
-    marginTop: 3,
-    marginBottom: 16,
-  },
-  errorBox: {
-    backgroundColor: colors.dangerLight,
-    padding: 10,
-    borderRadius: 10,
-    marginBottom: 14,
-  },
-  errorText: {
-    color: colors.danger,
-    fontSize: 12,
-    fontWeight: '600',
-  },
-  inputGroup: {
-    marginBottom: 14,
-  },
-  label: {
-    fontSize: 12,
-    fontWeight: '700',
-    color: colors.text,
-    marginBottom: 6,
-    textTransform: 'uppercase',
-    letterSpacing: 0.4,
-  },
-  inputWrapper: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    backgroundColor: colors.bg,
-    borderRadius: 12,
-    borderWidth: 1,
-    borderColor: colors.border,
-    paddingHorizontal: 12,
-  },
-  inputIcon: {
-    marginRight: 8,
-  },
-  input: {
-    flex: 1,
-    height: 48,
-    fontSize: 14,
-    color: colors.text,
-  },
-  eyeBtn: {
-    padding: 6,
-  },
-  submitBtn: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'center',
-    backgroundColor: colors.primary,
-    height: 50,
-    borderRadius: 14,
-    marginTop: 10,
-    gap: 8,
-    shadowColor: colors.primary,
-    shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.3,
-    shadowRadius: 8,
-    elevation: 4,
-  },
-  submitBtnDisabled: {
-    opacity: 0.6,
-  },
-  submitBtnText: {
-    color: '#fff',
-    fontSize: 15,
-    fontWeight: '800',
-  },
-  switchRow: {
-    flexDirection: 'row',
-    justifyContent: 'center',
-    marginTop: 18,
-  },
-  switchText: {
-    fontSize: 13,
-    color: colors.textMuted,
-  },
-  switchLink: {
-    fontSize: 13,
-    fontWeight: '800',
-    color: colors.primary,
-  },
-  syncBanner: {
-    marginTop: 20,
-    paddingVertical: 8,
-    paddingHorizontal: 14,
-    borderRadius: 20,
-    backgroundColor: 'rgba(255,255,255,0.06)',
-    alignSelf: 'center',
-  },
-  syncBannerText: {
-    color: '#cbd5e1',
-    fontSize: 11,
-    fontWeight: '600',
-    textAlign: 'center',
-  },
-});

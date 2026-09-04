@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
-import { ActivityIndicator, StatusBar, StyleSheet, View } from 'react-native';
+import { ActivityIndicator, StatusBar, View } from 'react-native';
+import './global.css';
 import { SafeAreaProvider } from 'react-native-safe-area-context';
 import { BottomTabBar, TabScreen } from './src/components/BottomTabBar';
 import { ErrorBoundary } from './src/components/ErrorBoundary';
@@ -22,7 +23,7 @@ const MainNavigator: React.FC = () => {
 
   if (isLoading) {
     return (
-      <View style={styles.loadingContainer}>
+      <View className="flex-1 items-center justify-center bg-slate-900">
         <ActivityIndicator size="large" color={colors.primary} />
       </View>
     );
@@ -57,9 +58,9 @@ const MainNavigator: React.FC = () => {
   };
 
   return (
-    <View style={styles.mainContainer}>
+    <View className="flex-1 bg-white">
       <StatusBar barStyle="dark-content" backgroundColor={colors.surface} />
-      <View style={styles.screenContainer}>{renderTabScreen()}</View>
+      <View className="flex-1">{renderTabScreen()}</View>
       <BottomTabBar currentTab={currentTab} onTabChange={setCurrentTab} />
     </View>
   );
@@ -78,19 +79,3 @@ export default function App() {
     </SafeAreaProvider>
   );
 }
-
-const styles = StyleSheet.create({
-  loadingContainer: {
-    flex: 1,
-    backgroundColor: '#0f172a',
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  mainContainer: {
-    flex: 1,
-    backgroundColor: colors.surface,
-  },
-  screenContainer: {
-    flex: 1,
-  },
-});
