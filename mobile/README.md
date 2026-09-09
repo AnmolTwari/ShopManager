@@ -6,7 +6,9 @@ A high-performance companion mobile application for small retail shop owners to 
 
 ## 📱 Features
 
-- ⚡ **Instant Barcode POS & Billing**: Continuous camera scanning with sound & haptic feedback for ultra-fast customer checkout.
+- 🛒 **Sell Products Hub & Instant POS**: Dual-mode selling engine with instant billing, popular products quick bar, category filters, and past sales invoice history with digital receipts.
+- 🔢 **Precision Quantity Selection**: Direct custom quantity picker modal with whole & decimal preset chips (`+1`, `+5`, `+10`, `+25`, `0.25`, `0.5`, `1.0`), inline card steppers, and interactive cart drawer editing.
+- ⚡ **Instant Barcode Scanner**: Continuous camera scanning with sound & haptic feedback for ultra-fast customer checkout.
 - 🧾 **Digital Receipts & WhatsApp Sharing**: Formats itemized bills with 1-tap WhatsApp sharing to customer phone numbers and printable PDF export.
 - 📦 **Floor Inventory & Stock-In**: Walk the shop floor, scan items on shelves, perform incoming batch stock-ins, or record damaged/expired adjustments.
 - 📊 **Real-Time Live Dashboard**: Today's revenue, net profit, total bills, stock alerts, and recent sales invoices.
@@ -30,19 +32,31 @@ A high-performance companion mobile application for small retail shop owners to 
 
 ---
 
-### 2. Generate Standalone Android `.apk` File (Free)
+### 2. Generate Standalone Android `.apk` File
 
-To build a standalone `.apk` that anyone can install on Android phones without Google Play fees:
+To build a standalone `.apk` that anyone can install on Android phones:
 
 ```bash
 cd mobile
-npx eas build -p android --profile preview
+npx eas-cli build -p android --profile preview
 ```
 
 Once the build finishes:
-1. Download the generated `ShopManager.apk`.
-2. Place it in `frontend/public/ShopManager.apk`.
-3. Anyone visiting your website can download the APK with one click.
+1. Download the generated `.apk` from the Expo URL.
+2. Place it in `frontend/public/ShopManager.apk` or distribute the direct link.
+3. Users downloading the app get full offline/online capabilities.
+
+---
+
+### 3. Push Instant Over-The-Air (OTA) Updates (No APK Re-install)
+
+Once users have the app installed, you can push UI and feature updates in **under 30 seconds** without requiring users to reinstall:
+
+```bash
+cd mobile
+npx eas-cli update --branch preview --message "Your update description"
+```
+The app will automatically download and apply the update the next time it is opened.
 
 ---
 
