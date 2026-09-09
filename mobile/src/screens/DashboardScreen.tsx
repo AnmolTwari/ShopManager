@@ -122,7 +122,7 @@ export const DashboardScreen: React.FC<DashboardScreenProps> = ({ onNavigateTab 
             activeOpacity={0.8}
           >
             <Zap size={20} color="#fff" />
-            <Text className="text-[15px] font-extrabold text-white">Instant Barcode Billing (POS)</Text>
+            <Text className="text-[15px] font-extrabold text-white">Sell Products (POS Billing)</Text>
           </TouchableOpacity>
 
           <View className="flex-row gap-2">

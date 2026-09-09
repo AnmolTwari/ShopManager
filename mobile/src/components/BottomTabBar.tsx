@@ -30,7 +30,7 @@ export const BottomTabBar: React.FC<BottomTabBarProps> = ({ currentTab, onTabCha
 
   const tabs: { id: TabScreen; label: string; icon: React.ComponentType<{ size: number; color: string; strokeWidth?: number }> }[] = [
     { id: 'dashboard', label: 'Home', icon: LayoutDashboard },
-    { id: 'pos', label: 'POS', icon: ShoppingCart },
+    { id: 'pos', label: 'Sell', icon: ShoppingCart },
     { id: 'products', label: 'Products', icon: Package },
     { id: 'inventory', label: 'Stock', icon: Layers },
     { id: 'reports', label: 'Reports', icon: ChartColumn },

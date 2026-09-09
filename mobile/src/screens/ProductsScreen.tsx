@@ -12,11 +12,15 @@ import {
   View,
 } from 'react-native';
 import { BarcodeScannerModal } from '../components/BarcodeScannerModal';
+import { BottomTabBar, TabScreen } from '../components/BottomTabBar';
 import { Header } from '../components/Header';
+import { ReceiptModal } from '../components/ReceiptModal';
 import { StockBadge } from '../components/StockBadge';
-import { productsApi } from '../services/shopApi';
+import { useCart } from '../context/CartContext';
+import { productsApi, salesApi } from '../services/shopApi';
 import { colors } from '../theme/colors';
-import { Category, Product, ProductRequest, ProductUnit } from '../types';
+import { Category, Product, ProductRequest, ProductUnit, SaleResponse } from '../types';
+import * as Haptics from 'expo-haptics';
 import {
   Plus,
   Search,
@@ -28,6 +32,13 @@ import {
   Check,
   RefreshCw,
   TriangleAlert,
+  ShoppingBag,
+  CircleCheck,
+  Sparkles,
+  Banknote,
+  QrCode,
+  CreditCard,
+  ArrowRight,
 } from 'lucide-react-native';
 
 const UNITS: ProductUnit[] = ['PIECE', 'PACKET', 'BOX', 'BOTTLE', 'KG', 'GRAM', 'LITRE', 'ML'];
@@ -48,7 +59,13 @@ function sanitizeSku(input: string): string {
   return input.replace(/[^a-zA-Z0-9-_]/g, '').slice(0, 50).trim();
 }
 
-export const ProductsScreen: React.FC = () => {
+interface ProductsScreenProps {
+  onNavigateTab?: (tab: TabScreen) => void;
+}
+
+export const ProductsScreen: React.FC<ProductsScreenProps> = ({ onNavigateTab }) => {
+  const { items, addItem, totalAmount, totalItems } = useCart();
+
   const [products, setProducts] = useState<Product[]>([]);
   const [categories, setCategories] = useState<Category[]>([]);
   const [loading, setLoading] = useState<boolean>(true);
@@ -59,6 +76,7 @@ export const ProductsScreen: React.FC = () => {
   const [debouncedSearch, setDebouncedSearch] = useState<string>('');
   const [selectedCategory, setSelectedCategory] = useState<number | 'ALL'>('ALL');
 
+  // Form Modals
   const [formModalOpen, setFormModalOpen] = useState<boolean>(false);
   const [categoryModalOpen, setCategoryModalOpen] = useState<boolean>(false);
   const [newCatName, setNewCatName] = useState<string>('');
@@ -66,6 +84,16 @@ export const ProductsScreen: React.FC = () => {
   const [scannerOpen, setScannerOpen] = useState<boolean>(false);
   const [saving, setSaving] = useState<boolean>(false);
 
+  // Quick Direct Sell Modal State
+  const [quickSellModalOpen, setQuickSellModalOpen] = useState<boolean>(false);
+  const [quickSellProduct, setQuickSellProduct] = useState<Product | null>(null);
+  const [quickSellQty, setQuickSellQty] = useState<string>('1');
+  const [quickSellPaymentMethod, setQuickSellPaymentMethod] = useState<'CASH' | 'UPI' | 'CARD'>('CASH');
+  const [quickSellPhone, setQuickSellPhone] = useState<string>('');
+  const [quickSelling, setQuickSelling] = useState<boolean>(false);
+  const [completedSale, setCompletedSale] = useState<SaleResponse | null>(null);
+
+  // Product Form Fields
   const [name, setName] = useState('');
   const [categoryId, setCategoryId] = useState<number | null>(null);
   const [brand, setBrand] = useState('');
@@ -82,31 +110,34 @@ export const ProductsScreen: React.FC = () => {
     return () => clearTimeout(t);
   }, [searchQuery]);
 
-  const loadData = useCallback(async (opts: { showSpinner?: boolean; isRefresh?: boolean } = {}) => {
-    const showSpinner = opts.showSpinner ?? !opts.isRefresh;
-    if (showSpinner) setLoading(true);
-    if (opts.isRefresh) setRefreshing(true);
-    setError(null);
-    try {
-      const params: any = { size: PAGE_SIZE, page: 0 };
-      if (debouncedSearch) params.search = debouncedSearch;
-      if (selectedCategory !== 'ALL') params.categoryId = selectedCategory;
-      const [prodData, catData] = await Promise.all([
-        productsApi.list(params),
-        productsApi.listCategories().catch(() => [] as Category[]),
-      ]);
-      const safeProducts = Array.isArray(prodData) ? prodData : [];
-      setProducts(safeProducts);
-      setCategories(Array.isArray(catData) ? catData : []);
-    } catch (e: any) {
-      const msg = e?.message || 'Failed to load products. Please retry.';
-      setError(msg);
-      console.warn('Error loading products:', e);
-    } finally {
-      setLoading(false);
-      setRefreshing(false);
-    }
-  }, [debouncedSearch, selectedCategory]);
+  const loadData = useCallback(
+    async (opts: { showSpinner?: boolean; isRefresh?: boolean } = {}) => {
+      const showSpinner = opts.showSpinner ?? !opts.isRefresh;
+      if (showSpinner) setLoading(true);
+      if (opts.isRefresh) setRefreshing(true);
+      setError(null);
+      try {
+        const params: any = { size: PAGE_SIZE, page: 0 };
+        if (debouncedSearch) params.search = debouncedSearch;
+        if (selectedCategory !== 'ALL') params.categoryId = selectedCategory;
+        const [prodData, catData] = await Promise.all([
+          productsApi.list(params),
+          productsApi.listCategories().catch(() => [] as Category[]),
+        ]);
+        const safeProducts = Array.isArray(prodData) ? prodData : [];
+        setProducts(safeProducts);
+        setCategories(Array.isArray(catData) ? catData : []);
+      } catch (e: any) {
+        const msg = e?.message || 'Failed to load products. Please retry.';
+        setError(msg);
+        console.warn('Error loading products:', e);
+      } finally {
+        setLoading(false);
+        setRefreshing(false);
+      }
+    },
+    [debouncedSearch, selectedCategory]
+  );
 
   useEffect(() => {
     loadData({ showSpinner: true });
@@ -144,6 +175,51 @@ export const ProductsScreen: React.FC = () => {
     setCurrentQuantity(p.currentQuantity != null ? String(p.currentQuantity) : '0');
     setMinimumStockLevel(p.minimumStockLevel != null ? String(p.minimumStockLevel) : '5');
     setFormModalOpen(true);
+  };
+
+  // Quick Direct Sell Handling
+  const openQuickSellModal = (p: Product) => {
+    if (safeNumber(p.currentQuantity) <= 0) {
+      Alert.alert('Out of Stock', `Cannot sell "${p.name}". Stock is 0.`);
+      return;
+    }
+    setQuickSellProduct(p);
+    setQuickSellQty('1');
+    setQuickSellPhone('');
+    setQuickSellPaymentMethod('CASH');
+    setQuickSellModalOpen(true);
+  };
+
+  const handleQuickSellSubmit = async () => {
+    if (!quickSellProduct) return;
+    const qty = parseFloat(quickSellQty);
+    if (!Number.isFinite(qty) || qty <= 0) {
+      Alert.alert('Invalid Quantity', 'Please enter a valid quantity greater than 0.');
+      return;
+    }
+    const maxStock = safeNumber(quickSellProduct.currentQuantity, 9999);
+    if (qty > maxStock) {
+      Alert.alert('Insufficient Stock', `Only ${maxStock} items available in stock.`);
+      return;
+    }
+
+    setQuickSelling(true);
+    try {
+      const result = await salesApi.create({
+        items: [{ productId: quickSellProduct.id, quantity: qty }],
+      });
+      try {
+        Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
+      } catch {}
+
+      setQuickSellModalOpen(false);
+      setCompletedSale(result);
+      loadData({ showSpinner: false, isRefresh: true });
+    } catch (err: any) {
+      Alert.alert('Quick Sale Failed', err.message || 'Operation failed.');
+    } finally {
+      setQuickSelling(false);
+    }
   };
 
   const handleCreateCategory = async () => {
@@ -232,7 +308,10 @@ export const ProductsScreen: React.FC = () => {
       setFormModalOpen(false);
       loadData({ showSpinner: false, isRefresh: true });
     } catch (err: any) {
-      const msg = err?.message || err?.fieldErrors ? Object.values(err.fieldErrors).join(' ') : 'Could not save product.';
+      const msg =
+        err?.message || err?.fieldErrors
+          ? Object.values(err.fieldErrors).join(' ')
+          : 'Could not save product.';
       Alert.alert('Save Failed', msg);
     } finally {
       setSaving(false);
@@ -240,23 +319,30 @@ export const ProductsScreen: React.FC = () => {
   };
 
   const handleArchiveToggle = async (p: Product) => {
-    Alert.alert('Remove Product', `Remove "${p.name}"? If it has history it will be archived; otherwise deleted permanently.`, [
-      { text: 'Cancel', style: 'cancel' },
-      {
-        text: 'Remove',
-        style: 'destructive',
-        onPress: async () => {
-          try {
-            const res = await productsApi.delete(p.id);
-            setProducts((prev) => prev.filter((x) => x.id !== p.id));
-            Alert.alert('Removed', res.archived ? 'Product archived (history retained).' : 'Product deleted permanently.');
-            loadData({ showSpinner: false });
-          } catch (err: any) {
-            Alert.alert('Error', err.message || 'Operation failed.');
-          }
+    Alert.alert(
+      'Remove Product',
+      `Remove "${p.name}"? If it has history it will be archived; otherwise deleted permanently.`,
+      [
+        { text: 'Cancel', style: 'cancel' },
+        {
+          text: 'Remove',
+          style: 'destructive',
+          onPress: async () => {
+            try {
+              const res = await productsApi.delete(p.id);
+              setProducts((prev) => prev.filter((x) => x.id !== p.id));
+              Alert.alert(
+                'Removed',
+                res.archived ? 'Product archived (history retained).' : 'Product deleted permanently.'
+              );
+              loadData({ showSpinner: false });
+            } catch (err: any) {
+              Alert.alert('Error', err.message || 'Operation failed.');
+            }
+          },
         },
-      },
-    ]);
+      ]
+    );
   };
 
   const filtered = useMemo(() => (Array.isArray(products) ? products : []), [products]);
@@ -268,9 +354,12 @@ export const ProductsScreen: React.FC = () => {
     const margin = selling - purchase;
     const qty = safeNumber(item.currentQuantity, 0);
     const minL = safeNumber(item.minimumStockLevel, 5);
+    const cartItem = items.find((i) => i.product.id === item.id);
+    const isOutOfStock = qty <= 0;
+
     return (
       <View className="rounded-[14px] border border-[#e2e8f0] bg-white p-3.5 shadow-sm">
-        <View className="mb-2.5 flex-row items-start justify-between">
+        <View className="mb-2 flex-row items-start justify-between">
           <View style={{ flex: 1, paddingRight: 8 }}>
             <Text className="text-sm font-extrabold text-[#0f172a]" numberOfLines={2}>
               {item.name || 'Unnamed Product'}
@@ -284,6 +373,7 @@ export const ProductsScreen: React.FC = () => {
           <StockBadge status={item.stockStatus} quantity={qty} minLevel={minL} />
         </View>
 
+        {/* Pricing Info */}
         <View className="mb-2.5 flex-row justify-between gap-1.5 rounded-[10px] bg-[#f8fafc] p-2.5">
           <View className="flex-1">
             <Text className="text-[10px] font-semibold uppercase text-[#64748b]">Selling</Text>
@@ -295,20 +385,77 @@ export const ProductsScreen: React.FC = () => {
           </View>
           <View className="flex-1">
             <Text className="text-[10px] font-semibold uppercase text-[#64748b]">Unit / Margin</Text>
-            <Text className="mt-0.5 text-xs font-bold text-[#10b981]" style={margin < 0 ? { color: colors.danger } : undefined}>
+            <Text
+              className="mt-0.5 text-xs font-bold text-[#10b981]"
+              style={margin < 0 ? { color: colors.danger } : undefined}
+            >
               {item.unit || 'PIECE'} {margin >= 0 ? `(+${fmtCurrency(margin)})` : `(${fmtCurrency(margin)})`}
             </Text>
           </View>
         </View>
 
+        {/* Action Buttons: SELL + Edit + Remove */}
         <View className="flex-row gap-2">
-          <TouchableOpacity className="flex-1 flex-row items-center justify-center gap-1 rounded-lg border border-[#e2e8f0] bg-[#f8fafc] py-2" onPress={() => openEditModal(item)} activeOpacity={0.7}>
-            <Pencil size={14} color={colors.text} />
+          {/* Primary SELL Button */}
+          <TouchableOpacity
+            className={`flex-[1.5] flex-row items-center justify-center gap-1.5 rounded-lg py-2.5 ${
+              isOutOfStock
+                ? 'bg-[#e2e8f0]'
+                : cartItem
+                ? 'bg-[#059669]'
+                : 'bg-[#059669]'
+            }`}
+            onPress={() => {
+              if (!isOutOfStock) {
+                const added = addItem(item, 1);
+                if (added) {
+                  try {
+                    Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
+                  } catch {}
+                }
+              }
+            }}
+            disabled={isOutOfStock}
+            activeOpacity={0.8}
+          >
+            <ShoppingBag size={14} color={isOutOfStock ? '#94a3b8' : '#fff'} />
+            <Text
+              className={`text-xs font-black ${
+                isOutOfStock ? 'text-[#94a3b8]' : 'text-white'
+              }`}
+            >
+              {isOutOfStock ? 'Out of Stock' : cartItem ? `+ Sell More (${cartItem.quantity})` : 'Sell Product'}
+            </Text>
+          </TouchableOpacity>
+
+          {/* Quick 1-Tap Direct Checkout Modal Trigger */}
+          {!isOutOfStock && (
+            <TouchableOpacity
+              className="flex-row items-center justify-center rounded-lg border border-[#059669] bg-[#ecfdf5] px-2.5 py-2.5"
+              onPress={() => openQuickSellModal(item)}
+              activeOpacity={0.7}
+            >
+              <Sparkles size={14} color="#059669" />
+            </TouchableOpacity>
+          )}
+
+          {/* Edit */}
+          <TouchableOpacity
+            className="flex-1 flex-row items-center justify-center gap-1 rounded-lg border border-[#e2e8f0] bg-[#f8fafc] py-2.5"
+            onPress={() => openEditModal(item)}
+            activeOpacity={0.7}
+          >
+            <Pencil size={13} color={colors.text} />
             <Text className="text-xs font-bold text-[#0f172a]">Edit</Text>
           </TouchableOpacity>
-          <TouchableOpacity className="flex-1 flex-row items-center justify-center gap-1 rounded-lg bg-[#fee2e2] py-2" onPress={() => handleArchiveToggle(item)} activeOpacity={0.7}>
+
+          {/* Remove */}
+          <TouchableOpacity
+            className="flex-row items-center justify-center rounded-lg bg-[#fee2e2] px-2.5 py-2.5"
+            onPress={() => handleArchiveToggle(item)}
+            activeOpacity={0.7}
+          >
             <Archive size={14} color={colors.danger} />
-            <Text className="text-xs font-bold text-[#ef4444]">Remove</Text>
           </TouchableOpacity>
         </View>
       </View>
@@ -317,9 +464,14 @@ export const ProductsScreen: React.FC = () => {
 
   return (
     <View className="flex-1 bg-[#f8fafc]">
-      <Header title="Product Catalog" subtitle={`${(products || []).length} active products`} onRefresh={onRefresh} isRefreshing={refreshing} />
+      <Header
+        title="Product Catalog"
+        subtitle={`${(products || []).length} active products`}
+        onRefresh={onRefresh}
+        isRefreshing={refreshing}
+      />
 
-      {/* Search & Add - uses framework ui.searchBox/ui.searchInput */}
+      {/* Search & Add */}
       <View className="flex-row gap-2 border-b border-[#e2e8f0] bg-white px-4 py-2.5">
         <View className="flex-1 flex-row items-center rounded-lg border border-[#e2e8f0] bg-[#f8fafc] px-2.5">
           <Search size={16} color={colors.textMuted} />
@@ -340,36 +492,69 @@ export const ProductsScreen: React.FC = () => {
             </TouchableOpacity>
           ) : null}
         </View>
-        <TouchableOpacity className="flex-row items-center gap-1 rounded-[10px] bg-[#059669] px-3.5" onPress={openCreateModal} activeOpacity={0.85}>
+        <TouchableOpacity
+          className="flex-row items-center gap-1 rounded-[10px] bg-[#059669] px-3.5"
+          onPress={openCreateModal}
+          activeOpacity={0.85}
+        >
           <Plus size={18} color="#fff" />
           <Text className="text-[13px] font-bold text-white">Add</Text>
         </TouchableOpacity>
       </View>
 
-      <View className=" py-3 border-b border-[#e2e8f0] bg-white">
-        <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerClassName="flex-row gap-2 px-4">
+      {/* Category Pills */}
+      <View className="border-b border-[#e2e8f0] bg-white py-3">
+        <ScrollView
+          horizontal
+          showsHorizontalScrollIndicator={false}
+          contentContainerClassName="flex-row gap-2 px-4"
+        >
           <TouchableOpacity
-            className={`rounded-full border px-3 py-1.5 ${selectedCategory === 'ALL' ? 'border-[#059669] bg-[#d1fae5]' : 'border-[#e2e8f0] bg-[#f8fafc]'}`}
+            className={`rounded-full border px-3 py-1.5 ${
+              selectedCategory === 'ALL'
+                ? 'border-[#059669] bg-[#d1fae5]'
+                : 'border-[#e2e8f0] bg-[#f8fafc]'
+            }`}
             onPress={() => setSelectedCategory('ALL')}
           >
-            <Text className={` text-xs font-semibold ${selectedCategory === 'ALL' ? 'text-[#059669]' : 'text-[#64748b]'}`}>All</Text>
-          </TouchableOpacity>
-          {(categories || []).filter((c) => c && c.id != null).map((c) => (
-            <TouchableOpacity
-              key={c.id}
-              className={`rounded-full border px-3 py-1.5 ${selectedCategory === c.id ? 'border-[#059669] bg-[#d1fae5]' : 'border-[#e2e8f0] bg-[#f8fafc]'}`}
-              onPress={() => setSelectedCategory(c.id)}
+            <Text
+              className={`text-xs font-semibold ${
+                selectedCategory === 'ALL' ? 'text-[#059669]' : 'text-[#64748b]'
+              }`}
             >
-              <Text className={`text-xs font-semibold ${selectedCategory === c.id ? 'text-[#059669]' : 'text-[#64748b]'}`} numberOfLines={1}>
-                {c.name || 'Category'}
-              </Text>
-            </TouchableOpacity>
-          ))}
+              All
+            </Text>
+          </TouchableOpacity>
+          {(categories || [])
+            .filter((c) => c && c.id != null)
+            .map((c) => (
+              <TouchableOpacity
+                key={c.id}
+                className={`rounded-full border px-3 py-1.5 ${
+                  selectedCategory === c.id
+                    ? 'border-[#059669] bg-[#d1fae5]'
+                    : 'border-[#e2e8f0] bg-[#f8fafc]'
+                }`}
+                onPress={() => setSelectedCategory(c.id)}
+              >
+                <Text
+                  className={`text-xs font-semibold ${
+                    selectedCategory === c.id ? 'text-[#059669]' : 'text-[#64748b]'
+                  }`}
+                  numberOfLines={1}
+                >
+                  {c.name || 'Category'}
+                </Text>
+              </TouchableOpacity>
+            ))}
         </ScrollView>
       </View>
 
+      {/* Info bar */}
       <View className="flex-row items-center justify-between px-4 py-2">
-        <Text className="flex-1 text-xs font-medium text-[#64748b]">Showing {filtered.length} items {debouncedSearch ? `for "${debouncedSearch}"` : ''}</Text>
+        <Text className="flex-1 text-xs font-medium text-[#64748b]">
+          Showing {filtered.length} items {debouncedSearch ? `for "${debouncedSearch}"` : ''}
+        </Text>
         {error ? (
           <TouchableOpacity className="flex-row items-center gap-1 py-0.5" onPress={() => loadData()}>
             <RefreshCw size={14} color={colors.primary} />
@@ -394,34 +579,218 @@ export const ProductsScreen: React.FC = () => {
         <FlatList
           data={filtered}
           keyExtractor={(item, index) => (item?.id != null ? String(item.id) : String(index))}
-          contentContainerClassName="gap-2.5 p-4 pb-10"
+          contentContainerClassName="gap-2.5 p-4 pb-28"
           renderItem={renderProductCard}
-          refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} colors={[colors.primary]} tintColor={colors.primary} />}
+          refreshControl={
+            <RefreshControl
+              refreshing={refreshing}
+              onRefresh={onRefresh}
+              colors={[colors.primary]}
+              tintColor={colors.primary}
+            />
+          }
           ListEmptyComponent={
             <View className="flex-1 items-center justify-center p-7">
               <Package size={40} color={colors.textLight} />
-              <Text className="mt-2 text-[15px] font-bold text-[#0f172a]">{debouncedSearch ? 'No Matches' : 'No Products Yet'}</Text>
+              <Text className="mt-2 text-[15px] font-bold text-[#0f172a]">
+                {debouncedSearch ? 'No Matches' : 'No Products Yet'}
+              </Text>
               <Text className="mt-1 text-center text-xs leading-[18px] text-[#64748b]">
-                {debouncedSearch ? `No products found for "${debouncedSearch}".` : 'Tap "+ Add" to create your first inventory item'}
+                {debouncedSearch
+                  ? `No products found for "${debouncedSearch}".`
+                  : 'Tap "+ Add" to create your first inventory item'}
               </Text>
             </View>
           }
         />
       )}
 
-      {/* Add / Edit Modal - uses framework ui.modalOverlay/ui.modalContent/ui.modalHeader/ui.input */}
-      <Modal visible={formModalOpen} animationType="slide" transparent onRequestClose={() => setFormModalOpen(false)}>
+      {/* Floating Active Sale Checkout Banner */}
+      {items.length > 0 && (
+        <View className="absolute bottom-3 left-4 right-4 flex-row items-center justify-between rounded-2xl border border-[#059669] bg-[#059669] p-3.5 shadow-xl">
+          <View>
+            <Text className="text-[11px] font-extrabold uppercase text-[#d1fae5]">
+              Active Sale Cart ({totalItems} items)
+            </Text>
+            <Text className="text-lg font-black text-white">₹{totalAmount.toFixed(2)}</Text>
+          </View>
+          <TouchableOpacity
+            className="flex-row items-center gap-1.5 rounded-xl bg-white px-4 py-2.5"
+            onPress={() => onNavigateTab && onNavigateTab('pos')}
+            activeOpacity={0.8}
+          >
+            <Text className="text-xs font-black text-[#059669]">Go to Sell / POS</Text>
+            <ArrowRight size={14} color="#059669" />
+          </TouchableOpacity>
+        </View>
+      )}
+
+      {/* Quick Direct Sell Modal */}
+      <Modal visible={quickSellModalOpen} animationType="slide" transparent>
+        <View className="flex-1 justify-end bg-black/60">
+          <View className="max-h-[90%] rounded-t-3xl bg-white p-5">
+            <View className="mb-3 flex-row items-center justify-between">
+              <View className="flex-1">
+                <Text className="text-xl font-black text-[#0f172a]">Quick Sell Product</Text>
+                <Text className="mt-0.5 text-xs text-[#64748b]">{quickSellProduct?.name}</Text>
+              </View>
+              <TouchableOpacity onPress={() => setQuickSellModalOpen(false)}>
+                <X size={20} color={colors.text} />
+              </TouchableOpacity>
+            </View>
+
+            {quickSellProduct && (
+              <View className="mb-4 rounded-xl border border-[#e2e8f0] bg-[#f8fafc] p-3">
+                <View className="flex-row items-center justify-between">
+                  <Text className="text-xs font-bold text-[#64748b]">Unit Price</Text>
+                  <Text className="text-base font-black text-[#059669]">
+                    ₹{safeNumber(quickSellProduct.sellingPrice).toFixed(2)}
+                  </Text>
+                </View>
+                <View className="mt-1 flex-row items-center justify-between">
+                  <Text className="text-xs font-bold text-[#64748b]">Available Stock</Text>
+                  <Text className="text-xs font-extrabold text-[#0f172a]">
+                    {safeNumber(quickSellProduct.currentQuantity)} {quickSellProduct.unit || 'units'}
+                  </Text>
+                </View>
+              </View>
+            )}
+
+            <Text className="mb-1.5 text-[11px] font-bold uppercase text-[#64748b]">
+              Quantity to Sell *
+            </Text>
+            <TextInput
+              className="mb-4 h-11 rounded-md border border-[#e2e8f0] bg-[#f8fafc] px-3 text-base font-bold text-[#0f172a]"
+              placeholder="1"
+              keyboardType="numeric"
+              value={quickSellQty}
+              onChangeText={setQuickSellQty}
+            />
+
+            <Text className="mb-1.5 text-[11px] font-bold uppercase text-[#64748b]">
+              Payment Method
+            </Text>
+            <View className="mb-4 flex-row gap-2.5">
+              <TouchableOpacity
+                className={`flex-1 flex-row items-center justify-center gap-1.5 rounded-xl border px-1 py-3 ${
+                  quickSellPaymentMethod === 'CASH'
+                    ? 'border-[#059669] bg-[#d1fae5]'
+                    : 'border-[#e2e8f0] bg-[#f8fafc]'
+                }`}
+                onPress={() => setQuickSellPaymentMethod('CASH')}
+              >
+                <Banknote
+                  size={18}
+                  color={quickSellPaymentMethod === 'CASH' ? colors.primary : colors.textMuted}
+                />
+                <Text
+                  className={`text-xs font-bold ${
+                    quickSellPaymentMethod === 'CASH' ? 'text-[#059669]' : 'text-[#64748b]'
+                  }`}
+                >
+                  Cash
+                </Text>
+              </TouchableOpacity>
+
+              <TouchableOpacity
+                className={`flex-1 flex-row items-center justify-center gap-1.5 rounded-xl border px-1 py-3 ${
+                  quickSellPaymentMethod === 'UPI'
+                    ? 'border-[#059669] bg-[#d1fae5]'
+                    : 'border-[#e2e8f0] bg-[#f8fafc]'
+                }`}
+                onPress={() => setQuickSellPaymentMethod('UPI')}
+              >
+                <QrCode
+                  size={18}
+                  color={quickSellPaymentMethod === 'UPI' ? colors.primary : colors.textMuted}
+                />
+                <Text
+                  className={`text-xs font-bold ${
+                    quickSellPaymentMethod === 'UPI' ? 'text-[#059669]' : 'text-[#64748b]'
+                  }`}
+                >
+                  UPI
+                </Text>
+              </TouchableOpacity>
+
+              <TouchableOpacity
+                className={`flex-1 flex-row items-center justify-center gap-1.5 rounded-xl border px-1 py-3 ${
+                  quickSellPaymentMethod === 'CARD'
+                    ? 'border-[#059669] bg-[#d1fae5]'
+                    : 'border-[#e2e8f0] bg-[#f8fafc]'
+                }`}
+                onPress={() => setQuickSellPaymentMethod('CARD')}
+              >
+                <CreditCard
+                  size={18}
+                  color={quickSellPaymentMethod === 'CARD' ? colors.primary : colors.textMuted}
+                />
+                <Text
+                  className={`text-xs font-bold ${
+                    quickSellPaymentMethod === 'CARD' ? 'text-[#059669]' : 'text-[#64748b]'
+                  }`}
+                >
+                  Card
+                </Text>
+              </TouchableOpacity>
+            </View>
+
+            <View className="mb-4 flex-row items-center justify-between rounded-xl bg-[#ecfdf5] p-3">
+              <Text className="text-xs font-extrabold text-[#059669]">Total Amount</Text>
+              <Text className="text-lg font-black text-[#059669]">
+                ₹{(safeNumber(quickSellProduct?.sellingPrice) * (parseFloat(quickSellQty) || 0)).toFixed(2)}
+              </Text>
+            </View>
+
+            <View className="flex-row gap-2.5 border-t border-[#e2e8f0] pt-3">
+              <TouchableOpacity
+                className="flex-1 flex-row items-center justify-center rounded-lg border border-[#e2e8f0] bg-[#f8fafc] py-3"
+                onPress={() => setQuickSellModalOpen(false)}
+                disabled={quickSelling}
+              >
+                <Text className="text-base font-bold text-[#0f172a]">Cancel</Text>
+              </TouchableOpacity>
+              <TouchableOpacity
+                className="flex-[2] flex-row items-center justify-center gap-1.5 rounded-xl bg-[#059669] py-3"
+                onPress={handleQuickSellSubmit}
+                disabled={quickSelling}
+              >
+                {quickSelling ? (
+                  <ActivityIndicator color="#fff" />
+                ) : (
+                  <>
+                    <CircleCheck size={18} color="#fff" />
+                    <Text className="text-sm font-black text-white">Complete Sale</Text>
+                  </>
+                )}
+              </TouchableOpacity>
+            </View>
+          </View>
+        </View>
+      </Modal>
+
+      {/* Add / Edit Modal */}
+      <Modal
+        visible={formModalOpen}
+        animationType="slide"
+        transparent
+        onRequestClose={() => setFormModalOpen(false)}
+      >
         <View className="flex-1 justify-end bg-black/60">
           <View className="max-h-[90%] rounded-t-3xl bg-white p-5">
             <View className="mb-4 flex-row items-center justify-between">
-              <Text className="text-2xl font-extrabold text-[#0f172a]">{editingProduct ? 'Edit Product' : 'Add New Product'}</Text>
+              <Text className="text-2xl font-extrabold text-[#0f172a]">
+                {editingProduct ? 'Edit Product' : 'Add New Product'}
+              </Text>
               <TouchableOpacity onPress={() => setFormModalOpen(false)} hitSlop={10}>
                 <X size={20} color={colors.text} />
               </TouchableOpacity>
             </View>
 
             <ScrollView contentContainerClassName="pb-4" keyboardShouldPersistTaps="handled">
-              <Text className="mb-1.5 text-[11px] font-bold uppercase text-[#64748b]">Product Name *</Text>
+              <Text className="mb-1.5 text-[11px] font-bold uppercase text-[#64748b]">
+                Product Name *
+              </Text>
               <TextInput
                 className="h-11 rounded-md border border-[#e2e8f0] bg-[#f8fafc] px-3 text-base text-[#0f172a]"
                 placeholder="e.g. Basmati Rice 5kg"
@@ -440,34 +809,60 @@ export const ProductsScreen: React.FC = () => {
               </View>
               <ScrollView horizontal showsHorizontalScrollIndicator={false} className="mb-3">
                 {(categories || []).length === 0 ? (
-                  <Text className="py-1 text-xs italic text-[#64748b]">No categories yet — create one.</Text>
+                  <Text className="py-1 text-xs italic text-[#64748b]">
+                    No categories yet — create one.
+                  </Text>
                 ) : (
-                  (categories || []).filter((cat) => cat && cat.id != null).map((cat) => (
-                    <TouchableOpacity
-                      key={cat.id}
-                      className={`mr-1.5 rounded-lg border px-3 py-1.5 ${categoryId === cat.id ? 'border-[#059669] bg-[#d1fae5]' : 'border-[#e2e8f0] bg-[#f8fafc]'}`}
-                      onPress={() => setCategoryId(cat.id)}
-                    >
-                      <Text className={`text-[11px] font-bold ${categoryId === cat.id ? 'text-[#059669]' : 'text-[#64748b]'}`}>{cat.name || 'Category'}</Text>
-                    </TouchableOpacity>
-                  ))
+                  (categories || [])
+                    .filter((cat) => cat && cat.id != null)
+                    .map((cat) => (
+                      <TouchableOpacity
+                        key={cat.id}
+                        className={`mr-1.5 rounded-lg border px-3 py-1.5 ${
+                          categoryId === cat.id
+                            ? 'border-[#059669] bg-[#d1fae5]'
+                            : 'border-[#e2e8f0] bg-[#f8fafc]'
+                        }`}
+                        onPress={() => setCategoryId(cat.id)}
+                      >
+                        <Text
+                          className={`text-[11px] font-bold ${
+                            categoryId === cat.id ? 'text-[#059669]' : 'text-[#64748b]'
+                          }`}
+                        >
+                          {cat.name || 'Category'}
+                        </Text>
+                      </TouchableOpacity>
+                    ))
                 )}
               </ScrollView>
 
-              <Text className="mb-1.5 text-[11px] font-bold uppercase text-[#64748b]">Unit of Measure *</Text>
+              <Text className="mb-1.5 text-[11px] font-bold uppercase text-[#64748b]">
+                Unit of Measure *
+              </Text>
               <ScrollView horizontal showsHorizontalScrollIndicator={false} className="mb-3">
                 {UNITS.map((u) => (
                   <TouchableOpacity
                     key={u}
-                    className={`mr-1.5 rounded-lg border px-3 py-1.5 ${unit === u ? 'border-[#059669] bg-[#d1fae5]' : 'border-[#e2e8f0] bg-[#f8fafc]'}`}
+                    className={`mr-1.5 rounded-lg border px-3 py-1.5 ${
+                      unit === u ? 'border-[#059669] bg-[#d1fae5]' : 'border-[#e2e8f0] bg-[#f8fafc]'
+                    }`}
                     onPress={() => setUnit(u)}
                   >
-                    <Text className={`text-[11px] font-bold ${unit === u ? 'text-[#059669]' : 'text-[#64748b]'}`}>{u}</Text>
+                    <Text
+                      className={`text-[11px] font-bold ${
+                        unit === u ? 'text-[#059669]' : 'text-[#64748b]'
+                      }`}
+                    >
+                      {u}
+                    </Text>
                   </TouchableOpacity>
                 ))}
               </ScrollView>
 
-              <Text className="mb-1.5 text-[11px] font-bold uppercase text-[#64748b]">Barcode / SKU</Text>
+              <Text className="mb-1.5 text-[11px] font-bold uppercase text-[#64748b]">
+                Barcode / SKU
+              </Text>
               <View className="mb-3 flex-row items-center gap-2">
                 <TextInput
                   className="h-11 flex-1 rounded-md border border-[#e2e8f0] bg-[#f8fafc] px-3 text-base text-[#0f172a]"
@@ -478,7 +873,10 @@ export const ProductsScreen: React.FC = () => {
                   autoCapitalize="characters"
                   maxLength={50}
                 />
-                <TouchableOpacity className="h-11 w-11 items-center justify-center rounded-[10px] bg-[#059669]" onPress={() => setScannerOpen(true)}>
+                <TouchableOpacity
+                  className="h-11 w-11 items-center justify-center rounded-[10px] bg-[#059669]"
+                  onPress={() => setScannerOpen(true)}
+                >
                   <Camera size={18} color="#fff" />
                 </TouchableOpacity>
               </View>
@@ -512,7 +910,9 @@ export const ProductsScreen: React.FC = () => {
 
               <View className="flex-row gap-2.5">
                 <View style={{ flex: 1 }}>
-                  <Text className="mb-1.5 text-[11px] font-bold uppercase text-[#64748b]">Purchase Price (₹) *</Text>
+                  <Text className="mb-1.5 text-[11px] font-bold uppercase text-[#64748b]">
+                    Purchase Price (₹) *
+                  </Text>
                   <TextInput
                     className="h-11 rounded-md border border-[#e2e8f0] bg-[#f8fafc] px-3 text-base text-[#0f172a]"
                     placeholder="Cost price"
@@ -524,7 +924,9 @@ export const ProductsScreen: React.FC = () => {
                   />
                 </View>
                 <View style={{ flex: 1 }}>
-                  <Text className="mb-1.5 text-[11px] font-bold uppercase text-[#64748b]">Selling Price (₹) *</Text>
+                  <Text className="mb-1.5 text-[11px] font-bold uppercase text-[#64748b]">
+                    Selling Price (₹) *
+                  </Text>
                   <TextInput
                     className="h-11 rounded-md border border-[#e2e8f0] bg-[#f8fafc] px-3 text-base text-[#0f172a]"
                     placeholder="Selling price"
@@ -540,7 +942,9 @@ export const ProductsScreen: React.FC = () => {
 
               <View className="flex-row gap-2.5">
                 <View style={{ flex: 1 }}>
-                  <Text className="mb-1.5 text-[11px] font-bold uppercase text-[#64748b]">Initial Stock</Text>
+                  <Text className="mb-1.5 text-[11px] font-bold uppercase text-[#64748b]">
+                    Initial Stock
+                  </Text>
                   <TextInput
                     className="h-11 rounded-md border border-[#e2e8f0] bg-[#f8fafc] px-3 text-base text-[#0f172a]"
                     placeholder="Quantity"
@@ -552,7 +956,9 @@ export const ProductsScreen: React.FC = () => {
                   />
                 </View>
                 <View style={{ flex: 1 }}>
-                  <Text className="mb-1.5 text-[11px] font-bold uppercase text-[#64748b]">Min Alert Level</Text>
+                  <Text className="mb-1.5 text-[11px] font-bold uppercase text-[#64748b]">
+                    Min Alert Level
+                  </Text>
                   <TextInput
                     className="h-11 rounded-md border border-[#e2e8f0] bg-[#f8fafc] px-3 text-base text-[#0f172a]"
                     placeholder="Alert below"
@@ -567,10 +973,18 @@ export const ProductsScreen: React.FC = () => {
             </ScrollView>
 
             <View className="flex-row gap-2.5 border-t border-[#e2e8f0] pt-3">
-              <TouchableOpacity className="flex-1 flex-row items-center justify-center rounded-lg border border-[#e2e8f0] bg-[#f8fafc] py-3" onPress={() => setFormModalOpen(false)}>
+              <TouchableOpacity
+                className="flex-1 flex-row items-center justify-center rounded-lg border border-[#e2e8f0] bg-[#f8fafc] py-3"
+                onPress={() => setFormModalOpen(false)}
+              >
                 <Text className="text-base font-bold text-[#0f172a]">Cancel</Text>
               </TouchableOpacity>
-              <TouchableOpacity className="flex-[2] flex-row items-center justify-center gap-1.5 rounded-lg bg-[#059669] py-3" style={{ opacity: saving ? 0.6 : 1 }} onPress={handleSaveProduct} disabled={saving}>
+              <TouchableOpacity
+                className="flex-[2] flex-row items-center justify-center gap-1.5 rounded-lg bg-[#059669] py-3"
+                style={{ opacity: saving ? 0.6 : 1 }}
+                onPress={handleSaveProduct}
+                disabled={saving}
+              >
                 {saving ? (
                   <ActivityIndicator color="#fff" />
                 ) : (
@@ -585,7 +999,13 @@ export const ProductsScreen: React.FC = () => {
         </View>
       </Modal>
 
-      <Modal visible={categoryModalOpen} animationType="fade" transparent onRequestClose={() => setCategoryModalOpen(false)}>
+      {/* Add Category Modal */}
+      <Modal
+        visible={categoryModalOpen}
+        animationType="fade"
+        transparent
+        onRequestClose={() => setCategoryModalOpen(false)}
+      >
         <View className="flex-1 items-center justify-center bg-black/60 p-5">
           <View className="max-h-[80%] rounded-2xl bg-white p-5">
             <Text className="text-2xl font-extrabold text-[#0f172a]">Add New Category</Text>
@@ -600,10 +1020,16 @@ export const ProductsScreen: React.FC = () => {
               maxLength={80}
             />
             <View className="flex-row gap-2.5 border-t border-[#e2e8f0] pt-3">
-              <TouchableOpacity className="flex-1 flex-row items-center justify-center rounded-lg border border-[#e2e8f0] bg-[#f8fafc] py-3" onPress={() => setCategoryModalOpen(false)}>
+              <TouchableOpacity
+                className="flex-1 flex-row items-center justify-center rounded-lg border border-[#e2e8f0] bg-[#f8fafc] py-3"
+                onPress={() => setCategoryModalOpen(false)}
+              >
                 <Text className="text-base font-bold text-[#0f172a]">Cancel</Text>
               </TouchableOpacity>
-              <TouchableOpacity className="flex-1 flex-row items-center justify-center gap-1.5 rounded-lg bg-[#059669] py-3" onPress={handleCreateCategory}>
+              <TouchableOpacity
+                className="flex-1 flex-row items-center justify-center gap-1.5 rounded-lg bg-[#059669] py-3"
+                onPress={handleCreateCategory}
+              >
                 <Text className="text-base font-extrabold text-white">Add Category</Text>
               </TouchableOpacity>
             </View>
@@ -611,6 +1037,7 @@ export const ProductsScreen: React.FC = () => {
         </View>
       </Modal>
 
+      {/* Barcode Scanner Modal */}
       {scannerOpen && (
         <BarcodeScannerModal
           visible={scannerOpen}
@@ -623,7 +1050,15 @@ export const ProductsScreen: React.FC = () => {
           subtitle="Align barcode to auto-fill SKU"
         />
       )}
+
+      {/* Completed Quick Sale Receipt Modal */}
+      <ReceiptModal
+        visible={!!completedSale}
+        sale={completedSale}
+        paymentMethod={quickSellPaymentMethod}
+        customerPhone={quickSellPhone}
+        onClose={() => setCompletedSale(null)}
+      />
     </View>
   );
 };
-

@@ -5,6 +5,12 @@
     "version": "1.0.0",
     "orientation": "portrait",
     "icon": "./assets/icon.png",
+    "runtimeVersion": {
+      "policy": "appVersion"
+    },
+    "updates": {
+      "url": "https://u.expo.dev/99ed89bb-896b-44a6-b1ce-1b7d932806b5"
+    },
     "userInterfaceStyle": "light",
     "plugins": [
       "expo-secure-store",

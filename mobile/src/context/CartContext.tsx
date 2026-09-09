@@ -5,6 +5,7 @@ import * as Haptics from 'expo-haptics';
 interface CartContextType {
   items: CartItem[];
   addItem: (product: Product, quantity?: number) => boolean;
+  setProductQuantity: (product: Product, quantity: number) => boolean;
   removeItem: (productId: number) => void;
   updateQuantity: (productId: number, quantity: number) => void;
   clearCart: () => void;
@@ -59,6 +60,32 @@ export const CartProvider: React.FC<{ children: React.ReactNode }> = ({ children
     return true;
   };
 
+  const setProductQuantity = (product: Product, quantity: number): boolean => {
+    const availableStock = product.currentQuantity !== undefined ? safeN(product.currentQuantity, 9999) : 9999;
+    const safePrice = safeN((product as any).sellingPrice, 0);
+
+    if (quantity <= 0) {
+      removeItem(product.id);
+      return true;
+    }
+
+    const clampedQty = Math.min(quantity, availableStock);
+    const existingIndex = items.findIndex((i) => i.product.id === product.id);
+
+    if (existingIndex > -1) {
+      const updated = [...items];
+      updated[existingIndex].quantity = clampedQty;
+      setItems(updated);
+    } else {
+      setItems([...items, { product, quantity: clampedQty, unitPrice: safePrice }]);
+    }
+
+    try {
+      Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+    } catch {}
+    return quantity <= availableStock;
+  };
+
   const removeItem = (productId: number) => {
     setItems((prev) => prev.filter((i) => i.product.id !== productId));
     try {
@@ -99,6 +126,7 @@ export const CartProvider: React.FC<{ children: React.ReactNode }> = ({ children
       value={{
         items,
         addItem,
+        setProductQuantity,
         removeItem,
         updateQuantity,
         clearCart,

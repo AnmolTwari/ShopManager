@@ -45,9 +45,9 @@ const MainNavigator: React.FC = () => {
       case 'pos':
         return <PosScreen />;
       case 'products':
-        return <ProductsScreen />;
+        return <ProductsScreen onNavigateTab={setCurrentTab} />;
       case 'inventory':
-        return <InventoryScreen />;
+        return <InventoryScreen onNavigateTab={setCurrentTab} />;
       case 'reports':
         return <ReportsScreen />;
       case 'settings':

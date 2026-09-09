@@ -7,6 +7,7 @@ import {
   ProductRequest,
   ReportSummary,
   SaleResponse,
+  SaleSummaryResponse,
   StockAdjustmentRequest,
   StockInRequest,
   StockMovement,
@@ -98,6 +99,18 @@ export const productsApi = {
     return { content: [], totalElements: 0, totalPages: 0, number: 0, size: 20, first: true, last: true, empty: true };
   },
 
+  async listPopular(limit: number = 8): Promise<Product[]> {
+    try {
+      const res = await http.get<Product[]>(`/products/popular?limit=${limit}`);
+      const data: any = res.data;
+      if (Array.isArray(data)) return data;
+      if (isPageResponse<Product>(data)) return data.content ?? [];
+      return [];
+    } catch {
+      return [];
+    }
+  },
+
   async get(id: number): Promise<Product> {
     const res = await http.get<Product>(`/products/${id}`);
     return res.data;
@@ -172,9 +185,35 @@ export const salesApi = {
     return res.data;
   },
 
-  async list(): Promise<SaleResponse[]> {
-    const res = await http.get<SaleResponse[]>('/sales');
-    return res.data;
+  async list(page = 0, size = 20): Promise<SaleSummaryResponse[]> {
+    try {
+      const res = await http.get<PageResponse<SaleSummaryResponse> | SaleSummaryResponse[]>(`/sales?page=${page}&size=${size}`);
+      const data: any = res.data;
+      if (Array.isArray(data)) return data;
+      if (isPageResponse<SaleSummaryResponse>(data)) return data.content ?? [];
+      return [];
+    } catch {
+      return [];
+    }
+  },
+
+  async listPaged(page = 0, size = 20): Promise<PageResponse<SaleSummaryResponse>> {
+    const res = await http.get<PageResponse<SaleSummaryResponse>>(`/sales?page=${page}&size=${size}`);
+    const data: any = res.data;
+    if (isPageResponse<SaleSummaryResponse>(data)) return data;
+    if (Array.isArray(data)) {
+      return {
+        content: data,
+        totalElements: data.length,
+        totalPages: 1,
+        number: page,
+        size,
+        first: page === 0,
+        last: true,
+        empty: data.length === 0,
+      };
+    }
+    return { content: [], totalElements: 0, totalPages: 0, number: page, size, first: true, last: true, empty: true };
   },
 
   async get(id: number): Promise<SaleResponse> {

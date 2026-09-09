@@ -15,6 +15,7 @@ import { Header } from '../components/Header';
 import { inventoryApi, productsApi } from '../services/shopApi';
 import { colors } from '../theme/colors';
 import { Product, StockAdjustmentRequest, StockInRequest, StockMovement } from '../types';
+import { TabScreen } from '../components/BottomTabBar';
 import {
   Layers,
   ArrowDownLeft,
@@ -23,9 +24,14 @@ import {
   CircleCheck,
   X,
   RotateCcw,
+  ShoppingBag,
 } from 'lucide-react-native';
 
-export const InventoryScreen: React.FC = () => {
+interface InventoryScreenProps {
+  onNavigateTab?: (tab: TabScreen) => void;
+}
+
+export const InventoryScreen: React.FC<InventoryScreenProps> = ({ onNavigateTab }) => {
   const [movements, setMovements] = useState<StockMovement[]>([]);
   const [products, setProducts] = useState<Product[]>([]);
   const [loading, setLoading] = useState<boolean>(true);
@@ -177,36 +183,58 @@ export const InventoryScreen: React.FC = () => {
       ) : null}
 
       {/* Quick Action Trigger Cards */}
-      <View className="flex-row gap-2.5 p-4">
-        <TouchableOpacity
-          className="flex-1 flex-row items-center gap-2.5 rounded-2xl bg-[#059669] p-3.5"
-          onPress={() => {
-            resetStockInForm();
-            setStockInModalOpen(true);
-          }}
-          activeOpacity={0.8}
-        >
-          <ArrowDownLeft size={20} color="#fff" />
-          <View className="flex-1">
-            <Text className="text-sm font-extrabold text-white" numberOfLines={1}>Stock-In</Text>
-            <Text className="mt-px text-[11px] text-[#d1fae5]" numberOfLines={1}>Add received goods</Text>
-          </View>
-        </TouchableOpacity>
+      <View className="gap-2.5 p-4">
+        <View className="flex-row gap-2.5">
+          <TouchableOpacity
+            className="flex-1 flex-row items-center gap-2.5 rounded-2xl bg-[#059669] p-3.5"
+            onPress={() => {
+              resetStockInForm();
+              setStockInModalOpen(true);
+            }}
+            activeOpacity={0.8}
+          >
+            <ArrowDownLeft size={20} color="#fff" />
+            <View className="flex-1">
+              <Text className="text-sm font-extrabold text-white" numberOfLines={1}>Stock-In</Text>
+              <Text className="mt-px text-[11px] text-[#d1fae5]" numberOfLines={1}>Add received goods</Text>
+            </View>
+          </TouchableOpacity>
 
-        <TouchableOpacity
-          className="flex-1 flex-row items-center gap-2.5 rounded-2xl border border-[#e2e8f0] bg-white p-3.5"
-          onPress={() => {
-            resetAdjustForm();
-            setAdjustModalOpen(true);
-          }}
-          activeOpacity={0.8}
-        >
-          <SlidersHorizontal size={20} color={colors.text} />
-          <View className="flex-1">
-            <Text className="text-sm font-extrabold text-[#0f172a]" numberOfLines={1}>Adjust Stock</Text>
-            <Text className="mt-px text-[11px] text-[#64748b]" numberOfLines={1}>Damages, recount</Text>
-          </View>
-        </TouchableOpacity>
+          <TouchableOpacity
+            className="flex-1 flex-row items-center gap-2.5 rounded-2xl border border-[#e2e8f0] bg-white p-3.5"
+            onPress={() => {
+              resetAdjustForm();
+              setAdjustModalOpen(true);
+            }}
+            activeOpacity={0.8}
+          >
+            <SlidersHorizontal size={20} color={colors.text} />
+            <View className="flex-1">
+              <Text className="text-sm font-extrabold text-[#0f172a]" numberOfLines={1}>Adjust Stock</Text>
+              <Text className="mt-px text-[11px] text-[#64748b]" numberOfLines={1}>Damages, recount</Text>
+            </View>
+          </TouchableOpacity>
+        </View>
+
+        {/* Sell / Outflow Shortcut */}
+        {onNavigateTab && (
+          <TouchableOpacity
+            className="flex-row items-center justify-between rounded-xl border border-[#bbf7d0] bg-[#ecfdf5] p-3"
+            onPress={() => onNavigateTab('pos')}
+            activeOpacity={0.8}
+          >
+            <View className="flex-row items-center gap-2.5">
+              <View className="h-8 w-8 items-center justify-center rounded-lg bg-[#059669]">
+                <ShoppingBag size={16} color="#fff" />
+              </View>
+              <View>
+                <Text className="text-xs font-extrabold text-[#0f172a]">Sell Products & Outflow</Text>
+                <Text className="text-[11px] text-[#059669]">Create sales and instant bills</Text>
+              </View>
+            </View>
+            <Text className="text-xs font-extrabold text-[#059669]">Go to Sell →</Text>
+          </TouchableOpacity>
+        )}
       </View>
 
       {/* Movement Audit Log */}
