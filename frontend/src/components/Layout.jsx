@@ -94,13 +94,14 @@ export default function Layout() {
           </ul>
           <div className="mt-3 flex flex-col gap-2 border-t border-border pt-3 md:mt-auto md:pt-4">
             <a
-              href="https://expo.dev/accounts/anmolxtiwari/projects/shopmanager/builds/799b7b73-f856-4988-a712-08813b90a473"
+              href="https://expo.dev/artifacts/eas/ExEyBqYh0Xtge-NUJ5-GWynlOcOeTnbWKMAn-XS6Pc8.apk"
+              download="ShopManager.apk"
               target="_blank"
               rel="noreferrer"
               className="inline-flex min-h-10 w-full cursor-pointer items-center justify-center gap-2.5 rounded-lg border border-emerald-200 bg-emerald-50 px-3 py-2 text-[13px] font-bold text-emerald-800 no-underline transition-colors hover:bg-emerald-100 md:min-h-0 md:justify-start"
             >
               <IconSmartphone size={16} />
-              Get Android App
+              Download Android App (.apk)
             </a>
             <button
               onClick={handleLogout}
