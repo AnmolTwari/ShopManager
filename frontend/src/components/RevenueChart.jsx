@@ -13,7 +13,7 @@ export default function RevenueChart({ data }) {
 
   if (!data || data.length === 0) return null
 
-  const values = data.map((point) => Number(point.total))
+  const values = data.map((point) => Number(point?.total) || 0)
   const max = Math.max(1, ...values)
   const n = values.length
   const plotW = WIDTH - PAD_X * 2

@@ -23,14 +23,21 @@ function greeting() {
 }
 
 function TrendPill({ today, yesterday, format }) {
+  const numToday = Number(today) || 0
+  const numYesterday = Number(yesterday) || 0
   const same = yesterday === null || yesterday === undefined
-  const diff = same ? 0 : today - yesterday
-  const pct = same || yesterday === 0 ? null : Math.abs((diff / yesterday) * 100)
+  const diff = same ? 0 : numToday - numYesterday
+  const pct = same || numYesterday === 0 ? null : Math.abs((diff / numYesterday) * 100)
+
   if (same || diff === 0) {
     return <span className="text-xs text-muted">Same as yesterday</span>
   }
+
   const up = diff > 0
-  const text = format ? `${format(Math.abs(diff))} (${pct.toFixed(0)}%)` : `${Math.abs(diff)} (${pct.toFixed(0)}%)`
+  const diffFormatted = format ? format(Math.abs(diff)) : Math.abs(diff)
+  const pctFormatted = pct !== null && !Number.isNaN(pct) ? ` (${pct.toFixed(0)}%)` : ''
+  const text = `${diffFormatted}${pctFormatted}`
+
   return (
     <span
       className={`inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-xs font-semibold ${
