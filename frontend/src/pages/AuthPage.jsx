@@ -282,7 +282,7 @@ export default function AuthPage({ mode }) {
 
       <div className="flex flex-col items-center gap-2">
         <a
-          href="https://expo.dev/artifacts/eas/kQXQvMsbwevRM50FWc-nwYhvOh4KaAltiiku498sViY.apk"
+          href="https://expo.dev/artifacts/eas/kJDJzOW5ygAF9ZjPusBt9ZmGMuyAY54TByBNY44KZSQ.apk"
           download="ShopManager.apk"
           target="_blank"
           rel="noreferrer"
