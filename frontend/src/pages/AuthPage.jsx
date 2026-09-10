@@ -1,7 +1,7 @@
 import { useState } from 'react'
 import { Link, Navigate, useLocation, useNavigate } from 'react-router-dom'
 import { auth } from '../services/api'
-import { IconSmartphone } from '../components/Icons'
+import { IconSmartphone } from '../components/icons'
 
 export default function AuthPage({ mode }) {
   const navigate = useNavigate()
