@@ -3,7 +3,9 @@ import {
   ActivityIndicator,
   Alert,
   FlatList,
+  KeyboardAvoidingView,
   Modal,
+  Platform,
   ScrollView,
   Text,
   TextInput,
@@ -16,6 +18,7 @@ import { inventoryApi, productsApi } from '../services/shopApi';
 import { colors } from '../theme/colors';
 import { Product, StockAdjustmentRequest, StockInRequest, StockMovement } from '../types';
 import { TabScreen } from '../components/BottomTabBar';
+import { formatDateTime } from '../utils/dateUtils';
 import {
   Layers,
   ArrowDownLeft,
@@ -281,12 +284,7 @@ export const InventoryScreen: React.FC<InventoryScreenProps> = ({ onNavigateTab 
 
                   <Text className="text-[13px] font-bold text-[#0f172a]">{item.productName}</Text>
                   <Text className="mt-0.5 text-[11px] text-[#64748b]">
-                    {new Date(item.createdAt).toLocaleString('en-IN', {
-                      day: '2-digit',
-                      month: 'short',
-                      hour: '2-digit',
-                      minute: '2-digit',
-                    })}
+                    {formatDateTime(item.createdAt)}
                     {item.reason ? ` • ${item.reason}` : ''}
                   </Text>
                 </View>
@@ -310,21 +308,29 @@ export const InventoryScreen: React.FC<InventoryScreenProps> = ({ onNavigateTab 
       )}
 
       {/* Stock In Modal */}
-      <Modal visible={stockInModalOpen} animationType="slide" transparent>
-        <View className="flex-1 justify-end bg-black/60">
+      <Modal
+        visible={stockInModalOpen}
+        animationType="slide"
+        transparent
+        onRequestClose={() => setStockInModalOpen(false)}
+      >
+        <KeyboardAvoidingView
+          behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
+          className="flex-1 justify-end bg-black/60"
+        >
           <View className="max-h-[90%] rounded-t-3xl bg-white p-5">
             <View className="mb-4 flex-row items-center justify-between">
               <Text className="text-2xl font-extrabold text-[#0f172a]">Stock-In (Restock Goods)</Text>
-              <TouchableOpacity onPress={() => setStockInModalOpen(false)}>
+              <TouchableOpacity onPress={() => setStockInModalOpen(false)} hitSlop={10}>
                 <X size={20} color={colors.text} />
               </TouchableOpacity>
             </View>
 
-            <ScrollView contentContainerClassName="pb-4">
+            <ScrollView contentContainerClassName="pb-4" showsVerticalScrollIndicator={false} keyboardShouldPersistTaps="handled">
               <Text className="mb-1.5 text-[11px] font-bold uppercase text-[#64748b]">Select Product *</Text>
               <View className="mb-2.5 flex-row gap-2">
                 <View className="h-11 flex-1 justify-center rounded-[10px] border border-[#e2e8f0] bg-[#f8fafc] px-3">
-                  <Text className="text-sm text-[#0f172a]">
+                  <Text className="text-sm text-[#0f172a]" numberOfLines={1}>
                     {selectedProduct
                       ? `${selectedProduct.name} (Stock: ${selectedProduct.currentQuantity})`
                       : 'Choose a product below or scan...'}
@@ -398,21 +404,29 @@ export const InventoryScreen: React.FC<InventoryScreenProps> = ({ onNavigateTab 
               </TouchableOpacity>
             </View>
           </View>
-        </View>
+        </KeyboardAvoidingView>
       </Modal>
 
       {/* Adjust Stock Modal */}
-      <Modal visible={adjustModalOpen} animationType="slide" transparent>
-        <View className="flex-1 justify-end bg-black/60">
+      <Modal
+        visible={adjustModalOpen}
+        animationType="slide"
+        transparent
+        onRequestClose={() => setAdjustModalOpen(false)}
+      >
+        <KeyboardAvoidingView
+          behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
+          className="flex-1 justify-end bg-black/60"
+        >
           <View className="max-h-[90%] rounded-t-3xl bg-white p-5">
             <View className="mb-4 flex-row items-center justify-between">
               <Text className="text-2xl font-extrabold text-[#0f172a]">Adjust Stock Level</Text>
-              <TouchableOpacity onPress={() => setAdjustModalOpen(false)}>
+              <TouchableOpacity onPress={() => setAdjustModalOpen(false)} hitSlop={10}>
                 <X size={20} color={colors.text} />
               </TouchableOpacity>
             </View>
 
-            <ScrollView contentContainerClassName="pb-4">
+            <ScrollView contentContainerClassName="pb-4" showsVerticalScrollIndicator={false} keyboardShouldPersistTaps="handled">
               <Text className="mb-1.5 text-[11px] font-bold uppercase text-[#64748b]">Select Product *</Text>
               <View className="mb-2.5 flex-row gap-2">
                 <View className="h-11 flex-1 justify-center rounded-[10px] border border-[#e2e8f0] bg-[#f8fafc] px-3">
@@ -498,7 +512,7 @@ export const InventoryScreen: React.FC<InventoryScreenProps> = ({ onNavigateTab 
               </TouchableOpacity>
             </View>
           </View>
-        </View>
+        </KeyboardAvoidingView>
       </Modal>
 
       {/* Barcode Scanner */}

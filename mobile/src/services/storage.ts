@@ -4,6 +4,7 @@ import { Platform } from 'react-native';
 const TOKEN_KEY = 'shopmanager_access_token';
 const USER_KEY = 'shopmanager_user_data';
 const API_URL_KEY = 'shopmanager_custom_api_url';
+const SHOP_PROFILE_KEY = 'shopmanager_shop_profile';
 
 export const storage = {
   async saveToken(token: string): Promise<void> {
@@ -109,6 +110,41 @@ export const storage = {
       }
     } catch (e) {
       console.warn('Failed to delete custom API URL', e);
+    }
+  },
+
+  async saveShopProfile(profileData: string): Promise<void> {
+    try {
+      if (Platform.OS === 'web') {
+        localStorage.setItem(SHOP_PROFILE_KEY, profileData);
+      } else {
+        await SecureStore.setItemAsync(SHOP_PROFILE_KEY, profileData);
+      }
+    } catch (e) {
+      console.warn('Failed to save shop profile to storage', e);
+    }
+  },
+
+  async getShopProfile(): Promise<string | null> {
+    try {
+      if (Platform.OS === 'web') {
+        return localStorage.getItem(SHOP_PROFILE_KEY);
+      }
+      return await SecureStore.getItemAsync(SHOP_PROFILE_KEY);
+    } catch (e) {
+      return null;
+    }
+  },
+
+  async removeShopProfile(): Promise<void> {
+    try {
+      if (Platform.OS === 'web') {
+        localStorage.removeItem(SHOP_PROFILE_KEY);
+      } else {
+        await SecureStore.deleteItemAsync(SHOP_PROFILE_KEY);
+      }
+    } catch (e) {
+      console.warn('Failed to delete shop profile from storage', e);
     }
   },
 };

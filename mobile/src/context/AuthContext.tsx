@@ -1,21 +1,32 @@
 import React, { createContext, useContext, useEffect, useState } from 'react';
 import { authApi } from '../services/shopApi';
 import { storage } from '../services/storage';
-import { User } from '../types';
+import { ShopProfile, User } from '../types';
 
 interface AuthContextType {
   user: User | null;
+  shopProfile: ShopProfile;
   isLoading: boolean;
   login: (credentials: { username: string; password: string }) => Promise<void>;
   register: (data: { username: string; email: string; password: string; name?: string }) => Promise<void>;
   logout: () => Promise<void>;
   refreshUser: () => Promise<void>;
+  updateShopProfile: (profile: Partial<ShopProfile>) => Promise<void>;
 }
+
+const DEFAULT_SHOP_PROFILE: ShopProfile = {
+  shopName: 'ShopManager Store',
+  phone: '',
+  address: '',
+  tagline: '',
+  gstNumber: '',
+};
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
 
 export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   const [user, setUser] = useState<User | null>(null);
+  const [shopProfile, setShopProfile] = useState<ShopProfile>(DEFAULT_SHOP_PROFILE);
   const [isLoading, setIsLoading] = useState<boolean>(true);
 
   useEffect(() => {
@@ -24,16 +35,33 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
   const restoreSession = async () => {
     try {
+      // Restore shop profile
+      const storedProfile = await storage.getShopProfile();
+      if (storedProfile) {
+        try {
+          setShopProfile(JSON.parse(storedProfile));
+        } catch {}
+      }
+
       const token = await storage.getToken();
       if (token) {
         const cachedUser = await storage.getUserData();
         if (cachedUser) {
-          setUser(JSON.parse(cachedUser));
+          const parsed = JSON.parse(cachedUser);
+          setUser(parsed);
+          if (!storedProfile) {
+            const fallbackName = parsed.name || parsed.username ? `${parsed.name || parsed.username}'s Store` : 'ShopManager Store';
+            setShopProfile((prev) => ({ ...prev, shopName: fallbackName }));
+          }
         }
         // Validate with backend in background
         const currentUser = await authApi.me();
         setUser(currentUser);
         await storage.saveUserData(JSON.stringify(currentUser));
+        if (!storedProfile) {
+          const fallbackName = currentUser.name || currentUser.username ? `${currentUser.name || currentUser.username}'s Store` : 'ShopManager Store';
+          setShopProfile((prev) => ({ ...prev, shopName: fallbackName }));
+        }
       }
     } catch (e) {
       console.log('Session restore failed or expired:', e);
@@ -45,6 +73,12 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     }
   };
 
+  const updateShopProfile = async (updates: Partial<ShopProfile>) => {
+    const next: ShopProfile = { ...shopProfile, ...updates };
+    setShopProfile(next);
+    await storage.saveShopProfile(JSON.stringify(next));
+  };
+
   const login = async (credentials: { username: string; password: string }) => {
     const res = await authApi.login(credentials);
     if (res.token) {
@@ -52,6 +86,15 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     }
     await storage.saveUserData(JSON.stringify(res));
     setUser(res);
+
+    // If no custom shop profile yet, set from username/name
+    const stored = await storage.getShopProfile();
+    if (!stored) {
+      const initialShopName = res.name || res.username ? `${res.name || res.username}'s Store` : 'ShopManager Store';
+      const initialProf: ShopProfile = { ...DEFAULT_SHOP_PROFILE, shopName: initialShopName };
+      setShopProfile(initialProf);
+      await storage.saveShopProfile(JSON.stringify(initialProf));
+    }
   };
 
   const register = async (data: { username: string; email: string; password: string; name?: string }) => {
@@ -61,6 +104,11 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     }
     await storage.saveUserData(JSON.stringify(res));
     setUser(res);
+
+    const initialShopName = res.name || res.username ? `${res.name || res.username}'s Store` : 'ShopManager Store';
+    const initialProf: ShopProfile = { ...DEFAULT_SHOP_PROFILE, shopName: initialShopName };
+    setShopProfile(initialProf);
+    await storage.saveShopProfile(JSON.stringify(initialProf));
   };
 
   const logout = async () => {
@@ -84,7 +132,18 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   };
 
   return (
-    <AuthContext.Provider value={{ user, isLoading, login, register, logout, refreshUser }}>
+    <AuthContext.Provider
+      value={{
+        user,
+        shopProfile,
+        isLoading,
+        login,
+        register,
+        logout,
+        refreshUser,
+        updateShopProfile,
+      }}
+    >
       {children}
     </AuthContext.Provider>
   );

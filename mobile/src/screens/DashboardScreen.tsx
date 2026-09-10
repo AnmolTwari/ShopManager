@@ -14,6 +14,8 @@ import { dashboardApi, salesApi } from '../services/shopApi';
 import { colors } from '../theme/colors';
 import { DashboardSummary, SaleResponse, SaleSummaryResponse } from '../types';
 import { TabScreen } from '../components/BottomTabBar';
+import { useAuth } from '../context/AuthContext';
+import { formatTimeOnly } from '../utils/dateUtils';
 import {
   IndianRupee,
   TrendingUp,
@@ -33,6 +35,7 @@ interface DashboardScreenProps {
 }
 
 export const DashboardScreen: React.FC<DashboardScreenProps> = ({ onNavigateTab }) => {
+  const { shopProfile } = useAuth();
   const [summary, setSummary] = useState<DashboardSummary | null>(null);
   const [loading, setLoading] = useState<boolean>(true);
   const [refreshing, setRefreshing] = useState<boolean>(false);
@@ -274,7 +277,7 @@ export const DashboardScreen: React.FC<DashboardScreenProps> = ({ onNavigateTab 
                     <View>
                       <Text className="text-[13px] font-extrabold text-[#0f172a]">Invoice #{sale.id}</Text>
                       <Text className="mt-0.5 text-[11px] text-[#64748b]">
-                        {new Date(sale.createdAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })} •{' '}
+                        {formatTimeOnly(sale.createdAt)} •{' '}
                         {sale.itemCount || (sale.items ? sale.items.length : 1)} items
                       </Text>
                     </View>
@@ -301,6 +304,7 @@ export const DashboardScreen: React.FC<DashboardScreenProps> = ({ onNavigateTab 
       <ReceiptModal
         visible={!!selectedSale}
         sale={selectedSale}
+        shopName={shopProfile?.shopName}
         onClose={() => setSelectedSale(null)}
       />
     </View>

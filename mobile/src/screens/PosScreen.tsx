@@ -3,7 +3,9 @@ import {
   ActivityIndicator,
   Alert,
   FlatList,
+  KeyboardAvoidingView,
   Modal,
+  Platform,
   RefreshControl,
   ScrollView,
   Text,
@@ -16,9 +18,11 @@ import { Header } from '../components/Header';
 import { ReceiptModal } from '../components/ReceiptModal';
 import { StockBadge } from '../components/StockBadge';
 import { useCart } from '../context/CartContext';
+import { useAuth } from '../context/AuthContext';
 import { productsApi, salesApi } from '../services/shopApi';
 import { colors } from '../theme/colors';
 import { Category, Product, SaleResponse, SaleSummaryResponse } from '../types';
+import { formatDateTime } from '../utils/dateUtils';
 import * as Haptics from 'expo-haptics';
 import {
   Camera,
@@ -54,6 +58,7 @@ export const PosScreen: React.FC = () => {
     totalItems,
     estimatedProfit,
   } = useCart();
+  const { shopProfile } = useAuth();
 
   // Screen Sub-tab: 'new-sale' | 'history'
   const [activeSubTab, setActiveSubTab] = useState<'new-sale' | 'history'>('new-sale');
@@ -906,14 +911,8 @@ export const PosScreen: React.FC = () => {
                         <Text className="mt-0.5 text-xs text-[#64748b]" numberOfLines={1}>
                           {itemsStr}
                         </Text>
-                        <Text className="mt-0.5 text-[11px] text-[#94a3b8]">
-                          {new Date(item.createdAt).toLocaleString('en-IN', {
-                            day: '2-digit',
-                            month: 'short',
-                            year: 'numeric',
-                            hour: '2-digit',
-                            minute: '2-digit',
-                          })}
+                        <Text className="mt-0.5 text-[11px] font-medium text-[#94a3b8]">
+                          {formatDateTime(item.createdAt)}
                         </Text>
                       </View>
                     </View>
@@ -947,111 +946,133 @@ export const PosScreen: React.FC = () => {
       {/* ============================================================ */}
       {/* QUANTITY PICKER & CUSTOM AMOUNT MODAL */}
       {/* ============================================================ */}
-      <Modal visible={qtyModalOpen} animationType="slide" transparent>
-        <View className="flex-1 justify-end bg-black/60">
-          <View className="rounded-t-3xl bg-white p-5">
+      <Modal
+        visible={qtyModalOpen}
+        animationType="slide"
+        transparent
+        onRequestClose={() => setQtyModalOpen(false)}
+      >
+        <KeyboardAvoidingView
+          behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
+          className="flex-1 justify-end bg-black/60"
+        >
+          <View className="max-h-[90%] rounded-t-3xl bg-white p-5">
             <View className="mb-3 flex-row items-center justify-between">
-              <View className="flex-1">
-                <Text className="text-xl font-black text-[#0f172a]">Select Selling Quantity</Text>
-                <Text className="mt-0.5 text-xs text-[#64748b]">{qtyTargetProduct?.name}</Text>
+              <View className="flex-1 pr-2">
+                <Text className="text-xl font-black text-[#0f172a]" numberOfLines={1}>
+                  Select Selling Quantity
+                </Text>
+                <Text className="mt-0.5 text-xs text-[#64748b]" numberOfLines={1}>
+                  {qtyTargetProduct?.name}
+                </Text>
               </View>
-              <TouchableOpacity onPress={() => setQtyModalOpen(false)}>
+              <TouchableOpacity onPress={() => setQtyModalOpen(false)} hitSlop={10}>
                 <X size={20} color={colors.text} />
               </TouchableOpacity>
             </View>
 
-            {qtyTargetProduct && (
-              <View className="mb-3.5 rounded-xl border border-[#e2e8f0] bg-[#f8fafc] p-3">
-                <View className="flex-row items-center justify-between">
-                  <Text className="text-xs font-bold text-[#64748b]">Price per Unit</Text>
-                  <Text className="text-base font-black text-[#059669]">
-                    ₹{safeNum(qtyTargetProduct.sellingPrice).toFixed(2)} / {qtyTargetProduct.unit || 'unit'}
-                  </Text>
+            <ScrollView
+              showsVerticalScrollIndicator={false}
+              contentContainerClassName="pb-2"
+              keyboardShouldPersistTaps="handled"
+            >
+              {qtyTargetProduct && (
+                <View className="mb-3.5 rounded-xl border border-[#e2e8f0] bg-[#f8fafc] p-3">
+                  <View className="flex-row items-center justify-between">
+                    <Text className="text-xs font-bold text-[#64748b]">Price per Unit</Text>
+                    <Text className="text-base font-black text-[#059669]">
+                      ₹{safeNum(qtyTargetProduct.sellingPrice).toFixed(2)} / {qtyTargetProduct.unit || 'unit'}
+                    </Text>
+                  </View>
+                  <View className="mt-1 flex-row items-center justify-between">
+                    <Text className="text-xs font-bold text-[#64748b]">Available Stock</Text>
+                    <Text className="text-xs font-extrabold text-[#0f172a]">
+                      {safeNum(qtyTargetProduct.currentQuantity)} {qtyTargetProduct.unit || 'units'}
+                    </Text>
+                  </View>
                 </View>
-                <View className="mt-1 flex-row items-center justify-between">
-                  <Text className="text-xs font-bold text-[#64748b]">Available Stock</Text>
-                  <Text className="text-xs font-extrabold text-[#0f172a]">
-                    {safeNum(qtyTargetProduct.currentQuantity)} {qtyTargetProduct.unit || 'units'}
-                  </Text>
-                </View>
-              </View>
-            )}
+              )}
 
-            {/* Quick Preset Pills */}
-            <Text className="mb-1.5 text-[11px] font-bold uppercase text-[#64748b]">
-              Quick Quantity Presets
-            </Text>
-            <View className="mb-3.5 flex-row flex-wrap gap-2">
-              {qtyPresets.map((preset) => (
-                <TouchableOpacity
-                  key={preset}
-                  className={`rounded-xl border px-3.5 py-2 ${
-                    customQtyValue === preset
-                      ? 'border-[#059669] bg-[#059669]'
-                      : 'border-[#cbd5e1] bg-[#f8fafc]'
-                  }`}
-                  onPress={() => setCustomQtyValue(preset)}
-                >
-                  <Text
-                    className={`text-xs font-extrabold ${
-                      customQtyValue === preset ? 'text-white' : 'text-[#0f172a]'
-                    }`}
-                  >
-                    {preset} {qtyTargetProduct?.unit || ''}
-                  </Text>
-                </TouchableOpacity>
-              ))}
-            </View>
-
-            {/* Direct Number Input Field with - & + buttons */}
-            <Text className="mb-1.5 text-[11px] font-bold uppercase text-[#64748b]">
-              Enter Exact Quantity *
-            </Text>
-            <View className="mb-4 flex-row items-center gap-2">
-              <TouchableOpacity
-                className="h-12 w-12 items-center justify-center rounded-xl border border-[#cbd5e1] bg-[#f8fafc]"
-                onPress={() => {
-                  const current = parseFloat(customQtyValue) || 1;
-                  const next = Math.max(1, current - 1);
-                  setCustomQtyValue(String(next));
-                }}
-              >
-                <Minus size={18} color={colors.text} />
-              </TouchableOpacity>
-
-              <TextInput
-                className="h-12 flex-1 rounded-xl border border-[#059669] bg-[#f8fafc] px-3 text-center text-lg font-black text-[#0f172a]"
-                placeholder="1"
-                placeholderTextColor={colors.textLight}
-                keyboardType="numeric"
-                value={customQtyValue}
-                onChangeText={setCustomQtyValue}
-                selectTextOnFocus
-              />
-
-              <TouchableOpacity
-                className="h-12 w-12 items-center justify-center rounded-xl border border-[#cbd5e1] bg-[#f8fafc]"
-                onPress={() => {
-                  const current = parseFloat(customQtyValue) || 0;
-                  const maxS = safeNum(qtyTargetProduct?.currentQuantity, 9999);
-                  const next = Math.min(maxS, current + 1);
-                  setCustomQtyValue(String(next));
-                }}
-              >
-                <Plus size={18} color={colors.text} />
-              </TouchableOpacity>
-            </View>
-
-            {/* Computed Subtotal */}
-            <View className="mb-4 flex-row items-center justify-between rounded-xl bg-[#ecfdf5] p-3.5">
-              <Text className="text-xs font-black text-[#059669]">Calculated Subtotal</Text>
-              <Text className="text-lg font-black text-[#059669]">
-                ₹
-                {(
-                  safeNum(qtyTargetProduct?.sellingPrice) * (parseFloat(customQtyValue) || 0)
-                ).toFixed(2)}
+              {/* Quick Preset Pills */}
+              <Text className="mb-1.5 text-[11px] font-bold uppercase tracking-[0.4px] text-[#64748b]">
+                Quick Quantity Presets
               </Text>
-            </View>
+              <View className="mb-3.5 flex-row flex-wrap gap-2">
+                {qtyPresets.map((preset) => {
+                  const isSelected = customQtyValue === preset;
+                  return (
+                    <TouchableOpacity
+                      key={preset}
+                      className={`min-w-[54px] flex-1 items-center justify-center rounded-xl border px-3 py-2 ${
+                        isSelected
+                          ? 'border-[#059669] bg-[#059669]'
+                          : 'border-[#cbd5e1] bg-[#f8fafc]'
+                      }`}
+                      onPress={() => setCustomQtyValue(preset)}
+                    >
+                      <Text
+                        className={`text-xs font-extrabold ${
+                          isSelected ? 'text-white' : 'text-[#0f172a]'
+                        }`}
+                        numberOfLines={1}
+                      >
+                        +{preset}
+                      </Text>
+                    </TouchableOpacity>
+                  );
+                })}
+              </View>
+
+              {/* Direct Number Input Field with - & + buttons */}
+              <Text className="mb-1.5 text-[11px] font-bold uppercase tracking-[0.4px] text-[#64748b]">
+                Enter Exact Quantity *
+              </Text>
+              <View className="mb-4 flex-row items-center gap-2">
+                <TouchableOpacity
+                  className="h-12 w-12 items-center justify-center rounded-xl border border-[#cbd5e1] bg-[#f8fafc]"
+                  onPress={() => {
+                    const current = parseFloat(customQtyValue) || 1;
+                    const next = Math.max(1, current - 1);
+                    setCustomQtyValue(String(next));
+                  }}
+                >
+                  <Minus size={20} color={colors.text} />
+                </TouchableOpacity>
+
+                <TextInput
+                  className="h-12 flex-1 rounded-xl border border-[#059669] bg-[#f8fafc] px-3 text-center text-xl font-black text-[#0f172a]"
+                  placeholder="1"
+                  placeholderTextColor={colors.textLight}
+                  keyboardType="numeric"
+                  value={customQtyValue}
+                  onChangeText={setCustomQtyValue}
+                  selectTextOnFocus
+                />
+
+                <TouchableOpacity
+                  className="h-12 w-12 items-center justify-center rounded-xl border border-[#cbd5e1] bg-[#f8fafc]"
+                  onPress={() => {
+                    const current = parseFloat(customQtyValue) || 0;
+                    const maxS = safeNum(qtyTargetProduct?.currentQuantity, 9999);
+                    const next = Math.min(maxS, current + 1);
+                    setCustomQtyValue(String(next));
+                  }}
+                >
+                  <Plus size={20} color={colors.text} />
+                </TouchableOpacity>
+              </View>
+
+              {/* Computed Subtotal */}
+              <View className="mb-2 flex-row items-center justify-between rounded-xl bg-[#ecfdf5] p-3.5 border border-[#a7f3d0]">
+                <Text className="text-xs font-black text-[#059669]">Calculated Subtotal</Text>
+                <Text className="text-lg font-black text-[#059669]">
+                  ₹
+                  {(
+                    safeNum(qtyTargetProduct?.sellingPrice) * (parseFloat(customQtyValue) || 0)
+                  ).toFixed(2)}
+                </Text>
+              </View>
+            </ScrollView>
 
             {/* Action Buttons */}
             <View className="flex-row gap-2.5 border-t border-[#e2e8f0] pt-3">
@@ -1071,7 +1092,7 @@ export const PosScreen: React.FC = () => {
               </TouchableOpacity>
             </View>
           </View>
-        </View>
+        </KeyboardAvoidingView>
       </Modal>
 
       {/* Barcode Scanner Modal */}
@@ -1084,104 +1105,125 @@ export const PosScreen: React.FC = () => {
       )}
 
       {/* Checkout Confirmation Modal */}
-      <Modal visible={checkoutModalOpen} animationType="slide" transparent>
-        <View className="flex-1 justify-end bg-black/60">
+      <Modal
+        visible={checkoutModalOpen}
+        animationType="slide"
+        transparent
+        onRequestClose={() => setCheckoutModalOpen(false)}
+      >
+        <KeyboardAvoidingView
+          behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
+          className="flex-1 justify-end bg-black/60"
+        >
           <View className="max-h-[90%] rounded-t-3xl bg-white p-5">
-            <Text className="text-2xl font-extrabold text-[#0f172a]">Confirm & Complete Sale</Text>
-            <Text className="mb-4 mt-0.5 text-sm font-bold text-[#059669]">
-              Total Payable: ₹{safeNum(totalAmount).toFixed(2)} ({totalItems} items)
-            </Text>
-
-            {/* Payment Method Selector */}
-            <Text className="mb-1.5 text-[11px] font-bold uppercase text-[#64748b]">
-              Payment Method
-            </Text>
-            <View className="mb-4 flex-row gap-2.5">
-              <TouchableOpacity
-                className={`flex-1 flex-row items-center justify-center gap-1.5 rounded-xl border px-1 py-3 ${
-                  paymentMethod === 'CASH'
-                    ? 'border-[#059669] bg-[#d1fae5]'
-                    : 'border-[#e2e8f0] bg-[#f8fafc]'
-                }`}
-                onPress={() => setPaymentMethod('CASH')}
-              >
-                <Banknote
-                  size={20}
-                  color={paymentMethod === 'CASH' ? colors.primary : colors.textMuted}
-                />
-                <Text
-                  className={`text-xs font-bold ${
-                    paymentMethod === 'CASH' ? 'text-[#059669]' : 'text-[#64748b]'
-                  }`}
-                >
-                  Cash
+            <View className="mb-3 flex-row items-center justify-between">
+              <View className="flex-1 pr-2">
+                <Text className="text-xl font-extrabold text-[#0f172a]">Confirm & Complete Sale</Text>
+                <Text className="mt-0.5 text-xs font-bold text-[#059669]">
+                  Total Payable: ₹{safeNum(totalAmount).toFixed(2)} ({totalItems} items)
                 </Text>
-              </TouchableOpacity>
-
-              <TouchableOpacity
-                className={`flex-1 flex-row items-center justify-center gap-1.5 rounded-xl border px-1 py-3 ${
-                  paymentMethod === 'UPI'
-                    ? 'border-[#059669] bg-[#d1fae5]'
-                    : 'border-[#e2e8f0] bg-[#f8fafc]'
-                }`}
-                onPress={() => setPaymentMethod('UPI')}
-              >
-                <QrCode
-                  size={20}
-                  color={paymentMethod === 'UPI' ? colors.primary : colors.textMuted}
-                />
-                <Text
-                  className={`text-xs font-bold ${
-                    paymentMethod === 'UPI' ? 'text-[#059669]' : 'text-[#64748b]'
-                  }`}
-                >
-                  UPI / QR
-                </Text>
-              </TouchableOpacity>
-
-              <TouchableOpacity
-                className={`flex-1 flex-row items-center justify-center gap-1.5 rounded-xl border px-1 py-3 ${
-                  paymentMethod === 'CARD'
-                    ? 'border-[#059669] bg-[#d1fae5]'
-                    : 'border-[#e2e8f0] bg-[#f8fafc]'
-                }`}
-                onPress={() => setPaymentMethod('CARD')}
-              >
-                <CreditCard
-                  size={20}
-                  color={paymentMethod === 'CARD' ? colors.primary : colors.textMuted}
-                />
-                <Text
-                  className={`text-xs font-bold ${
-                    paymentMethod === 'CARD' ? 'text-[#059669]' : 'text-[#64748b]'
-                  }`}
-                >
-                  Card
-                </Text>
+              </View>
+              <TouchableOpacity onPress={() => setCheckoutModalOpen(false)} hitSlop={10}>
+                <X size={20} color={colors.text} />
               </TouchableOpacity>
             </View>
 
-            {/* Optional Customer Phone for WhatsApp Receipt */}
-            <Text className="mb-1.5 text-[11px] font-bold uppercase text-[#64748b]">
-              Customer WhatsApp Phone (Optional)
-            </Text>
-            <TextInput
-              className="mb-[18px] h-[46px] rounded-xl border border-[#e2e8f0] bg-[#f8fafc] px-3 text-sm text-[#0f172a]"
-              placeholder="e.g. 9876543210"
-              placeholderTextColor={colors.textLight}
-              keyboardType="phone-pad"
-              value={customerPhone}
-              onChangeText={setCustomerPhone}
-            />
+            <ScrollView
+              showsVerticalScrollIndicator={false}
+              contentContainerClassName="pb-2"
+              keyboardShouldPersistTaps="handled"
+            >
+              {/* Payment Method Selector */}
+              <Text className="mb-1.5 text-[11px] font-bold uppercase tracking-[0.4px] text-[#64748b]">
+                Payment Method
+              </Text>
+              <View className="mb-4 flex-row gap-2">
+                <TouchableOpacity
+                  className={`flex-1 flex-row items-center justify-center gap-1.5 rounded-xl border px-1 py-3 ${
+                    paymentMethod === 'CASH'
+                      ? 'border-[#059669] bg-[#d1fae5]'
+                      : 'border-[#e2e8f0] bg-[#f8fafc]'
+                  }`}
+                  onPress={() => setPaymentMethod('CASH')}
+                >
+                  <Banknote
+                    size={18}
+                    color={paymentMethod === 'CASH' ? colors.primary : colors.textMuted}
+                  />
+                  <Text
+                    className={`text-xs font-bold ${
+                      paymentMethod === 'CASH' ? 'text-[#059669]' : 'text-[#64748b]'
+                    }`}
+                  >
+                    Cash
+                  </Text>
+                </TouchableOpacity>
+
+                <TouchableOpacity
+                  className={`flex-1 flex-row items-center justify-center gap-1.5 rounded-xl border px-1 py-3 ${
+                    paymentMethod === 'UPI'
+                      ? 'border-[#059669] bg-[#d1fae5]'
+                      : 'border-[#e2e8f0] bg-[#f8fafc]'
+                  }`}
+                  onPress={() => setPaymentMethod('UPI')}
+                >
+                  <QrCode
+                    size={18}
+                    color={paymentMethod === 'UPI' ? colors.primary : colors.textMuted}
+                  />
+                  <Text
+                    className={`text-xs font-bold ${
+                      paymentMethod === 'UPI' ? 'text-[#059669]' : 'text-[#64748b]'
+                    }`}
+                  >
+                    UPI / QR
+                  </Text>
+                </TouchableOpacity>
+
+                <TouchableOpacity
+                  className={`flex-1 flex-row items-center justify-center gap-1.5 rounded-xl border px-1 py-3 ${
+                    paymentMethod === 'CARD'
+                      ? 'border-[#059669] bg-[#d1fae5]'
+                      : 'border-[#e2e8f0] bg-[#f8fafc]'
+                  }`}
+                  onPress={() => setPaymentMethod('CARD')}
+                >
+                  <CreditCard
+                    size={18}
+                    color={paymentMethod === 'CARD' ? colors.primary : colors.textMuted}
+                  />
+                  <Text
+                    className={`text-xs font-bold ${
+                      paymentMethod === 'CARD' ? 'text-[#059669]' : 'text-[#64748b]'
+                    }`}
+                  >
+                    Card
+                  </Text>
+                </TouchableOpacity>
+              </View>
+
+              {/* Optional Customer Phone for WhatsApp Receipt */}
+              <Text className="mb-1.5 text-[11px] font-bold uppercase tracking-[0.4px] text-[#64748b]">
+                Customer WhatsApp Phone (Optional)
+              </Text>
+              <TextInput
+                className="mb-3 h-12 rounded-xl border border-[#e2e8f0] bg-[#f8fafc] px-3.5 text-sm font-medium text-[#0f172a]"
+                placeholder="e.g. 9876543210"
+                placeholderTextColor={colors.textLight}
+                keyboardType="phone-pad"
+                value={customerPhone}
+                onChangeText={setCustomerPhone}
+              />
+            </ScrollView>
 
             {/* Action Buttons */}
             <View className="flex-row gap-2.5 border-t border-[#e2e8f0] pt-3">
               <TouchableOpacity
-                className="flex-1 flex-row items-center justify-center rounded-lg border border-[#e2e8f0] bg-[#f8fafc] py-3"
+                className="flex-1 flex-row items-center justify-center rounded-xl border border-[#e2e8f0] bg-[#f8fafc] py-3"
                 onPress={() => setCheckoutModalOpen(false)}
                 disabled={submitting}
               >
-                <Text className="text-base font-bold text-[#0f172a]">Back</Text>
+                <Text className="text-sm font-bold text-[#0f172a]">Back</Text>
               </TouchableOpacity>
 
               <TouchableOpacity
@@ -1195,19 +1237,20 @@ export const PosScreen: React.FC = () => {
                 ) : (
                   <>
                     <CircleCheck size={18} color="#fff" />
-                    <Text className="text-sm font-extrabold text-white">Complete Sale</Text>
+                    <Text className="text-sm font-black text-white">Complete Sale</Text>
                   </>
                 )}
               </TouchableOpacity>
             </View>
           </View>
-        </View>
+        </KeyboardAvoidingView>
       </Modal>
 
       {/* Completed Sale Receipt Modal */}
       <ReceiptModal
         visible={!!completedSale || !!selectedHistorySale}
         sale={completedSale || selectedHistorySale}
+        shopName={shopProfile?.shopName}
         customerPhone={customerPhone}
         paymentMethod={paymentMethod}
         onClose={() => {

@@ -13,18 +13,23 @@ import {
   Mail,
   ShieldCheck,
   ChevronRight,
+  Store,
+  Phone,
+  MapPin,
 } from 'lucide-react-native';
 import { Header } from '../components/Header';
 import { ChangePasswordModal } from '../components/ChangePasswordModal';
 import { ChangeEmailModal } from '../components/ChangeEmailModal';
+import { EditShopProfileModal } from '../components/EditShopProfileModal';
 import { useAuth } from '../context/AuthContext';
 import { colors } from '../theme/colors';
 
 export const SettingsScreen: React.FC = () => {
-  const { user, logout, refreshUser } = useAuth();
+  const { user, shopProfile, logout, refreshUser } = useAuth();
 
   const [passwordModalOpen, setPasswordModalOpen] = useState(false);
   const [emailModalOpen, setEmailModalOpen] = useState(false);
+  const [shopProfileModalOpen, setShopProfileModalOpen] = useState(false);
 
   const handleLogoutPress = () => {
     Alert.alert('Sign Out', 'Are you sure you want to sign out of ShopManager?', [
@@ -50,6 +55,54 @@ export const SettingsScreen: React.FC = () => {
               <ShieldCheck size={12} color={colors.primary} />
               <Text className="text-[10px] font-extrabold text-[#059669]">{user?.role || 'USER'}</Text>
             </View>
+          </View>
+        </View>
+
+        {/* Shop Branding & Invoicing Profile */}
+        <View className="mb-5">
+          <Text className="mb-2 px-1 text-xs font-extrabold uppercase tracking-[0.5px] text-[#64748b]">
+            Shop Branding & PDF Invoices
+          </Text>
+          <View className="overflow-hidden rounded-2xl border border-[#e2e8f0] bg-white shadow-sm">
+            <TouchableOpacity
+              className="p-4"
+              onPress={() => setShopProfileModalOpen(true)}
+              activeOpacity={0.7}
+            >
+              <View className="flex-row items-center justify-between">
+                <View className="flex-1 flex-row items-center gap-3">
+                  <View className="h-10 w-10 items-center justify-center rounded-xl bg-[#d1fae5]">
+                    <Store size={20} color={colors.primary} />
+                  </View>
+                  <View className="flex-1">
+                    <Text className="text-sm font-black text-[#0f172a]">
+                      {shopProfile?.shopName || 'Set Shop Name'}
+                    </Text>
+                    <Text className="mt-0.5 text-[11px] text-[#64748b]">
+                      Printed on all bills, receipts, and WhatsApp shares
+                    </Text>
+                  </View>
+                </View>
+                <ChevronRight size={18} color={colors.textLight} />
+              </View>
+
+              {(shopProfile?.phone || shopProfile?.address) && (
+                <View className="mt-3 border-t border-[#f1f5f9] pt-2.5 gap-1">
+                  {shopProfile?.phone ? (
+                    <View className="flex-row items-center gap-1.5">
+                      <Phone size={12} color={colors.textMuted} />
+                      <Text className="text-[11px] text-[#64748b]">{shopProfile.phone}</Text>
+                    </View>
+                  ) : null}
+                  {shopProfile?.address ? (
+                    <View className="flex-row items-center gap-1.5">
+                      <MapPin size={12} color={colors.textMuted} />
+                      <Text className="text-[11px] text-[#64748b]" numberOfLines={1}>{shopProfile.address}</Text>
+                    </View>
+                  ) : null}
+                </View>
+              )}
+            </TouchableOpacity>
           </View>
         </View>
 
@@ -99,6 +152,10 @@ export const SettingsScreen: React.FC = () => {
       </ScrollView>
 
       {/* Sub-modals */}
+      <EditShopProfileModal
+        visible={shopProfileModalOpen}
+        onClose={() => setShopProfileModalOpen(false)}
+      />
       <ChangePasswordModal
         visible={passwordModalOpen}
         onClose={() => setPasswordModalOpen(false)}

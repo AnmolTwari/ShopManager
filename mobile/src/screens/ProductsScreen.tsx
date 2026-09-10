@@ -3,7 +3,9 @@ import {
   ActivityIndicator,
   Alert,
   FlatList,
+  KeyboardAvoidingView,
   Modal,
+  Platform,
   RefreshControl,
   ScrollView,
   Text,
@@ -17,6 +19,7 @@ import { Header } from '../components/Header';
 import { ReceiptModal } from '../components/ReceiptModal';
 import { StockBadge } from '../components/StockBadge';
 import { useCart } from '../context/CartContext';
+import { useAuth } from '../context/AuthContext';
 import { productsApi, salesApi } from '../services/shopApi';
 import { colors } from '../theme/colors';
 import { Category, Product, ProductRequest, ProductUnit, SaleResponse } from '../types';
@@ -65,6 +68,7 @@ interface ProductsScreenProps {
 
 export const ProductsScreen: React.FC<ProductsScreenProps> = ({ onNavigateTab }) => {
   const { items, addItem, totalAmount, totalItems } = useCart();
+  const { shopProfile } = useAuth();
 
   const [products, setProducts] = useState<Product[]>([]);
   const [categories, setCategories] = useState<Category[]>([]);
@@ -626,129 +630,149 @@ export const ProductsScreen: React.FC<ProductsScreenProps> = ({ onNavigateTab })
       )}
 
       {/* Quick Direct Sell Modal */}
-      <Modal visible={quickSellModalOpen} animationType="slide" transparent>
-        <View className="flex-1 justify-end bg-black/60">
+      <Modal
+        visible={quickSellModalOpen}
+        animationType="slide"
+        transparent
+        onRequestClose={() => setQuickSellModalOpen(false)}
+      >
+        <KeyboardAvoidingView
+          behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
+          className="flex-1 justify-end bg-black/60"
+        >
           <View className="max-h-[90%] rounded-t-3xl bg-white p-5">
             <View className="mb-3 flex-row items-center justify-between">
-              <View className="flex-1">
-                <Text className="text-xl font-black text-[#0f172a]">Quick Sell Product</Text>
-                <Text className="mt-0.5 text-xs text-[#64748b]">{quickSellProduct?.name}</Text>
+              <View className="flex-1 pr-2">
+                <Text className="text-xl font-black text-[#0f172a]" numberOfLines={1}>
+                  Quick Sell Product
+                </Text>
+                <Text className="mt-0.5 text-xs text-[#64748b]" numberOfLines={1}>
+                  {quickSellProduct?.name}
+                </Text>
               </View>
-              <TouchableOpacity onPress={() => setQuickSellModalOpen(false)}>
+              <TouchableOpacity onPress={() => setQuickSellModalOpen(false)} hitSlop={10}>
                 <X size={20} color={colors.text} />
               </TouchableOpacity>
             </View>
 
-            {quickSellProduct && (
-              <View className="mb-4 rounded-xl border border-[#e2e8f0] bg-[#f8fafc] p-3">
-                <View className="flex-row items-center justify-between">
-                  <Text className="text-xs font-bold text-[#64748b]">Unit Price</Text>
-                  <Text className="text-base font-black text-[#059669]">
-                    ₹{safeNumber(quickSellProduct.sellingPrice).toFixed(2)}
-                  </Text>
+            <ScrollView
+              showsVerticalScrollIndicator={false}
+              contentContainerClassName="pb-2"
+              keyboardShouldPersistTaps="handled"
+            >
+              {quickSellProduct && (
+                <View className="mb-3.5 rounded-xl border border-[#e2e8f0] bg-[#f8fafc] p-3">
+                  <View className="flex-row items-center justify-between">
+                    <Text className="text-xs font-bold text-[#64748b]">Unit Price</Text>
+                    <Text className="text-base font-black text-[#059669]">
+                      ₹{safeNumber(quickSellProduct.sellingPrice).toFixed(2)}
+                    </Text>
+                  </View>
+                  <View className="mt-1 flex-row items-center justify-between">
+                    <Text className="text-xs font-bold text-[#64748b]">Available Stock</Text>
+                    <Text className="text-xs font-extrabold text-[#0f172a]">
+                      {safeNumber(quickSellProduct.currentQuantity)} {quickSellProduct.unit || 'units'}
+                    </Text>
+                  </View>
                 </View>
-                <View className="mt-1 flex-row items-center justify-between">
-                  <Text className="text-xs font-bold text-[#64748b]">Available Stock</Text>
-                  <Text className="text-xs font-extrabold text-[#0f172a]">
-                    {safeNumber(quickSellProduct.currentQuantity)} {quickSellProduct.unit || 'units'}
-                  </Text>
-                </View>
-              </View>
-            )}
+              )}
 
-            <Text className="mb-1.5 text-[11px] font-bold uppercase text-[#64748b]">
-              Quantity to Sell *
-            </Text>
-            <TextInput
-              className="mb-4 h-11 rounded-md border border-[#e2e8f0] bg-[#f8fafc] px-3 text-base font-bold text-[#0f172a]"
-              placeholder="1"
-              keyboardType="numeric"
-              value={quickSellQty}
-              onChangeText={setQuickSellQty}
-            />
-
-            <Text className="mb-1.5 text-[11px] font-bold uppercase text-[#64748b]">
-              Payment Method
-            </Text>
-            <View className="mb-4 flex-row gap-2.5">
-              <TouchableOpacity
-                className={`flex-1 flex-row items-center justify-center gap-1.5 rounded-xl border px-1 py-3 ${
-                  quickSellPaymentMethod === 'CASH'
-                    ? 'border-[#059669] bg-[#d1fae5]'
-                    : 'border-[#e2e8f0] bg-[#f8fafc]'
-                }`}
-                onPress={() => setQuickSellPaymentMethod('CASH')}
-              >
-                <Banknote
-                  size={18}
-                  color={quickSellPaymentMethod === 'CASH' ? colors.primary : colors.textMuted}
-                />
-                <Text
-                  className={`text-xs font-bold ${
-                    quickSellPaymentMethod === 'CASH' ? 'text-[#059669]' : 'text-[#64748b]'
-                  }`}
-                >
-                  Cash
-                </Text>
-              </TouchableOpacity>
-
-              <TouchableOpacity
-                className={`flex-1 flex-row items-center justify-center gap-1.5 rounded-xl border px-1 py-3 ${
-                  quickSellPaymentMethod === 'UPI'
-                    ? 'border-[#059669] bg-[#d1fae5]'
-                    : 'border-[#e2e8f0] bg-[#f8fafc]'
-                }`}
-                onPress={() => setQuickSellPaymentMethod('UPI')}
-              >
-                <QrCode
-                  size={18}
-                  color={quickSellPaymentMethod === 'UPI' ? colors.primary : colors.textMuted}
-                />
-                <Text
-                  className={`text-xs font-bold ${
-                    quickSellPaymentMethod === 'UPI' ? 'text-[#059669]' : 'text-[#64748b]'
-                  }`}
-                >
-                  UPI
-                </Text>
-              </TouchableOpacity>
-
-              <TouchableOpacity
-                className={`flex-1 flex-row items-center justify-center gap-1.5 rounded-xl border px-1 py-3 ${
-                  quickSellPaymentMethod === 'CARD'
-                    ? 'border-[#059669] bg-[#d1fae5]'
-                    : 'border-[#e2e8f0] bg-[#f8fafc]'
-                }`}
-                onPress={() => setQuickSellPaymentMethod('CARD')}
-              >
-                <CreditCard
-                  size={18}
-                  color={quickSellPaymentMethod === 'CARD' ? colors.primary : colors.textMuted}
-                />
-                <Text
-                  className={`text-xs font-bold ${
-                    quickSellPaymentMethod === 'CARD' ? 'text-[#059669]' : 'text-[#64748b]'
-                  }`}
-                >
-                  Card
-                </Text>
-              </TouchableOpacity>
-            </View>
-
-            <View className="mb-4 flex-row items-center justify-between rounded-xl bg-[#ecfdf5] p-3">
-              <Text className="text-xs font-extrabold text-[#059669]">Total Amount</Text>
-              <Text className="text-lg font-black text-[#059669]">
-                ₹{(safeNumber(quickSellProduct?.sellingPrice) * (parseFloat(quickSellQty) || 0)).toFixed(2)}
+              <Text className="mb-1.5 text-[11px] font-bold uppercase tracking-[0.4px] text-[#64748b]">
+                Quantity to Sell *
               </Text>
-            </View>
+              <TextInput
+                className="mb-3.5 h-12 rounded-xl border border-[#059669] bg-[#f8fafc] px-3.5 text-center text-xl font-black text-[#0f172a]"
+                placeholder="1"
+                placeholderTextColor={colors.textLight}
+                keyboardType="numeric"
+                value={quickSellQty}
+                onChangeText={setQuickSellQty}
+                selectTextOnFocus
+              />
+
+              <Text className="mb-1.5 text-[11px] font-bold uppercase tracking-[0.4px] text-[#64748b]">
+                Payment Method
+              </Text>
+              <View className="mb-3.5 flex-row gap-2">
+                <TouchableOpacity
+                  className={`flex-1 flex-row items-center justify-center gap-1.5 rounded-xl border px-1 py-3 ${
+                    quickSellPaymentMethod === 'CASH'
+                      ? 'border-[#059669] bg-[#d1fae5]'
+                      : 'border-[#e2e8f0] bg-[#f8fafc]'
+                  }`}
+                  onPress={() => setQuickSellPaymentMethod('CASH')}
+                >
+                  <Banknote
+                    size={18}
+                    color={quickSellPaymentMethod === 'CASH' ? colors.primary : colors.textMuted}
+                  />
+                  <Text
+                    className={`text-xs font-bold ${
+                      quickSellPaymentMethod === 'CASH' ? 'text-[#059669]' : 'text-[#64748b]'
+                    }`}
+                  >
+                    Cash
+                  </Text>
+                </TouchableOpacity>
+
+                <TouchableOpacity
+                  className={`flex-1 flex-row items-center justify-center gap-1.5 rounded-xl border px-1 py-3 ${
+                    quickSellPaymentMethod === 'UPI'
+                      ? 'border-[#059669] bg-[#d1fae5]'
+                      : 'border-[#e2e8f0] bg-[#f8fafc]'
+                  }`}
+                  onPress={() => setQuickSellPaymentMethod('UPI')}
+                >
+                  <QrCode
+                    size={18}
+                    color={quickSellPaymentMethod === 'UPI' ? colors.primary : colors.textMuted}
+                  />
+                  <Text
+                    className={`text-xs font-bold ${
+                      quickSellPaymentMethod === 'UPI' ? 'text-[#059669]' : 'text-[#64748b]'
+                    }`}
+                  >
+                    UPI
+                  </Text>
+                </TouchableOpacity>
+
+                <TouchableOpacity
+                  className={`flex-1 flex-row items-center justify-center gap-1.5 rounded-xl border px-1 py-3 ${
+                    quickSellPaymentMethod === 'CARD'
+                      ? 'border-[#059669] bg-[#d1fae5]'
+                      : 'border-[#e2e8f0] bg-[#f8fafc]'
+                  }`}
+                  onPress={() => setQuickSellPaymentMethod('CARD')}
+                >
+                  <CreditCard
+                    size={18}
+                    color={quickSellPaymentMethod === 'CARD' ? colors.primary : colors.textMuted}
+                  />
+                  <Text
+                    className={`text-xs font-bold ${
+                      quickSellPaymentMethod === 'CARD' ? 'text-[#059669]' : 'text-[#64748b]'
+                    }`}
+                  >
+                    Card
+                  </Text>
+                </TouchableOpacity>
+              </View>
+
+              <View className="mb-2 flex-row items-center justify-between rounded-xl bg-[#ecfdf5] p-3.5 border border-[#a7f3d0]">
+                <Text className="text-xs font-extrabold text-[#059669]">Total Amount</Text>
+                <Text className="text-lg font-black text-[#059669]">
+                  ₹{(safeNumber(quickSellProduct?.sellingPrice) * (parseFloat(quickSellQty) || 0)).toFixed(2)}
+                </Text>
+              </View>
+            </ScrollView>
 
             <View className="flex-row gap-2.5 border-t border-[#e2e8f0] pt-3">
               <TouchableOpacity
-                className="flex-1 flex-row items-center justify-center rounded-lg border border-[#e2e8f0] bg-[#f8fafc] py-3"
+                className="flex-1 flex-row items-center justify-center rounded-xl border border-[#e2e8f0] bg-[#f8fafc] py-3"
                 onPress={() => setQuickSellModalOpen(false)}
                 disabled={quickSelling}
               >
-                <Text className="text-base font-bold text-[#0f172a]">Cancel</Text>
+                <Text className="text-sm font-bold text-[#0f172a]">Cancel</Text>
               </TouchableOpacity>
               <TouchableOpacity
                 className="flex-[2] flex-row items-center justify-center gap-1.5 rounded-xl bg-[#059669] py-3"
@@ -766,7 +790,7 @@ export const ProductsScreen: React.FC<ProductsScreenProps> = ({ onNavigateTab })
               </TouchableOpacity>
             </View>
           </View>
-        </View>
+        </KeyboardAvoidingView>
       </Modal>
 
       {/* Add / Edit Modal */}
@@ -776,7 +800,10 @@ export const ProductsScreen: React.FC<ProductsScreenProps> = ({ onNavigateTab })
         transparent
         onRequestClose={() => setFormModalOpen(false)}
       >
-        <View className="flex-1 justify-end bg-black/60">
+        <KeyboardAvoidingView
+          behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
+          className="flex-1 justify-end bg-black/60"
+        >
           <View className="max-h-[90%] rounded-t-3xl bg-white p-5">
             <View className="mb-4 flex-row items-center justify-between">
               <Text className="text-2xl font-extrabold text-[#0f172a]">
@@ -787,7 +814,7 @@ export const ProductsScreen: React.FC<ProductsScreenProps> = ({ onNavigateTab })
               </TouchableOpacity>
             </View>
 
-            <ScrollView contentContainerClassName="pb-4" keyboardShouldPersistTaps="handled">
+            <ScrollView contentContainerClassName="pb-4" showsVerticalScrollIndicator={false} keyboardShouldPersistTaps="handled">
               <Text className="mb-1.5 text-[11px] font-bold uppercase text-[#64748b]">
                 Product Name *
               </Text>
@@ -996,7 +1023,7 @@ export const ProductsScreen: React.FC<ProductsScreenProps> = ({ onNavigateTab })
               </TouchableOpacity>
             </View>
           </View>
-        </View>
+        </KeyboardAvoidingView>
       </Modal>
 
       {/* Add Category Modal */}
@@ -1055,6 +1082,7 @@ export const ProductsScreen: React.FC<ProductsScreenProps> = ({ onNavigateTab })
       <ReceiptModal
         visible={!!completedSale}
         sale={completedSale}
+        shopName={shopProfile?.shopName}
         paymentMethod={quickSellPaymentMethod}
         customerPhone={quickSellPhone}
         onClose={() => setCompletedSale(null)}

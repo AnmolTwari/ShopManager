@@ -1,9 +1,18 @@
 export type UserRole = 'USER' | 'ADMIN';
 
+export interface ShopProfile {
+  shopName: string;
+  phone?: string;
+  address?: string;
+  tagline?: string;
+  gstNumber?: string;
+}
+
 export interface User {
   username: string;
   email: string;
   name?: string;
+  shopName?: string;
   role: UserRole;
   token?: string;
 }
