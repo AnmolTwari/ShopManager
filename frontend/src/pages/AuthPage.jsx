@@ -1,6 +1,7 @@
 import { useState } from 'react'
 import { Link, Navigate, useLocation, useNavigate } from 'react-router-dom'
 import { auth } from '../services/api'
+import { IconSmartphone } from '../components/Icons'
 
 export default function AuthPage({ mode }) {
   const navigate = useNavigate()
@@ -278,9 +279,22 @@ export default function AuthPage({ mode }) {
           )}
         </p>
       </div>
-      <p className="text-center text-[13px] text-muted">
-        Your shop data is private to your account.
-      </p>
+
+      <div className="flex flex-col items-center gap-2">
+        <a
+          href="https://expo.dev/artifacts/eas/kQXQvMsbwevRM50FWc-nwYhvOh4KaAltiiku498sViY.apk"
+          download="ShopManager.apk"
+          target="_blank"
+          rel="noreferrer"
+          className="inline-flex min-h-10 items-center justify-center gap-2 rounded-lg border border-emerald-200 bg-emerald-50 px-4 py-2 text-[13px] font-bold text-emerald-800 shadow-sm transition-all hover:bg-emerald-100 hover:shadow"
+        >
+          <IconSmartphone size={16} />
+          Direct Download Android App (.apk)
+        </a>
+        <p className="text-center text-[13px] text-muted">
+          Your shop data is private to your account.
+        </p>
+      </div>
     </div>
   )
 }
