@@ -11,6 +11,7 @@ import {
   TouchableOpacity,
   View,
 } from 'react-native';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { X } from 'lucide-react-native';
 import { settingsApi } from '../services/shopApi';
 import { colors } from '../theme/colors';
@@ -26,6 +27,11 @@ export const ChangeEmailModal: React.FC<ChangeEmailModalProps> = ({
   onClose,
   onSuccess,
 }) => {
+  const insets = useSafeAreaInsets();
+  const modalBottomPadding = Math.max(
+    insets.bottom > 0 ? insets.bottom + 14 : 0,
+    Platform.OS === 'android' ? 32 : 20
+  );
   const [newEmail, setNewEmail] = useState('');
   const [password, setPassword] = useState('');
   const [submitting, setSubmitting] = useState(false);
@@ -57,7 +63,7 @@ export const ChangeEmailModal: React.FC<ChangeEmailModalProps> = ({
         behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
         className="flex-1 justify-end bg-black/60"
       >
-        <View className="max-h-[90%] rounded-t-3xl bg-white p-5">
+        <View className="max-h-[90%] rounded-t-3xl bg-white px-5 pt-5" style={{ paddingBottom: modalBottomPadding }}>
           <View className="mb-4 flex-row items-center justify-between">
             <Text className="text-2xl font-extrabold text-[#0f172a]">Change Email Address</Text>
             <TouchableOpacity onPress={onClose} disabled={submitting} hitSlop={10}>

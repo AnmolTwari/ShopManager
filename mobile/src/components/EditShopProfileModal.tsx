@@ -10,6 +10,7 @@ import {
   TouchableOpacity,
   View,
 } from 'react-native';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Store, X, CircleCheck } from 'lucide-react-native';
 import { useAuth } from '../context/AuthContext';
 import { colors } from '../theme/colors';
@@ -20,6 +21,11 @@ interface EditShopProfileModalProps {
 }
 
 export const EditShopProfileModal: React.FC<EditShopProfileModalProps> = ({ visible, onClose }) => {
+  const insets = useSafeAreaInsets();
+  const modalBottomPadding = Math.max(
+    insets.bottom > 0 ? insets.bottom + 14 : 0,
+    Platform.OS === 'android' ? 32 : 20
+  );
   const { shopProfile, updateShopProfile } = useAuth();
 
   const [shopName, setShopName] = useState(shopProfile?.shopName || '');
@@ -68,7 +74,7 @@ export const EditShopProfileModal: React.FC<EditShopProfileModalProps> = ({ visi
         behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
         className="flex-1 justify-end bg-black/60"
       >
-        <View className="max-h-[90%] rounded-t-3xl bg-white p-5">
+        <View className="max-h-[90%] rounded-t-3xl bg-white px-5 pt-5" style={{ paddingBottom: modalBottomPadding }}>
           <View className="mb-4 flex-row items-center justify-between">
             <View className="flex-1 flex-row items-center gap-2">
               <View className="h-9 w-9 items-center justify-center rounded-xl bg-[#d1fae5]">

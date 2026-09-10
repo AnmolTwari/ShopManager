@@ -8,7 +8,9 @@ import {
   Text,
   TouchableOpacity,
   View,
+  Platform,
 } from 'react-native';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import * as Print from 'expo-print';
 import * as Sharing from 'expo-sharing';
 import * as Haptics from 'expo-haptics';
@@ -35,6 +37,7 @@ export const ReceiptModal: React.FC<ReceiptModalProps> = ({
   paymentMethod = 'CASH',
   onClose,
 }) => {
+  const insets = useSafeAreaInsets();
   const { shopProfile } = useAuth();
   const [isGeneratingPdf, setIsGeneratingPdf] = useState(false);
 
@@ -308,7 +311,15 @@ export const ReceiptModal: React.FC<ReceiptModalProps> = ({
 
   return (
     <Modal visible={visible} animationType="fade" transparent onRequestClose={onClose}>
-      <View className="flex-1 items-center justify-center bg-black/70 p-4">
+      <View
+        className="flex-1 items-center justify-center bg-black/70 p-4"
+        style={{
+          paddingBottom: Math.max(
+            insets.bottom > 0 ? insets.bottom + 12 : 0,
+            Platform.OS === 'android' ? 24 : 16
+          ),
+        }}
+      >
         <View className="max-h-[90%] w-full max-w-md overflow-hidden rounded-3xl bg-white shadow-2xl">
           {/* Top Success Banner */}
           <View className="items-center border-b border-[#bbf7d0] bg-[#d1fae5] px-4 pb-3 pt-5">

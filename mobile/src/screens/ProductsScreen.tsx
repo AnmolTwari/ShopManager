@@ -13,6 +13,7 @@ import {
   TouchableOpacity,
   View,
 } from 'react-native';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { BarcodeScannerModal } from '../components/BarcodeScannerModal';
 import { BottomTabBar, TabScreen } from '../components/BottomTabBar';
 import { Header } from '../components/Header';
@@ -67,6 +68,11 @@ interface ProductsScreenProps {
 }
 
 export const ProductsScreen: React.FC<ProductsScreenProps> = ({ onNavigateTab }) => {
+  const insets = useSafeAreaInsets();
+  const modalBottomPadding = Math.max(
+    insets.bottom > 0 ? insets.bottom + 14 : 0,
+    Platform.OS === 'android' ? 32 : 20
+  );
   const { items, addItem, totalAmount, totalItems } = useCart();
   const { shopProfile } = useAuth();
 
@@ -640,7 +646,7 @@ export const ProductsScreen: React.FC<ProductsScreenProps> = ({ onNavigateTab })
           behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
           className="flex-1 justify-end bg-black/60"
         >
-          <View className="max-h-[90%] rounded-t-3xl bg-white p-5">
+          <View className="max-h-[90%] rounded-t-3xl bg-white px-5 pt-5" style={{ paddingBottom: modalBottomPadding }}>
             <View className="mb-3 flex-row items-center justify-between">
               <View className="flex-1 pr-2">
                 <Text className="text-xl font-black text-[#0f172a]" numberOfLines={1}>
@@ -804,7 +810,7 @@ export const ProductsScreen: React.FC<ProductsScreenProps> = ({ onNavigateTab })
           behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
           className="flex-1 justify-end bg-black/60"
         >
-          <View className="max-h-[90%] rounded-t-3xl bg-white p-5">
+          <View className="max-h-[90%] rounded-t-3xl bg-white px-5 pt-5" style={{ paddingBottom: modalBottomPadding }}>
             <View className="mb-4 flex-row items-center justify-between">
               <Text className="text-2xl font-extrabold text-[#0f172a]">
                 {editingProduct ? 'Edit Product' : 'Add New Product'}

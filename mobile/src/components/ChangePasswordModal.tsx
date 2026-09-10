@@ -11,6 +11,7 @@ import {
   TouchableOpacity,
   View,
 } from 'react-native';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { X } from 'lucide-react-native';
 import { settingsApi } from '../services/shopApi';
 import { colors } from '../theme/colors';
@@ -21,6 +22,11 @@ interface ChangePasswordModalProps {
 }
 
 export const ChangePasswordModal: React.FC<ChangePasswordModalProps> = ({ visible, onClose }) => {
+  const insets = useSafeAreaInsets();
+  const modalBottomPadding = Math.max(
+    insets.bottom > 0 ? insets.bottom + 14 : 0,
+    Platform.OS === 'android' ? 32 : 20
+  );
   const [currentPassword, setCurrentPassword] = useState('');
   const [newPassword, setNewPassword] = useState('');
   const [submitting, setSubmitting] = useState(false);
@@ -56,7 +62,7 @@ export const ChangePasswordModal: React.FC<ChangePasswordModalProps> = ({ visibl
         behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
         className="flex-1 justify-end bg-black/60"
       >
-        <View className="max-h-[90%] rounded-t-3xl bg-white p-5">
+        <View className="max-h-[90%] rounded-t-3xl bg-white px-5 pt-5" style={{ paddingBottom: modalBottomPadding }}>
           <View className="mb-4 flex-row items-center justify-between">
             <Text className="text-2xl font-extrabold text-[#0f172a]">Change Password</Text>
             <TouchableOpacity onPress={onClose} disabled={submitting} hitSlop={10}>

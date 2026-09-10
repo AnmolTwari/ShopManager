@@ -12,6 +12,7 @@ import {
   TouchableOpacity,
   View,
 } from 'react-native';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { BarcodeScannerModal } from '../components/BarcodeScannerModal';
 import { Header } from '../components/Header';
 import { inventoryApi, productsApi } from '../services/shopApi';
@@ -35,6 +36,11 @@ interface InventoryScreenProps {
 }
 
 export const InventoryScreen: React.FC<InventoryScreenProps> = ({ onNavigateTab }) => {
+  const insets = useSafeAreaInsets();
+  const modalBottomPadding = Math.max(
+    insets.bottom > 0 ? insets.bottom + 14 : 0,
+    Platform.OS === 'android' ? 32 : 20
+  );
   const [movements, setMovements] = useState<StockMovement[]>([]);
   const [products, setProducts] = useState<Product[]>([]);
   const [loading, setLoading] = useState<boolean>(true);
@@ -318,7 +324,7 @@ export const InventoryScreen: React.FC<InventoryScreenProps> = ({ onNavigateTab 
           behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
           className="flex-1 justify-end bg-black/60"
         >
-          <View className="max-h-[90%] rounded-t-3xl bg-white p-5">
+          <View className="max-h-[90%] rounded-t-3xl bg-white px-5 pt-5" style={{ paddingBottom: modalBottomPadding }}>
             <View className="mb-4 flex-row items-center justify-between">
               <Text className="text-2xl font-extrabold text-[#0f172a]">Stock-In (Restock Goods)</Text>
               <TouchableOpacity onPress={() => setStockInModalOpen(false)} hitSlop={10}>
@@ -418,7 +424,7 @@ export const InventoryScreen: React.FC<InventoryScreenProps> = ({ onNavigateTab 
           behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
           className="flex-1 justify-end bg-black/60"
         >
-          <View className="max-h-[90%] rounded-t-3xl bg-white p-5">
+          <View className="max-h-[90%] rounded-t-3xl bg-white px-5 pt-5" style={{ paddingBottom: modalBottomPadding }}>
             <View className="mb-4 flex-row items-center justify-between">
               <Text className="text-2xl font-extrabold text-[#0f172a]">Adjust Stock Level</Text>
               <TouchableOpacity onPress={() => setAdjustModalOpen(false)} hitSlop={10}>

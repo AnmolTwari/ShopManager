@@ -5,7 +5,9 @@ import {
   TextInput,
   TouchableOpacity,
   View,
+  Platform,
 } from 'react-native';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { CameraView, useCameraPermissions } from 'expo-camera';
 import * as Haptics from 'expo-haptics';
 import { colors } from '../theme/colors';
@@ -26,6 +28,11 @@ export const BarcodeScannerModal: React.FC<BarcodeScannerModalProps> = ({
   title = 'Scan Product Barcode',
   subtitle = 'Align barcode inside the frame to scan',
 }) => {
+  const insets = useSafeAreaInsets();
+  const modalBottomPadding = Math.max(
+    insets.bottom > 0 ? insets.bottom + 14 : 0,
+    Platform.OS === 'android' ? 32 : 20
+  );
   const [permission, requestPermission] = useCameraPermissions();
   const [torch, setTorch] = useState<boolean>(false);
   const [manualSku, setManualSku] = useState<string>('');
@@ -65,7 +72,7 @@ export const BarcodeScannerModal: React.FC<BarcodeScannerModalProps> = ({
   return (
     <Modal visible={visible} animationType="slide" transparent onRequestClose={onClose}>
       <View className="flex-1 justify-end bg-black/70">
-        <View className="max-h-[90%] rounded-t-[24px] bg-white pb-6">
+        <View className="max-h-[90%] rounded-t-[24px] bg-white" style={{ paddingBottom: modalBottomPadding }}>
           {/* Header */}
           <View className="flex-row items-center justify-between px-5 pb-3 pt-[18px]">
             <View>
