@@ -1,11 +1,13 @@
 import React, { useState } from 'react';
 import {
+  ActivityIndicator,
   Alert,
   ScrollView,
   Text,
   TouchableOpacity,
   View,
 } from 'react-native';
+import * as Updates from 'expo-updates';
 import {
   Building,
   Lock,
@@ -16,6 +18,7 @@ import {
   Store,
   Phone,
   MapPin,
+  RefreshCw,
 } from 'lucide-react-native';
 import { Header } from '../components/Header';
 import { ChangePasswordModal } from '../components/ChangePasswordModal';
@@ -30,12 +33,42 @@ export const SettingsScreen: React.FC = () => {
   const [passwordModalOpen, setPasswordModalOpen] = useState(false);
   const [emailModalOpen, setEmailModalOpen] = useState(false);
   const [shopProfileModalOpen, setShopProfileModalOpen] = useState(false);
+  const [isCheckingUpdates, setIsCheckingUpdates] = useState(false);
 
   const handleLogoutPress = () => {
     Alert.alert('Sign Out', 'Are you sure you want to sign out of ShopManager?', [
       { text: 'Cancel', style: 'cancel' },
       { text: 'Sign Out', style: 'destructive', onPress: logout },
     ]);
+  };
+
+  const handleCheckUpdates = async () => {
+    try {
+      setIsCheckingUpdates(true);
+      if (__DEV__) {
+        Alert.alert('Development Mode', 'Live reloading is active in dev mode.');
+        setIsCheckingUpdates(false);
+        return;
+      }
+      const update = await Updates.checkForUpdateAsync();
+      if (update.isAvailable) {
+        Alert.alert('Update Available', 'Downloading latest features and restarting app...', [
+          {
+            text: 'OK',
+            onPress: async () => {
+              await Updates.fetchUpdateAsync();
+              await Updates.reloadAsync();
+            },
+          },
+        ]);
+      } else {
+        Alert.alert('Up to Date', 'You are already using the latest version of ShopManager.');
+      }
+    } catch (e: any) {
+      Alert.alert('App Update', 'Could not check updates. If using an older build, please install the latest APK.');
+    } finally {
+      setIsCheckingUpdates(false);
+    }
   };
 
   return (
@@ -136,6 +169,34 @@ export const SettingsScreen: React.FC = () => {
               <View className="flex-1">
                 <Text className="text-sm font-bold text-[#0f172a]">Change Email</Text>
                 <Text className="mt-px text-[11px] text-[#64748b]">{user?.email || 'Update registered email'}</Text>
+              </View>
+              <ChevronRight size={16} color={colors.textLight} />
+            </TouchableOpacity>
+          </View>
+        </View>
+
+        {/* App Version & Updates */}
+        <View className="mb-5">
+          <Text className="mb-2 px-1 text-xs font-extrabold uppercase tracking-[0.5px] text-[#64748b]">App & System</Text>
+          <View className="overflow-hidden rounded-2xl border border-[#e2e8f0] bg-white shadow-sm">
+            <TouchableOpacity
+              className="flex-row items-center gap-3 p-3.5"
+              onPress={handleCheckUpdates}
+              disabled={isCheckingUpdates}
+              activeOpacity={0.7}
+            >
+              <View className="h-9 w-9 items-center justify-center rounded-[10px] bg-[#e0f2fe]">
+                {isCheckingUpdates ? (
+                  <ActivityIndicator size="small" color={colors.primary} />
+                ) : (
+                  <RefreshCw size={18} color={colors.primary} />
+                )}
+              </View>
+              <View className="flex-1">
+                <Text className="text-sm font-bold text-[#0f172a]">Check for App Updates</Text>
+                <Text className="mt-px text-[11px] text-[#64748b]">
+                  {isCheckingUpdates ? 'Checking for updates...' : 'Get latest features & fixes over-the-air'}
+                </Text>
               </View>
               <ChevronRight size={16} color={colors.textLight} />
             </TouchableOpacity>

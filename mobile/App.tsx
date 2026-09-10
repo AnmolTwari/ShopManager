@@ -1,6 +1,7 @@
-import React, { useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import { ActivityIndicator, StatusBar, View } from 'react-native';
 import './global.css';
+import * as Updates from 'expo-updates';
 import { SafeAreaProvider } from 'react-native-safe-area-context';
 import { BottomTabBar, TabScreen } from './src/components/BottomTabBar';
 import { ErrorBoundary } from './src/components/ErrorBoundary';
@@ -20,6 +21,22 @@ const MainNavigator: React.FC = () => {
   const { user, isLoading } = useAuth();
   const [authMode, setAuthMode] = useState<'login' | 'register'>('login');
   const [currentTab, setCurrentTab] = useState<TabScreen>('dashboard');
+
+  useEffect(() => {
+    async function checkUpdates() {
+      try {
+        if (__DEV__) return;
+        const update = await Updates.checkForUpdateAsync();
+        if (update.isAvailable) {
+          await Updates.fetchUpdateAsync();
+          await Updates.reloadAsync();
+        }
+      } catch (e) {
+        console.log('OTA check:', e);
+      }
+    }
+    checkUpdates();
+  }, []);
 
   if (isLoading) {
     return (
