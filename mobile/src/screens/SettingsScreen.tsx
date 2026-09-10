@@ -50,6 +50,11 @@ export const SettingsScreen: React.FC = () => {
         setIsCheckingUpdates(false);
         return;
       }
+      if (!Updates.isEnabled) {
+        Alert.alert('App Update', 'Over-the-air updates are active in standalone release APK builds.');
+        setIsCheckingUpdates(false);
+        return;
+      }
       const update = await Updates.checkForUpdateAsync();
       if (update.isAvailable) {
         Alert.alert('Update Available', 'Downloading latest features and restarting app...', [
@@ -65,7 +70,8 @@ export const SettingsScreen: React.FC = () => {
         Alert.alert('Up to Date', 'You are already using the latest version of ShopManager.');
       }
     } catch (e: any) {
-      Alert.alert('App Update', 'Could not check updates. If using an older build, please install the latest APK.');
+      console.warn('Updates error:', e);
+      Alert.alert('App Update', 'No new update published yet on EAS, or this APK was built before EAS update was linked. Publish with "eas update" or install latest APK.');
     } finally {
       setIsCheckingUpdates(false);
     }
