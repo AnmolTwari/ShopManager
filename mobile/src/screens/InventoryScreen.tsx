@@ -38,8 +38,8 @@ interface InventoryScreenProps {
 export const InventoryScreen: React.FC<InventoryScreenProps> = ({ onNavigateTab }) => {
   const insets = useSafeAreaInsets();
   const modalBottomPadding = Math.max(
-    insets.bottom > 0 ? insets.bottom + 14 : 0,
-    Platform.OS === 'android' ? 32 : 20
+    insets.bottom > 0 ? insets.bottom + 20 : 0,
+    Platform.OS === 'android' ? 56 : 24
   );
   const [movements, setMovements] = useState<StockMovement[]>([]);
   const [products, setProducts] = useState<Product[]>([]);
@@ -321,7 +321,7 @@ export const InventoryScreen: React.FC<InventoryScreenProps> = ({ onNavigateTab 
         onRequestClose={() => setStockInModalOpen(false)}
       >
         <KeyboardAvoidingView
-          behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
+          behavior={Platform.OS === 'ios' ? 'padding' : undefined}
           className="flex-1 justify-end bg-black/60"
         >
           <View className="max-h-[90%] rounded-t-3xl bg-white px-5 pt-5" style={{ paddingBottom: modalBottomPadding }}>
@@ -421,7 +421,7 @@ export const InventoryScreen: React.FC<InventoryScreenProps> = ({ onNavigateTab 
         onRequestClose={() => setAdjustModalOpen(false)}
       >
         <KeyboardAvoidingView
-          behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
+          behavior={Platform.OS === 'ios' ? 'padding' : undefined}
           className="flex-1 justify-end bg-black/60"
         >
           <View className="max-h-[90%] rounded-t-3xl bg-white px-5 pt-5" style={{ paddingBottom: modalBottomPadding }}>

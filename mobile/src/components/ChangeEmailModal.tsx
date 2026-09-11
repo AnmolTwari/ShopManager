@@ -29,8 +29,8 @@ export const ChangeEmailModal: React.FC<ChangeEmailModalProps> = ({
 }) => {
   const insets = useSafeAreaInsets();
   const modalBottomPadding = Math.max(
-    insets.bottom > 0 ? insets.bottom + 14 : 0,
-    Platform.OS === 'android' ? 32 : 20
+    insets.bottom > 0 ? insets.bottom + 20 : 0,
+    Platform.OS === 'android' ? 56 : 24
   );
   const [newEmail, setNewEmail] = useState('');
   const [password, setPassword] = useState('');
@@ -60,7 +60,7 @@ export const ChangeEmailModal: React.FC<ChangeEmailModalProps> = ({
   return (
     <Modal visible={visible} animationType="slide" transparent onRequestClose={onClose}>
       <KeyboardAvoidingView
-        behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
+        behavior={Platform.OS === 'ios' ? 'padding' : undefined}
         className="flex-1 justify-end bg-black/60"
       >
         <View className="max-h-[90%] rounded-t-3xl bg-white px-5 pt-5" style={{ paddingBottom: modalBottomPadding }}>

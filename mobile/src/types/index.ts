@@ -98,6 +98,7 @@ export interface SaleItemResponse {
   unitPrice: number;
   purchasePrice: number;
   lineTotal: number;
+  mrp?: number | null;
 }
 
 export interface SaleResponse {

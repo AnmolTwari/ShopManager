@@ -195,4 +195,20 @@ class SaleServiceTest {
         assertThat(page.content().getFirst().itemCount()).isEqualTo(1);
         assertThat(page.content().getFirst().totalAmount()).isEqualByComparingTo("25.00");
     }
+
+    @Test
+    void createSalePreservesMrpAndReturnsInResponse() {
+        product.setMrp(new BigDecimal("30.00"));
+        when(productRepository.findByIdAndOwner(1L, owner)).thenReturn(Optional.of(product));
+        when(saleRepository.save(any(Sale.class))).thenAnswer(inv -> inv.getArgument(0));
+        when(stockMovementRepository.save(any(StockMovement.class)))
+                .thenAnswer(inv -> inv.getArgument(0));
+
+        SaleResponse response = saleService.createSale(saleRequest(new BigDecimal("2")));
+
+        assertThat(response.items()).hasSize(1);
+        assertThat(response.items().getFirst().unitPrice()).isEqualByComparingTo("25.00");
+        assertThat(response.items().getFirst().mrp()).isEqualByComparingTo("30.00");
+        assertThat(response.totalAmount()).isEqualByComparingTo("50.00");
+    }
 }

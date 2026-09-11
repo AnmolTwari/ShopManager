@@ -82,6 +82,7 @@ export const DashboardScreen: React.FC<DashboardScreenProps> = ({ onNavigateTab 
           unitPrice: saleSummary.totalAmount,
           purchasePrice: 0,
           lineTotal: saleSummary.totalAmount,
+          mrp: null,
         })),
       });
     } finally {

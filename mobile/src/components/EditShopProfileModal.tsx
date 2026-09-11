@@ -23,8 +23,8 @@ interface EditShopProfileModalProps {
 export const EditShopProfileModal: React.FC<EditShopProfileModalProps> = ({ visible, onClose }) => {
   const insets = useSafeAreaInsets();
   const modalBottomPadding = Math.max(
-    insets.bottom > 0 ? insets.bottom + 14 : 0,
-    Platform.OS === 'android' ? 32 : 20
+    insets.bottom > 0 ? insets.bottom + 20 : 0,
+    Platform.OS === 'android' ? 56 : 24
   );
   const { shopProfile, updateShopProfile } = useAuth();
 
@@ -71,7 +71,7 @@ export const EditShopProfileModal: React.FC<EditShopProfileModalProps> = ({ visi
   return (
     <Modal visible={visible} animationType="slide" transparent onRequestClose={onClose}>
       <KeyboardAvoidingView
-        behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
+        behavior={Platform.OS === 'ios' ? 'padding' : undefined}
         className="flex-1 justify-end bg-black/60"
       >
         <View className="max-h-[90%] rounded-t-3xl bg-white px-5 pt-5" style={{ paddingBottom: modalBottomPadding }}>

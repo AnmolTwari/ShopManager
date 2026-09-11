@@ -68,7 +68,7 @@ public class SaleService {
             validateQuantity(product, quantity);
             soldQuantities.merge(product.getId(), quantity, BigDecimal::add);
             items.add(new SaleItem(product, quantity, product.getSellingPrice(),
-                    product.getPurchasePrice()));
+                    product.getPurchasePrice(), product.getMrp()));
             total = total.add(money(product.getSellingPrice().multiply(quantity)));
         }
 

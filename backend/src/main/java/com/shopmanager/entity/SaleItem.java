@@ -44,16 +44,25 @@ public class SaleItem {
     @Column(name = "purchase_price", nullable = false, precision = 12, scale = 2)
     private BigDecimal purchasePrice;
 
+    @Column(precision = 12, scale = 2)
+    private BigDecimal mrp;
+
     protected SaleItem() {
 
     }
 
     public SaleItem(Product product, BigDecimal quantity, BigDecimal unitPrice,
             BigDecimal purchasePrice) {
+        this(product, quantity, unitPrice, purchasePrice, product != null ? product.getMrp() : null);
+    }
+
+    public SaleItem(Product product, BigDecimal quantity, BigDecimal unitPrice,
+            BigDecimal purchasePrice, BigDecimal mrp) {
         this.product = product;
         this.quantity = quantity;
         this.unitPrice = unitPrice;
         this.purchasePrice = purchasePrice;
+        this.mrp = mrp;
     }
 
     void setSale(Sale sale) {
@@ -74,5 +83,9 @@ public class SaleItem {
 
     public BigDecimal getPurchasePrice() {
         return purchasePrice;
+    }
+
+    public BigDecimal getMrp() {
+        return mrp != null ? mrp : (product != null ? product.getMrp() : null);
     }
 }

@@ -70,8 +70,8 @@ interface ProductsScreenProps {
 export const ProductsScreen: React.FC<ProductsScreenProps> = ({ onNavigateTab }) => {
   const insets = useSafeAreaInsets();
   const modalBottomPadding = Math.max(
-    insets.bottom > 0 ? insets.bottom + 14 : 0,
-    Platform.OS === 'android' ? 32 : 20
+    insets.bottom > 0 ? insets.bottom + 20 : 0,
+    Platform.OS === 'android' ? 56 : 24
   );
   const { items, addItem, totalAmount, totalItems } = useCart();
   const { shopProfile } = useAuth();
@@ -643,7 +643,7 @@ export const ProductsScreen: React.FC<ProductsScreenProps> = ({ onNavigateTab })
         onRequestClose={() => setQuickSellModalOpen(false)}
       >
         <KeyboardAvoidingView
-          behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
+          behavior={Platform.OS === 'ios' ? 'padding' : undefined}
           className="flex-1 justify-end bg-black/60"
         >
           <View className="max-h-[90%] rounded-t-3xl bg-white px-5 pt-5" style={{ paddingBottom: modalBottomPadding }}>
@@ -807,7 +807,7 @@ export const ProductsScreen: React.FC<ProductsScreenProps> = ({ onNavigateTab })
         onRequestClose={() => setFormModalOpen(false)}
       >
         <KeyboardAvoidingView
-          behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
+          behavior={Platform.OS === 'ios' ? 'padding' : undefined}
           className="flex-1 justify-end bg-black/60"
         >
           <View className="max-h-[90%] rounded-t-3xl bg-white px-5 pt-5" style={{ paddingBottom: modalBottomPadding }}>

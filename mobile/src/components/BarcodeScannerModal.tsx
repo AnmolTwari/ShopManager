@@ -30,8 +30,8 @@ export const BarcodeScannerModal: React.FC<BarcodeScannerModalProps> = ({
 }) => {
   const insets = useSafeAreaInsets();
   const modalBottomPadding = Math.max(
-    insets.bottom > 0 ? insets.bottom + 14 : 0,
-    Platform.OS === 'android' ? 32 : 20
+    insets.bottom > 0 ? insets.bottom + 20 : 0,
+    Platform.OS === 'android' ? 56 : 24
   );
   const [permission, requestPermission] = useCameraPermissions();
   const [torch, setTorch] = useState<boolean>(false);

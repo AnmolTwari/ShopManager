@@ -58,18 +58,38 @@ export const ReceiptModal: React.FC<ReceiptModalProps> = ({
     return acc + qty * (sell - buy);
   }, 0);
 
+  const totalMrp = items.reduce((acc, item) => {
+    const qty = typeof item.quantity === 'number' ? item.quantity : parseFloat(String(item.quantity)) || 0;
+    const rate = typeof item.unitPrice === 'number' ? item.unitPrice : parseFloat(String(item.unitPrice)) || 0;
+    const mrp = item.mrp != null ? (typeof item.mrp === 'number' ? item.mrp : parseFloat(String(item.mrp)) || 0) : null;
+    return acc + (mrp && mrp > 0 ? mrp : rate) * qty;
+  }, 0);
+
+  const totalSavings = items.reduce((acc, item) => {
+    const qty = typeof item.quantity === 'number' ? item.quantity : parseFloat(String(item.quantity)) || 0;
+    const rate = typeof item.unitPrice === 'number' ? item.unitPrice : parseFloat(String(item.unitPrice)) || 0;
+    const mrp = item.mrp != null ? (typeof item.mrp === 'number' ? item.mrp : parseFloat(String(item.mrp)) || 0) : null;
+    return acc + (mrp && mrp > rate ? (mrp - rate) * qty : 0);
+  }, 0);
+
   const handleWhatsAppShare = async () => {
     try {
       Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
       const itemsList = items
         .map((i, idx) => {
           const qty = typeof i.quantity === 'number' ? i.quantity : parseFloat(String(i.quantity)) || 0;
+          const rate = typeof i.unitPrice === 'number' ? i.unitPrice : parseFloat(String(i.unitPrice)) || 0;
           const total = typeof i.lineTotal === 'number' ? i.lineTotal : parseFloat(String(i.lineTotal)) || 0;
-          return `${idx + 1}. *${i.productName}* x${qty} = ₹${total.toFixed(2)}`;
+          const mrp = i.mrp != null ? (typeof i.mrp === 'number' ? i.mrp : parseFloat(String(i.mrp)) || 0) : null;
+          const hasDiscount = mrp != null && mrp > rate;
+          const mrpText = hasDiscount ? ` (MRP ~₹${mrp.toFixed(2)}~)` : '';
+          return `${idx + 1}. *${i.productName}*\n   ${qty} x ₹${rate.toFixed(2)}${mrpText} = ₹${total.toFixed(2)}`;
         })
         .join('\n');
 
-      const message = `🧾 *INVOICE #${sale.id}*\n🏬 *${effectiveShopName}*${effectivePhone ? `\n📞 ${effectivePhone}` : ''}${effectiveAddress ? `\n📍 ${effectiveAddress}` : ''}\n📅 ${formattedDate}\n\n*Items Purchased:*\n${itemsList}\n\n-------------------------\n💰 *TOTAL AMOUNT: ₹${totalAmount.toFixed(2)}*\n💳 Payment Mode: ${paymentMethod}\n-------------------------\nThank you for shopping with us! 🙏\n_⚡ Powered by ShopManager_`;
+      const savingsBlock = totalSavings > 0 ? `\n🎉 *TOTAL SAVINGS: ₹${totalSavings.toFixed(2)}*` : '';
+
+      const message = `🧾 *INVOICE #${sale.id}*\n🏬 *${effectiveShopName}*${effectivePhone ? `\n📞 ${effectivePhone}` : ''}${effectiveAddress ? `\n📍 ${effectiveAddress}` : ''}\n📅 ${formattedDate}\n\n*Items Purchased:*\n${itemsList}\n\n-------------------------\n💰 *TOTAL AMOUNT: ₹${totalAmount.toFixed(2)}*${savingsBlock}\n💳 Payment Mode: ${paymentMethod}\n-------------------------\nThank you for shopping with us! 🙏\n_⚡ Powered by ShopManager_`;
 
       const encoded = encodeURI(message);
       let url = `whatsapp://send?text=${encoded}`;
@@ -175,12 +195,46 @@ export const ReceiptModal: React.FC<ReceiptModalProps> = ({
             }
             .item-name { font-weight: 600; color: #0f172a; }
             .item-sub { font-size: 10px; color: #64748b; }
+            .mrp-strike {
+              color: #64748b;
+              font-size: 11px;
+              text-decoration: line-through;
+            }
+            .mrp-regular {
+              color: #475569;
+              font-size: 11px;
+            }
+            .rate-val {
+              font-weight: 700;
+              color: #0f172a;
+              font-size: 12px;
+            }
+            .total-val {
+              font-weight: 700;
+              color: #047857;
+              font-size: 12px;
+            }
+            .discount-pill {
+              display: inline-block;
+              font-size: 9px;
+              font-weight: 700;
+              color: #047857;
+              background: #ecfdf5;
+              border: 0.5px solid #a7f3d0;
+              padding: 1px 4px;
+              border-radius: 3px;
+              margin-top: 2px;
+            }
             .totals-table {
               width: 100%;
               margin-top: 8px;
               font-size: 12px;
             }
             .totals-table td { padding: 3px 0; }
+            .savings-row {
+              color: #047857;
+              font-weight: 700;
+            }
             .grand-total {
               font-size: 16px;
               font-weight: 900;
@@ -188,6 +242,17 @@ export const ReceiptModal: React.FC<ReceiptModalProps> = ({
               border-top: 1px solid #0f172a;
               border-bottom: 1px solid #0f172a;
               padding: 8px 0;
+            }
+            .savings-banner {
+              margin-top: 14px;
+              background: #f0fdf4;
+              border: 1px dashed #22c55e;
+              color: #15803d;
+              padding: 8px 12px;
+              border-radius: 6px;
+              text-align: center;
+              font-size: 11px;
+              font-weight: 700;
             }
             .footer {
               margin-top: 24px;
@@ -240,10 +305,11 @@ export const ReceiptModal: React.FC<ReceiptModalProps> = ({
           <table class="items">
             <thead>
               <tr>
-                <th>Item</th>
-                <th class="right">Qty</th>
-                <th class="right">Rate</th>
-                <th class="right">Total</th>
+                <th style="width: 38%;">Item</th>
+                <th class="right" style="width: 12%;">Qty</th>
+                <th class="right" style="width: 16%;">MRP</th>
+                <th class="right" style="width: 16%;">Rate</th>
+                <th class="right" style="width: 18%;">Total</th>
               </tr>
             </thead>
             <tbody>
@@ -252,15 +318,25 @@ export const ReceiptModal: React.FC<ReceiptModalProps> = ({
                   const qty = typeof i.quantity === 'number' ? i.quantity : parseFloat(String(i.quantity)) || 0;
                   const rate = typeof i.unitPrice === 'number' ? i.unitPrice : parseFloat(String(i.unitPrice)) || 0;
                   const total = typeof i.lineTotal === 'number' ? i.lineTotal : parseFloat(String(i.lineTotal)) || 0;
+                  const rawMrp = i.mrp != null ? (typeof i.mrp === 'number' ? i.mrp : parseFloat(String(i.mrp)) || 0) : null;
+                  const hasMrp = rawMrp != null && rawMrp > 0;
+                  const isDiscounted = hasMrp && rawMrp > rate;
+                  const savings = isDiscounted ? (rawMrp - rate) * qty : 0;
+
                   return `
                     <tr>
                       <td>
                         <div class="item-name">${i.productName}</div>
+                        ${i.productSku ? `<div class="item-sub">SKU: ${i.productSku}</div>` : ''}
                         ${i.unit ? `<div class="item-sub">Unit: ${i.unit}</div>` : ''}
+                        ${isDiscounted ? `<div class="discount-pill">Saved ₹${savings.toFixed(2)}</div>` : ''}
                       </td>
                       <td class="right">${qty}</td>
-                      <td class="right">₹${rate.toFixed(2)}</td>
-                      <td class="right">₹${total.toFixed(2)}</td>
+                      <td class="right ${isDiscounted ? 'mrp-strike' : 'mrp-regular'}">
+                        ${hasMrp ? `₹${rawMrp.toFixed(2)}` : '-'}
+                      </td>
+                      <td class="right rate-val">₹${rate.toFixed(2)}</td>
+                      <td class="right total-val">₹${total.toFixed(2)}</td>
                     </tr>
                   `;
                 })
@@ -273,11 +349,35 @@ export const ReceiptModal: React.FC<ReceiptModalProps> = ({
               <td>Total Items:</td>
               <td class="right">${items.length}</td>
             </tr>
+            ${
+              totalSavings > 0
+                ? `
+            <tr>
+              <td>Total MRP Value:</td>
+              <td class="right">₹${totalMrp.toFixed(2)}</td>
+            </tr>
+            <tr class="savings-row">
+              <td>Total Discount / Savings:</td>
+              <td class="right">-₹${totalSavings.toFixed(2)}</td>
+            </tr>
+            `
+                : ''
+            }
             <tr class="grand-total">
               <td><strong>GRAND TOTAL:</strong></td>
               <td class="right"><strong>₹${totalAmount.toFixed(2)}</strong></td>
             </tr>
           </table>
+
+          ${
+            totalSavings > 0
+              ? `
+          <div class="savings-banner">
+            🎉 You saved a total of ₹${totalSavings.toFixed(2)} on this purchase!
+          </div>
+          `
+              : ''
+          }
 
           <div class="footer">
             <div class="footer-msg">Thank you for your visit! Please visit again. 🙏</div>
@@ -315,8 +415,8 @@ export const ReceiptModal: React.FC<ReceiptModalProps> = ({
         className="flex-1 items-center justify-center bg-black/70 p-4"
         style={{
           paddingBottom: Math.max(
-            insets.bottom > 0 ? insets.bottom + 12 : 0,
-            Platform.OS === 'android' ? 24 : 16
+            insets.bottom > 0 ? insets.bottom + 16 : 0,
+            Platform.OS === 'android' ? 36 : 20
           ),
         }}
       >
@@ -354,6 +454,10 @@ export const ReceiptModal: React.FC<ReceiptModalProps> = ({
                   const qty = typeof item.quantity === 'number' ? item.quantity : parseFloat(String(item.quantity)) || 0;
                   const rate = typeof item.unitPrice === 'number' ? item.unitPrice : parseFloat(String(item.unitPrice)) || 0;
                   const total = typeof item.lineTotal === 'number' ? item.lineTotal : parseFloat(String(item.lineTotal)) || 0;
+                  const rawMrp = item.mrp != null ? (typeof item.mrp === 'number' ? item.mrp : parseFloat(String(item.mrp)) || 0) : null;
+                  const hasMrp = rawMrp != null && rawMrp > 0;
+                  const isDiscounted = hasMrp && rawMrp > rate;
+                  const itemSavings = isDiscounted ? (rawMrp - rate) * qty : 0;
 
                   return (
                     <View key={index} className="flex-row items-center justify-between">
@@ -361,9 +465,27 @@ export const ReceiptModal: React.FC<ReceiptModalProps> = ({
                         <Text className="text-[13px] font-bold text-[#0f172a]" numberOfLines={1}>
                           {item.productName}
                         </Text>
-                        <Text className="mt-px text-[11px] text-[#64748b]">
-                          {qty} x ₹{rate.toFixed(2)}
-                        </Text>
+                        <View className="mt-0.5 flex-row flex-wrap items-center gap-1.5">
+                          <Text className="text-[11px] font-medium text-[#64748b]">
+                            {qty} x ₹{rate.toFixed(2)}
+                          </Text>
+                          {hasMrp && (
+                            <Text
+                              className={`text-[10px] ${
+                                isDiscounted ? 'text-[#94a3b8] line-through' : 'text-[#64748b]'
+                              }`}
+                            >
+                              (MRP ₹{rawMrp.toFixed(2)})
+                            </Text>
+                          )}
+                          {isDiscounted && (
+                            <View className="rounded bg-[#dcfce7] px-1.5 py-0.5 border border-[#bbf7d0]">
+                              <Text className="text-[9px] font-bold text-[#15803d]">
+                                Save ₹{itemSavings.toFixed(2)}
+                              </Text>
+                            </View>
+                          )}
+                        </View>
                       </View>
                       <Text className="text-[13px] font-bold text-[#0f172a]">₹{total.toFixed(2)}</Text>
                     </View>
@@ -373,7 +495,14 @@ export const ReceiptModal: React.FC<ReceiptModalProps> = ({
 
               <View className="my-3 h-px border border-dashed border-[#cbd5e1]" />
 
-              {/* Total & Profit */}
+              {/* Total, Savings & Profit */}
+              {totalSavings > 0 && (
+                <View className="mb-1 flex-row items-center justify-between">
+                  <Text className="text-[11px] font-semibold text-[#047857]">Total Savings</Text>
+                  <Text className="text-xs font-bold text-[#047857]">-₹{totalSavings.toFixed(2)}</Text>
+                </View>
+              )}
+
               <View className="flex-row items-center justify-between">
                 <Text className="text-sm font-extrabold text-[#0f172a]">Total Amount ({paymentMethod})</Text>
                 <Text className="text-lg font-black text-[#059669]">₹{totalAmount.toFixed(2)}</Text>
@@ -426,3 +555,4 @@ export const ReceiptModal: React.FC<ReceiptModalProps> = ({
     </Modal>
   );
 };
+

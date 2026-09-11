@@ -16,7 +16,8 @@ public record SaleItemResponse(
         BigDecimal quantity,
         BigDecimal unitPrice,
         BigDecimal purchasePrice,
-        BigDecimal lineTotal) {
+        BigDecimal lineTotal,
+        BigDecimal mrp) {
 
     public static SaleItemResponse from(SaleItem item) {
         Product product = item.getProduct();
@@ -29,6 +30,7 @@ public record SaleItemResponse(
                 item.getUnitPrice(),
                 item.getPurchasePrice(),
                 item.getUnitPrice().multiply(item.getQuantity())
-                        .setScale(2, RoundingMode.HALF_UP));
+                        .setScale(2, RoundingMode.HALF_UP),
+                item.getMrp());
     }
 }

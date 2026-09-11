@@ -61,8 +61,8 @@ export const PosScreen: React.FC = () => {
   } = useCart();
   const insets = useSafeAreaInsets();
   const modalBottomPadding = Math.max(
-    insets.bottom > 0 ? insets.bottom + 14 : 0,
-    Platform.OS === 'android' ? 32 : 20
+    insets.bottom > 0 ? insets.bottom + 20 : 0,
+    Platform.OS === 'android' ? 56 : 24
   );
   const { shopProfile } = useAuth();
 
@@ -329,6 +329,7 @@ export const PosScreen: React.FC = () => {
           unitPrice: summaryItem.totalAmount,
           purchasePrice: 0,
           lineTotal: summaryItem.totalAmount,
+          mrp: null,
         })),
       });
     }
@@ -959,7 +960,7 @@ export const PosScreen: React.FC = () => {
         onRequestClose={() => setQtyModalOpen(false)}
       >
         <KeyboardAvoidingView
-          behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
+          behavior={Platform.OS === 'ios' ? 'padding' : undefined}
           className="flex-1 justify-end bg-black/60"
         >
           <View className="max-h-[90%] rounded-t-3xl bg-white px-5 pt-5" style={{ paddingBottom: modalBottomPadding }}>
@@ -1003,13 +1004,13 @@ export const PosScreen: React.FC = () => {
               <Text className="mb-1.5 text-[11px] font-bold uppercase tracking-[0.4px] text-[#64748b]">
                 Quick Quantity Presets
               </Text>
-              <View className="mb-3.5 flex-row flex-wrap gap-2">
+              <View className="mb-3.5 flex-row flex-wrap justify-between gap-y-2">
                 {qtyPresets.map((preset) => {
                   const isSelected = customQtyValue === preset;
                   return (
                     <TouchableOpacity
                       key={preset}
-                      className={`min-w-[54px] flex-1 items-center justify-center rounded-xl border px-3 py-2 ${
+                      className={`w-[31%] h-10 items-center justify-center rounded-xl border ${
                         isSelected
                           ? 'border-[#059669] bg-[#059669]'
                           : 'border-[#cbd5e1] bg-[#f8fafc]'
@@ -1118,7 +1119,7 @@ export const PosScreen: React.FC = () => {
         onRequestClose={() => setCheckoutModalOpen(false)}
       >
         <KeyboardAvoidingView
-          behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
+          behavior={Platform.OS === 'ios' ? 'padding' : undefined}
           className="flex-1 justify-end bg-black/60"
         >
           <View className="max-h-[90%] rounded-t-3xl bg-white px-5 pt-5" style={{ paddingBottom: modalBottomPadding }}>
