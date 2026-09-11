@@ -94,7 +94,7 @@ export default function Layout() {
           </ul>
           <div className="mt-3 flex flex-col gap-2 border-t border-border pt-3 md:mt-auto md:pt-4">
             <a
-              href="https://expo.dev/artifacts/eas/kQXQvMsbwevRM50FWc-nwYhvOh4KaAltiiku498sViY.apk"
+              href="https://expo.dev/artifacts/eas/wM4mHQAv0M2rbd02FpK7qWpRoKIx8748-V14FW-a-Ng.apk"
               download="ShopManager.apk"
               target="_blank"
               rel="noreferrer"
