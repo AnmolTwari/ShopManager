@@ -6,8 +6,15 @@ const USER_KEY = 'shopmanager_user_data';
 const API_URL_KEY = 'shopmanager_custom_api_url';
 const SHOP_PROFILE_KEY = 'shopmanager_shop_profile';
 
+// Fast In-Memory cache for 0ms synchronous read times
+let memoryToken: string | null = null;
+let memoryUserData: string | null = null;
+let memoryCustomApiUrl: string | null = null;
+let memoryShopProfile: string | null = null;
+
 export const storage = {
   async saveToken(token: string): Promise<void> {
+    memoryToken = token;
     try {
       if (Platform.OS === 'web') {
         localStorage.setItem(TOKEN_KEY, token);
@@ -20,11 +27,18 @@ export const storage = {
   },
 
   async getToken(): Promise<string | null> {
+    if (memoryToken !== null) {
+      return memoryToken;
+    }
     try {
+      let token: string | null = null;
       if (Platform.OS === 'web') {
-        return localStorage.getItem(TOKEN_KEY);
+        token = localStorage.getItem(TOKEN_KEY);
+      } else {
+        token = await SecureStore.getItemAsync(TOKEN_KEY);
       }
-      return await SecureStore.getItemAsync(TOKEN_KEY);
+      memoryToken = token;
+      return token;
     } catch (e) {
       console.warn('Failed to read token from secure storage', e);
       return null;
@@ -32,6 +46,7 @@ export const storage = {
   },
 
   async removeToken(): Promise<void> {
+    memoryToken = null;
     try {
       if (Platform.OS === 'web') {
         localStorage.removeItem(TOKEN_KEY);
@@ -44,6 +59,7 @@ export const storage = {
   },
 
   async saveUserData(userData: string): Promise<void> {
+    memoryUserData = userData;
     try {
       if (Platform.OS === 'web') {
         localStorage.setItem(USER_KEY, userData);
@@ -56,17 +72,25 @@ export const storage = {
   },
 
   async getUserData(): Promise<string | null> {
+    if (memoryUserData !== null) {
+      return memoryUserData;
+    }
     try {
+      let data: string | null = null;
       if (Platform.OS === 'web') {
-        return localStorage.getItem(USER_KEY);
+        data = localStorage.getItem(USER_KEY);
+      } else {
+        data = await SecureStore.getItemAsync(USER_KEY);
       }
-      return await SecureStore.getItemAsync(USER_KEY);
-    } catch (e) {
+      memoryUserData = data;
+      return data;
+    } catch {
       return null;
     }
   },
 
   async removeUserData(): Promise<void> {
+    memoryUserData = null;
     try {
       if (Platform.OS === 'web') {
         localStorage.removeItem(USER_KEY);
@@ -79,6 +103,7 @@ export const storage = {
   },
 
   async saveCustomApiUrl(url: string): Promise<void> {
+    memoryCustomApiUrl = url;
     try {
       if (Platform.OS === 'web') {
         localStorage.setItem(API_URL_KEY, url);
@@ -91,17 +116,25 @@ export const storage = {
   },
 
   async getCustomApiUrl(): Promise<string | null> {
+    if (memoryCustomApiUrl !== null) {
+      return memoryCustomApiUrl;
+    }
     try {
+      let url: string | null = null;
       if (Platform.OS === 'web') {
-        return localStorage.getItem(API_URL_KEY);
+        url = localStorage.getItem(API_URL_KEY);
+      } else {
+        url = await SecureStore.getItemAsync(API_URL_KEY);
       }
-      return await SecureStore.getItemAsync(API_URL_KEY);
-    } catch (e) {
+      memoryCustomApiUrl = url;
+      return url;
+    } catch {
       return null;
     }
   },
 
   async removeCustomApiUrl(): Promise<void> {
+    memoryCustomApiUrl = null;
     try {
       if (Platform.OS === 'web') {
         localStorage.removeItem(API_URL_KEY);
@@ -114,6 +147,7 @@ export const storage = {
   },
 
   async saveShopProfile(profileData: string): Promise<void> {
+    memoryShopProfile = profileData;
     try {
       if (Platform.OS === 'web') {
         localStorage.setItem(SHOP_PROFILE_KEY, profileData);
@@ -126,17 +160,25 @@ export const storage = {
   },
 
   async getShopProfile(): Promise<string | null> {
+    if (memoryShopProfile !== null) {
+      return memoryShopProfile;
+    }
     try {
+      let prof: string | null = null;
       if (Platform.OS === 'web') {
-        return localStorage.getItem(SHOP_PROFILE_KEY);
+        prof = localStorage.getItem(SHOP_PROFILE_KEY);
+      } else {
+        prof = await SecureStore.getItemAsync(SHOP_PROFILE_KEY);
       }
-      return await SecureStore.getItemAsync(SHOP_PROFILE_KEY);
-    } catch (e) {
+      memoryShopProfile = prof;
+      return prof;
+    } catch {
       return null;
     }
   },
 
   async removeShopProfile(): Promise<void> {
+    memoryShopProfile = null;
     try {
       if (Platform.OS === 'web') {
         localStorage.removeItem(SHOP_PROFILE_KEY);

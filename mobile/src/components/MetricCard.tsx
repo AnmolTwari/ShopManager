@@ -1,5 +1,5 @@
 import React from 'react';
-import { Text, View } from 'react-native';
+import { Text, TouchableOpacity, View } from 'react-native';
 import { colors } from '../theme/colors';
 
 interface MetricCardProps {
@@ -8,6 +8,7 @@ interface MetricCardProps {
   subtitle?: string;
   icon: React.ReactNode;
   variant?: 'primary' | 'success' | 'warning' | 'danger' | 'accent';
+  onPress?: () => void;
 }
 
 export const MetricCard: React.FC<MetricCardProps> = ({
@@ -16,6 +17,7 @@ export const MetricCard: React.FC<MetricCardProps> = ({
   subtitle,
   icon,
   variant = 'primary',
+  onPress,
 }) => {
   const getVariantBg = () => {
     switch (variant) {
@@ -32,8 +34,14 @@ export const MetricCard: React.FC<MetricCardProps> = ({
     }
   };
 
+  const CardWrapper = onPress ? TouchableOpacity : View;
+
   return (
-    <View className="min-w-[47%] flex-1 rounded-2xl border border-[#e2e8f0] bg-white p-3.5 shadow-sm">
+    <CardWrapper
+      className="min-w-[47%] flex-1 rounded-2xl border border-[#e2e8f0] bg-white p-3.5 shadow-sm"
+      onPress={onPress}
+      activeOpacity={onPress ? 0.75 : 1}
+    >
       <View className="mb-1.5 flex-row items-center justify-between">
         <Text className="text-[11px] font-bold uppercase tracking-[0.4px] text-[#64748b]">{label}</Text>
         <View className="h-8 w-8 items-center justify-center rounded-lg" style={{ backgroundColor: getVariantBg() }}>{icon}</View>
@@ -42,7 +50,7 @@ export const MetricCard: React.FC<MetricCardProps> = ({
         {value}
       </Text>
       {subtitle && <Text className="mt-1 text-[11px] text-[#64748b]">{subtitle}</Text>}
-    </View>
+    </CardWrapper>
   );
 };
 

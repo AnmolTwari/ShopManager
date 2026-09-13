@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from 'react';
+import React, { useCallback, useEffect, useState } from 'react';
 import {
   ActivityIndicator,
   RefreshControl,
@@ -24,11 +24,8 @@ type DatePreset = 'today' | '7d' | '30d' | 'all';
 
 export const ReportsScreen: React.FC = () => {
   const [preset, setPreset] = useState<DatePreset>('today');
-  const [summary, setSummary] = useState<ReportSummary | null>(null);
-  const [loading, setLoading] = useState<boolean>(true);
-  const [refreshing, setRefreshing] = useState<boolean>(false);
 
-  const calculateDates = (p: DatePreset) => {
+  const calculateDates = useCallback((p: DatePreset) => {
     const today = new Date();
     const to = today.toISOString().split('T')[0];
 
@@ -44,11 +41,28 @@ export const ReportsScreen: React.FC = () => {
       return { from: d.toISOString().split('T')[0], to };
     }
     return { from: undefined, to: undefined };
-  };
+  }, []);
 
-  const loadReport = async () => {
+  const [summary, setSummary] = useState<ReportSummary | null>(() => {
+    const today = new Date().toISOString().split('T')[0];
+    return reportsApi.getCachedSummary(today, today);
+  });
+  const [loading, setLoading] = useState<boolean>(() => {
+    const today = new Date().toISOString().split('T')[0];
+    return !reportsApi.getCachedSummary(today, today);
+  });
+  const [refreshing, setRefreshing] = useState<boolean>(false);
+
+  const loadReport = useCallback(async (p: DatePreset, isRefresh = false) => {
+    const { from, to } = calculateDates(p);
+    const cached = reportsApi.getCachedSummary(from, to);
+    if (cached) {
+      setSummary(cached);
+      setLoading(false);
+    } else if (!isRefresh) {
+      setLoading(true);
+    }
     try {
-      const { from, to } = calculateDates(preset);
       const data = await reportsApi.getSummary(from, to);
       setSummary(data);
     } catch (e) {
@@ -57,16 +71,15 @@ export const ReportsScreen: React.FC = () => {
       setLoading(false);
       setRefreshing(false);
     }
-  };
+  }, [calculateDates]);
 
   useEffect(() => {
-    setLoading(true);
-    loadReport();
-  }, [preset]);
+    loadReport(preset);
+  }, [preset, loadReport]);
 
   const onRefresh = () => {
     setRefreshing(true);
-    loadReport();
+    loadReport(preset, true);
   };
 
   const totalRev = typeof summary?.totalAmount === 'number' ? summary.totalAmount : parseFloat(String(summary?.totalAmount || 0));

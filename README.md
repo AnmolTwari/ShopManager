@@ -123,13 +123,19 @@ cd backend
 
 Frontend: `npm run build` and `npm run lint` (oxlint) in `frontend/`.
 
-## Deployment
+## Mobile Application (Android APK)
 
-The reference deployment runs the SPA on Vercel and the API on Render with Supabase Postgres:
+ShopManager includes a native mobile POS and store management application built with Expo and React Native:
+- **Instant POS & Billing**: Fast barcode scanner, multi-product selector, and digital receipt generation.
+- **Customer Debt Book (Khata)**: Simple customer credit / loan tracking, unpaid balance tracking, and partial/full payment settlements.
+- **Real-time Inventory & Stock Alerts**: Dynamic low/out-of-stock inspection modal with 1-tap restocks.
+- **Blazing Fast (0ms Transitions)**: Persistent multi-screen lazy stacking and Stale-While-Revalidate memory caching.
 
-- `frontend/vercel.json` rewrites `/api/:path*` to the backend URL and serves `index.html` for all other routes (SPA routing).
-- On the backend host, set `COOKIE_SECURE=true`, `FRONTEND_URL=https://<your-vercel-domain>`, and the production `DB_*` / `JWT_SECRET` values.
-- CORS is restricted to the single `FRONTEND_URL` origin.
+### 📲 Download Latest Android APK
+- **EAS Build Logs & APK Download**: [Expo Android APK Build Dashboard](https://expo.dev/accounts/anmolxtiwari/projects/shopmanager/builds)
+- **Latest Build**: [Android APK Build #c32d9ea5](https://expo.dev/accounts/anmolxtiwari/projects/shopmanager/builds/c32d9ea5-077c-4252-9481-bd948a29c177)
+
+---
 
 ## License
 

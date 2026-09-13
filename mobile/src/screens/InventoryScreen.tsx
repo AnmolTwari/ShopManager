@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from 'react';
+import React, { useCallback, useEffect, useMemo, useState } from 'react';
 import {
   ActivityIndicator,
   Alert,
@@ -33,17 +33,24 @@ import {
 
 interface InventoryScreenProps {
   onNavigateTab?: (tab: TabScreen) => void;
+  initialProductId?: number | null;
 }
 
-export const InventoryScreen: React.FC<InventoryScreenProps> = ({ onNavigateTab }) => {
+export const InventoryScreen: React.FC<InventoryScreenProps> = ({
+  onNavigateTab,
+  initialProductId,
+}) => {
   const insets = useSafeAreaInsets();
   const modalBottomPadding = Math.max(
     insets.bottom > 0 ? insets.bottom + 20 : 0,
     Platform.OS === 'android' ? 56 : 24
   );
   const [movements, setMovements] = useState<StockMovement[]>([]);
-  const [products, setProducts] = useState<Product[]>([]);
-  const [loading, setLoading] = useState<boolean>(true);
+  const [products, setProducts] = useState<Product[]>(() => {
+    const cached = productsApi.getCachedProducts();
+    return cached ? cached.filter((p) => p.active) : [];
+  });
+  const [loading, setLoading] = useState<boolean>(() => !productsApi.getCachedProducts()?.length);
 
   // Modals
   const [stockInModalOpen, setStockInModalOpen] = useState<boolean>(false);
@@ -61,19 +68,18 @@ export const InventoryScreen: React.FC<InventoryScreenProps> = ({ onNavigateTab 
   const [adjustNewQty, setAdjustNewQty] = useState('');
   const [adjustReason, setAdjustReason] = useState('DAMAGE');
 
-  useEffect(() => {
-    loadData();
-  }, []);
-
   const [errorMsg, setErrorMsg] = useState<string | null>(null);
 
-  function safeQty(v: any): string {
+  const safeQty = useCallback((v: any): string => {
     if (v == null) return '0';
     const n = typeof v === 'number' ? v : parseFloat(String(v));
     return Number.isFinite(n) ? String(n) : '0';
-  }
+  }, []);
 
-  const loadData = async () => {
+  const loadData = useCallback(async (opts: { showSpinner?: boolean } = {}) => {
+    if (opts.showSpinner || (!movements.length && !products.length)) {
+      setLoading(true);
+    }
     setErrorMsg(null);
     try {
       const [movData, prodData] = await Promise.all([
@@ -89,7 +95,19 @@ export const InventoryScreen: React.FC<InventoryScreenProps> = ({ onNavigateTab 
     } finally {
       setLoading(false);
     }
-  };
+  }, [movements.length, products.length]);
+
+  useEffect(() => {
+    loadData();
+  }, [loadData]);
+
+  // Handle initialProductId passed from dashboard / alert modal
+  useEffect(() => {
+    if (initialProductId != null) {
+      setSelectedProductId(initialProductId);
+      setStockInModalOpen(true);
+    }
+  }, [initialProductId]);
 
   const handleBarcodeScanned = (code: string) => {
     const clean = code.trim().slice(0, 100).toLowerCase();
@@ -180,7 +198,19 @@ export const InventoryScreen: React.FC<InventoryScreenProps> = ({ onNavigateTab 
     setAdjustReason('DAMAGE');
   };
 
-  const selectedProduct = products.find((p) => p.id === selectedProductId);
+  const selectedProduct = useMemo(
+    () => products.find((p) => p.id === selectedProductId),
+    [products, selectedProductId]
+  );
+
+  // Sorted products for quick picker: out-of-stock and low-stock first
+  const prioritizedProducts = useMemo(() => {
+    return [...products].sort((a, b) => {
+      const aStock = typeof a.currentQuantity === 'number' ? a.currentQuantity : 0;
+      const bStock = typeof b.currentQuantity === 'number' ? b.currentQuantity : 0;
+      return aStock - bStock;
+    });
+  }, [products]);
 
   return (
     <View className="flex-1 bg-[#f8fafc]">
@@ -195,7 +225,7 @@ export const InventoryScreen: React.FC<InventoryScreenProps> = ({ onNavigateTab 
       <View className="gap-2.5 p-4">
         <View className="flex-row gap-2.5">
           <TouchableOpacity
-            className="flex-1 flex-row items-center gap-2.5 rounded-2xl bg-[#059669] p-3.5"
+            className="flex-1 flex-row items-center gap-2.5 rounded-2xl bg-[#059669] p-3.5 shadow-sm"
             onPress={() => {
               resetStockInForm();
               setStockInModalOpen(true);
@@ -210,7 +240,7 @@ export const InventoryScreen: React.FC<InventoryScreenProps> = ({ onNavigateTab 
           </TouchableOpacity>
 
           <TouchableOpacity
-            className="flex-1 flex-row items-center gap-2.5 rounded-2xl border border-[#e2e8f0] bg-white p-3.5"
+            className="flex-1 flex-row items-center gap-2.5 rounded-2xl border border-[#e2e8f0] bg-white p-3.5 shadow-sm"
             onPress={() => {
               resetAdjustForm();
               setAdjustModalOpen(true);
@@ -261,10 +291,14 @@ export const InventoryScreen: React.FC<InventoryScreenProps> = ({ onNavigateTab 
           data={movements}
           keyExtractor={(item) => item.id.toString()}
           contentContainerClassName="gap-2.5 px-4 pb-10 pt-1"
+          initialNumToRender={10}
+          maxToRenderPerBatch={10}
+          windowSize={5}
+          removeClippedSubviews={Platform.OS === 'android'}
           renderItem={({ item }) => {
             const isPositive = item.quantityChanged > 0;
             return (
-              <View className="flex-row items-center justify-between rounded-xl border border-[#e2e8f0] bg-white p-3">
+              <View className="flex-row items-center justify-between rounded-xl border border-[#e2e8f0] bg-white p-3 shadow-xs">
                 <View className="mr-2.5 flex-1">
                   <View
                     className={`mb-1 self-start rounded-md px-2 py-0.5 ${
@@ -353,21 +387,44 @@ export const InventoryScreen: React.FC<InventoryScreenProps> = ({ onNavigateTab 
                 </TouchableOpacity>
               </View>
 
-              {/* Product quick pill selector */}
+              {/* Product quick pill selector (Out of Stock / Low Stock highlighted) */}
               <ScrollView horizontal showsHorizontalScrollIndicator={false} className="mb-3">
-                {products.map((p) => (
-                  <TouchableOpacity
-                    key={p.id}
-                    className={`mr-1.5 rounded-lg border px-3 py-1.5 ${selectedProductId === p.id ? 'border-[#059669] bg-[#d1fae5]' : 'border-[#e2e8f0] bg-[#f8fafc]'}`}
-                    onPress={() => setSelectedProductId(p.id)}
-                  >
-                    <Text
-                      className={`text-[11px] font-bold ${selectedProductId === p.id ? 'text-[#059669]' : 'text-[#64748b]'}`}
+                {prioritizedProducts.map((p) => {
+                  const qty = typeof p.currentQuantity === 'number' ? p.currentQuantity : 0;
+                  const isOut = qty <= 0;
+                  const isLow = qty > 0 && qty <= (p.minimumStockLevel ?? 5);
+                  const isSelected = selectedProductId === p.id;
+
+                  return (
+                    <TouchableOpacity
+                      key={p.id}
+                      className={`mr-1.5 rounded-lg border px-3 py-1.5 ${
+                        isSelected
+                          ? 'border-[#059669] bg-[#d1fae5]'
+                          : isOut
+                          ? 'border-[#fecaca] bg-[#fff5f5]'
+                          : isLow
+                          ? 'border-[#fde68a] bg-[#fffbeb]'
+                          : 'border-[#e2e8f0] bg-[#f8fafc]'
+                      }`}
+                      onPress={() => setSelectedProductId(p.id)}
                     >
-                      {p.name}
-                    </Text>
-                  </TouchableOpacity>
-                ))}
+                      <Text
+                        className={`text-[11px] font-bold ${
+                          isSelected
+                            ? 'text-[#059669]'
+                            : isOut
+                            ? 'text-[#ef4444]'
+                            : isLow
+                            ? 'text-[#b45309]'
+                            : 'text-[#64748b]'
+                        }`}
+                      >
+                        {p.name} ({qty})
+                      </Text>
+                    </TouchableOpacity>
+                  );
+                })}
               </ScrollView>
 
               <Text className="mb-1.5 text-[11px] font-bold uppercase text-[#64748b]">Quantity to Add *</Text>
@@ -454,22 +511,45 @@ export const InventoryScreen: React.FC<InventoryScreenProps> = ({ onNavigateTab 
               </View>
 
               <ScrollView horizontal showsHorizontalScrollIndicator={false} className="mb-3">
-                {products.map((p) => (
-                  <TouchableOpacity
-                    key={p.id}
-                    className={`mr-1.5 rounded-lg border px-3 py-1.5 ${selectedProductId === p.id ? 'border-[#059669] bg-[#d1fae5]' : 'border-[#e2e8f0] bg-[#f8fafc]'}`}
-                    onPress={() => {
-                      setSelectedProductId(p.id);
-                      setAdjustNewQty(safeQty(p.currentQuantity));
-                    }}
-                  >
-                    <Text
-                      className={`text-[11px] font-bold ${selectedProductId === p.id ? 'text-[#059669]' : 'text-[#64748b]'}`}
+                {prioritizedProducts.map((p) => {
+                  const qty = typeof p.currentQuantity === 'number' ? p.currentQuantity : 0;
+                  const isOut = qty <= 0;
+                  const isLow = qty > 0 && qty <= (p.minimumStockLevel ?? 5);
+                  const isSelected = selectedProductId === p.id;
+
+                  return (
+                    <TouchableOpacity
+                      key={p.id}
+                      className={`mr-1.5 rounded-lg border px-3 py-1.5 ${
+                        isSelected
+                          ? 'border-[#059669] bg-[#d1fae5]'
+                          : isOut
+                          ? 'border-[#fecaca] bg-[#fff5f5]'
+                          : isLow
+                          ? 'border-[#fde68a] bg-[#fffbeb]'
+                          : 'border-[#e2e8f0] bg-[#f8fafc]'
+                      }`}
+                      onPress={() => {
+                        setSelectedProductId(p.id);
+                        setAdjustNewQty(safeQty(p.currentQuantity));
+                      }}
                     >
-                      {p.name}
-                    </Text>
-                  </TouchableOpacity>
-                ))}
+                      <Text
+                        className={`text-[11px] font-bold ${
+                          isSelected
+                            ? 'text-[#059669]'
+                            : isOut
+                            ? 'text-[#ef4444]'
+                            : isLow
+                            ? 'text-[#b45309]'
+                            : 'text-[#64748b]'
+                        }`}
+                      >
+                        {p.name} ({qty})
+                      </Text>
+                    </TouchableOpacity>
+                  );
+                })}
               </ScrollView>
 
               <Text className="mb-1.5 text-[11px] font-bold uppercase text-[#64748b]">New Total Quantity *</Text>
@@ -534,98 +614,3 @@ export const InventoryScreen: React.FC<InventoryScreenProps> = ({ onNavigateTab 
     </View>
   );
 };
-
-/*
-  formScroll: {
-    paddingBottom: 16,
-  },
-  inputLabel: {
-    fontSize: 11,
-    fontWeight: '700',
-    color: colors.textMuted,
-    textTransform: 'uppercase',
-    marginBottom: 6,
-  },
-  scannerPickRow: {
-    flexDirection: 'row',
-    gap: 8,
-    marginBottom: 10,
-  },
-  pickerContainer: {
-    height: 44,
-    backgroundColor: colors.bg,
-    borderRadius: 10,
-    borderWidth: 1,
-    borderColor: colors.border,
-    paddingHorizontal: 12,
-    justifyContent: 'center',
-  },
-  pickerSelectedText: {
-    fontSize: 13,
-    color: colors.text,
-    fontWeight: '600',
-  },
-  scanBtn: {
-    width: 44,
-    height: 44,
-    backgroundColor: colors.primary,
-    borderRadius: 10,
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  quickProdList: {
-    marginBottom: 12,
-  },
-  quickProdPill: {
-    backgroundColor: colors.bg,
-    paddingHorizontal: 12,
-    paddingVertical: 7,
-    borderRadius: 8,
-    borderWidth: 1,
-    borderColor: colors.border,
-    marginRight: 6,
-  },
-  quickProdPillActive: {
-    backgroundColor: colors.primaryLight,
-    borderColor: colors.primary,
-  },
-  quickProdText: {
-    fontSize: 12,
-    color: colors.text,
-    fontWeight: '600',
-  },
-  quickProdTextActive: {
-    color: colors.primary,
-    fontWeight: '700',
-  },
-  
-  reasonRow: {
-    flexDirection: 'row',
-    flexWrap: 'wrap',
-    gap: 6,
-    marginBottom: 12,
-  },
-  reasonPill: {
-    backgroundColor: colors.bg,
-    paddingHorizontal: 12,
-    paddingVertical: 7,
-    borderRadius: 8,
-    borderWidth: 1,
-    borderColor: colors.border,
-  },
-  reasonPillActive: {
-    backgroundColor: colors.warningLight,
-    borderColor: colors.warning,
-  },
-  reasonText: {
-    fontSize: 11,
-    fontWeight: '700',
-    color: colors.textMuted,
-  },
-  reasonTextActive: {
-    color: colors.warning,
-  },
-  saveBtnDisabled: {
-    opacity: 0.6,
-  },
-*/

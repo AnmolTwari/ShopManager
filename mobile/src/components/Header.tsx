@@ -1,7 +1,7 @@
 import React from 'react';
 import { Image, Platform, StatusBar, Text, TouchableOpacity, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
-import { CircleUser, RefreshCw } from 'lucide-react-native';
+import { RefreshCw } from 'lucide-react-native';
 import { useAuth } from '../context/AuthContext';
 import { colors } from '../theme/colors';
 
@@ -43,23 +43,17 @@ export const Header: React.FC<HeaderProps> = ({ title, subtitle, onRefresh, isRe
         </View>
       </View>
 
-      <View className="flex-row items-center gap-2">
-        {onRefresh && (
-          <TouchableOpacity
-            className="h-[34px] w-[34px] items-center justify-center rounded-lg border border-[#e2e8f0] bg-[#f8fafc]"
-            style={isRefreshing ? { opacity: 0.5 } : undefined}
-            onPress={onRefresh}
-            disabled={isRefreshing}
-            activeOpacity={0.7}
-          >
-            <RefreshCw size={16} color={colors.textMuted} />
-          </TouchableOpacity>
-        )}
-        <View className="flex-row items-center gap-1 rounded-lg border border-[rgba(5,150,105,0.2)] bg-[#d1fae5] px-2 py-1">
-          <CircleUser size={15} color={colors.primary} />
-          <Text className="text-[11px] font-bold tracking-[0.3px] text-[#059669]">{user?.role || 'USER'}</Text>
-        </View>
-      </View>
+      {onRefresh && (
+        <TouchableOpacity
+          className="h-[34px] w-[34px] items-center justify-center rounded-lg border border-[#e2e8f0] bg-[#f8fafc]"
+          style={isRefreshing ? { opacity: 0.5 } : undefined}
+          onPress={onRefresh}
+          disabled={isRefreshing}
+          activeOpacity={0.7}
+        >
+          <RefreshCw size={16} color={colors.textMuted} />
+        </TouchableOpacity>
+      )}
     </View>
   );
 };

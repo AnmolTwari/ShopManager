@@ -160,6 +160,29 @@ export interface ReportSummary {
   averageOrderValue: number;
 }
 
+export type PaymentMethod = 'CASH' | 'UPI' | 'CREDIT';
+
+export interface DebtLedgerEntry {
+  id: string;
+  type: 'CREDIT_SALE' | 'PAYMENT_RECEIVED' | 'MANUAL_DEBT';
+  amount: number;
+  date: string;
+  saleId?: number;
+  itemsSummary?: string[];
+  note?: string;
+  paymentMethod?: 'CASH' | 'UPI';
+}
+
+export interface CustomerDebtAccount {
+  id: string;
+  name: string;
+  phone?: string;
+  totalDebt: number;
+  lastUpdated: string;
+  notes?: string;
+  entries: DebtLedgerEntry[];
+}
+
 export interface PageResponse<T> {
   content: T[];
   totalElements: number;

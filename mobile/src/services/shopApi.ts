@@ -21,19 +21,33 @@ function isPageResponse<T>(data: any): data is PageResponse<T> {
 
 function sanitizeParam(value: string | undefined): string | undefined {
   if (!value) return undefined;
-  // Trim, limit length to prevent abuse, remove control chars
   const trimmed = value.trim().slice(0, 100).replace(/[\x00-\x1F\x7F]/g, '');
   return trimmed || undefined;
+}
+
+// In-Memory Fast Caches for 0ms Screen Renders
+let memoryDashboardSummary: DashboardSummary | null = null;
+let memoryCategories: Category[] | null = null;
+let memoryProducts: Product[] | null = null;
+const memoryReports = new Map<string, ReportSummary>();
+
+export function clearShopApiCaches() {
+  memoryDashboardSummary = null;
+  memoryProducts = null;
+  memoryCategories = null;
+  memoryReports.clear();
 }
 
 export const authApi = {
   async login(credentials: { username: string; password: string }): Promise<User> {
     const res = await http.post<User>('/auth/login', credentials);
+    clearShopApiCaches();
     return res.data;
   },
 
   async register(data: { username: string; email: string; password: string; name?: string }): Promise<User> {
     const res = await http.post<User>('/auth/register', data);
+    clearShopApiCaches();
     return res.data;
   },
 
@@ -43,6 +57,7 @@ export const authApi = {
   },
 
   async logout(): Promise<void> {
+    clearShopApiCaches();
     try {
       await http.post('/auth/logout');
     } catch {
@@ -60,6 +75,14 @@ export interface ProductListParams {
 }
 
 export const productsApi = {
+  getCachedProducts(): Product[] | null {
+    return memoryProducts;
+  },
+
+  getCachedCategories(): Category[] | null {
+    return memoryCategories;
+  },
+
   async list(params: ProductListParams = {}): Promise<Product[]> {
     const query = new URLSearchParams();
     const search = sanitizeParam(params.search);
@@ -72,12 +95,18 @@ export const productsApi = {
     const url = qs ? `/products?${qs}` : '/products';
     const res = await http.get<Product[] | PageResponse<Product>>(url);
     const data: any = res.data;
-    if (Array.isArray(data)) return data;
-    if (isPageResponse<Product>(data)) return data.content ?? [];
-    // Defensive: backend may return object with different casing
-    if (data && Array.isArray((data as any).data)) return (data as any).data;
-    console.warn('[productsApi.list] unexpected shape', data);
-    return [];
+
+    let result: Product[] = [];
+    if (Array.isArray(data)) result = data;
+    else if (isPageResponse<Product>(data)) result = data.content ?? [];
+    else if (data && Array.isArray((data as any).data)) result = (data as any).data;
+
+    // Cache unfiltered base list
+    if (!search && params.categoryId == null && !params.stockStatus && (params.page == null || params.page === 0)) {
+      memoryProducts = result;
+    }
+
+    return result;
   },
 
   async listPaged(params: ProductListParams = {}): Promise<PageResponse<Product>> {
@@ -118,25 +147,35 @@ export const productsApi = {
 
   async create(data: ProductRequest): Promise<Product> {
     const res = await http.post<Product>('/products', data);
+    memoryProducts = null;
+    memoryDashboardSummary = null;
+    memoryReports.clear();
     return res.data;
   },
 
   async update(id: number, data: ProductRequest): Promise<Product> {
     const res = await http.put<Product>(`/products/${id}`, data);
+    memoryProducts = null;
+    memoryDashboardSummary = null;
+    memoryReports.clear();
     return res.data;
   },
 
   async delete(id: number): Promise<{ archived: boolean }> {
     const res = await http.delete<{ archived: boolean }>(`/products/${id}`);
-    // Backend returns { archived: true/false } or empty
+    memoryProducts = null;
+    memoryDashboardSummary = null;
+    memoryReports.clear();
     if (res.data && typeof (res.data as any).archived === 'boolean') return res.data as any;
     return { archived: true };
   },
 
   async restore(id: number): Promise<Product> {
-    // Backend currently has no restore endpoint (soft-delete only). Try it but fallback gracefully.
     try {
       const res = await http.post<Product>(`/products/${id}/restore`);
+      memoryProducts = null;
+      memoryDashboardSummary = null;
+      memoryReports.clear();
       return res.data;
     } catch (e: any) {
       if (e?.status === 404 || e?.status === 405) {
@@ -147,17 +186,30 @@ export const productsApi = {
   },
 
   async listCategories(): Promise<Category[]> {
+    if (memoryCategories && memoryCategories.length > 0) {
+      // Return cached immediately & refresh asynchronously
+      http.get<Category[] | PageResponse<Category>>('/categories').then((res) => {
+        const data: any = res.data;
+        if (Array.isArray(data)) memoryCategories = data;
+        else if (isPageResponse<Category>(data)) memoryCategories = data.content ?? [];
+      }).catch(() => {});
+      return memoryCategories;
+    }
+
     const res = await http.get<Category[] | PageResponse<Category>>('/categories');
     const data: any = res.data;
-    if (Array.isArray(data)) return data;
-    if (isPageResponse<Category>(data)) return data.content ?? [];
-    return [];
+    let cats: Category[] = [];
+    if (Array.isArray(data)) cats = data;
+    else if (isPageResponse<Category>(data)) cats = data.content ?? [];
+    memoryCategories = cats;
+    return cats;
   },
 
   async createCategory(data: { name: string }): Promise<Category> {
     const sanitized = sanitizeParam(data.name);
     if (!sanitized) throw new Error('Category name is required');
     const res = await http.post<Category>('/categories', { name: sanitized });
+    memoryCategories = null;
     return res.data;
   },
 };
@@ -165,11 +217,15 @@ export const productsApi = {
 export const inventoryApi = {
   async stockIn(data: StockInRequest): Promise<StockMovement> {
     const res = await http.post<StockMovement>('/inventory/stock-in', data);
+    memoryProducts = null;
+    memoryDashboardSummary = null;
     return res.data;
   },
 
   async adjust(data: StockAdjustmentRequest): Promise<StockMovement> {
     const res = await http.post<StockMovement>('/inventory/adjustment', data);
+    memoryProducts = null;
+    memoryDashboardSummary = null;
     return res.data;
   },
 
@@ -182,6 +238,9 @@ export const inventoryApi = {
 export const salesApi = {
   async create(data: CreateSaleRequest): Promise<SaleResponse> {
     const res = await http.post<SaleResponse>('/sales', data);
+    memoryProducts = null;
+    memoryDashboardSummary = null;
+    memoryReports.clear();
     return res.data;
   },
 
@@ -223,13 +282,23 @@ export const salesApi = {
 };
 
 export const dashboardApi = {
+  getCachedSummary(): DashboardSummary | null {
+    return memoryDashboardSummary;
+  },
+
   async getSummary(): Promise<DashboardSummary> {
     const res = await http.get<DashboardSummary>('/dashboard/summary');
+    memoryDashboardSummary = res.data;
     return res.data;
   },
 };
 
 export const reportsApi = {
+  getCachedSummary(from?: string, to?: string): ReportSummary | null {
+    const key = `${from || 'all'}_${to || 'all'}`;
+    return memoryReports.get(key) || null;
+  },
+
   async getSummary(from?: string, to?: string): Promise<ReportSummary> {
     const params = new URLSearchParams();
     if (from) params.append('from', from);
@@ -237,6 +306,8 @@ export const reportsApi = {
     const queryString = params.toString();
     const url = queryString ? `/reports/summary?${queryString}` : '/reports/summary';
     const res = await http.get<ReportSummary>(url);
+    const key = `${from || 'all'}_${to || 'all'}`;
+    memoryReports.set(key, res.data);
     return res.data;
   },
 };

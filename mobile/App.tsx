@@ -7,11 +7,11 @@ import { BottomTabBar, TabScreen } from './src/components/BottomTabBar';
 import { ErrorBoundary } from './src/components/ErrorBoundary';
 import { AuthProvider, useAuth } from './src/context/AuthContext';
 import { CartProvider } from './src/context/CartContext';
-import { DashboardScreen } from './src/screens/DashboardScreen';
+import { DashboardScreen, NavigationParams } from './src/screens/DashboardScreen';
 import { InventoryScreen } from './src/screens/InventoryScreen';
 import { LoginScreen } from './src/screens/LoginScreen';
 import { PosScreen } from './src/screens/PosScreen';
-import { ProductsScreen } from './src/screens/ProductsScreen';
+import { ProductsScreen, StockFilterType } from './src/screens/ProductsScreen';
 import { RegisterScreen } from './src/screens/RegisterScreen';
 import { ReportsScreen } from './src/screens/ReportsScreen';
 import { SettingsScreen } from './src/screens/SettingsScreen';
@@ -21,6 +21,9 @@ const MainNavigator: React.FC = () => {
   const { user, isLoading } = useAuth();
   const [authMode, setAuthMode] = useState<'login' | 'register'>('login');
   const [currentTab, setCurrentTab] = useState<TabScreen>('dashboard');
+  const [inventoryInitialProductId, setInventoryInitialProductId] = useState<number | null>(null);
+  const [productsInitialStockFilter, setProductsInitialStockFilter] = useState<StockFilterType>('ALL');
+  const [visitedTabs, setVisitedTabs] = useState<Set<TabScreen>>(() => new Set(['dashboard']));
 
   useEffect(() => {
     async function checkUpdates() {
@@ -38,6 +41,37 @@ const MainNavigator: React.FC = () => {
     checkUpdates();
   }, []);
 
+  useEffect(() => {
+    setVisitedTabs((prev) => {
+      if (prev.has(currentTab)) return prev;
+      const next = new Set(prev);
+      next.add(currentTab);
+      return next;
+    });
+  }, [currentTab]);
+
+  const handleNavigateTab = (tab: TabScreen, params?: NavigationParams) => {
+    if (params?.productId != null) {
+      setInventoryInitialProductId(params.productId);
+    } else {
+      setInventoryInitialProductId(null);
+    }
+
+    if (params?.stockFilter) {
+      setProductsInitialStockFilter(params.stockFilter);
+    } else {
+      setProductsInitialStockFilter('ALL');
+    }
+
+    setCurrentTab(tab);
+  };
+
+  const handleBottomTabChange = (tab: TabScreen) => {
+    setInventoryInitialProductId(null);
+    setProductsInitialStockFilter('ALL');
+    setCurrentTab(tab);
+  };
+
   if (isLoading) {
     return (
       <View className="flex-1 items-center justify-center bg-slate-900">
@@ -54,31 +88,46 @@ const MainNavigator: React.FC = () => {
     return <LoginScreen onSwitchToRegister={() => setAuthMode('register')} />;
   }
 
-  // Authenticated Main Tabs Flow
-  const renderTabScreen = () => {
-    switch (currentTab) {
-      case 'dashboard':
-        return <DashboardScreen onNavigateTab={setCurrentTab} />;
-      case 'pos':
-        return <PosScreen />;
-      case 'products':
-        return <ProductsScreen onNavigateTab={setCurrentTab} />;
-      case 'inventory':
-        return <InventoryScreen onNavigateTab={setCurrentTab} />;
-      case 'reports':
-        return <ReportsScreen />;
-      case 'settings':
-        return <SettingsScreen />;
-      default:
-        return <DashboardScreen onNavigateTab={setCurrentTab} />;
-    }
-  };
-
   return (
     <View className="flex-1 bg-white">
       <StatusBar barStyle="dark-content" backgroundColor={colors.surface} />
-      <View className="flex-1">{renderTabScreen()}</View>
-      <BottomTabBar currentTab={currentTab} onTabChange={setCurrentTab} />
+      <View className="flex-1">
+        <View style={{ flex: 1, display: currentTab === 'dashboard' ? 'flex' : 'none' }}>
+          <DashboardScreen onNavigateTab={handleNavigateTab} />
+        </View>
+        {visitedTabs.has('pos') && (
+          <View style={{ flex: 1, display: currentTab === 'pos' ? 'flex' : 'none' }}>
+            <PosScreen />
+          </View>
+        )}
+        {visitedTabs.has('products') && (
+          <View style={{ flex: 1, display: currentTab === 'products' ? 'flex' : 'none' }}>
+            <ProductsScreen
+              onNavigateTab={handleNavigateTab}
+              initialStockFilter={productsInitialStockFilter}
+            />
+          </View>
+        )}
+        {visitedTabs.has('inventory') && (
+          <View style={{ flex: 1, display: currentTab === 'inventory' ? 'flex' : 'none' }}>
+            <InventoryScreen
+              onNavigateTab={handleNavigateTab}
+              initialProductId={inventoryInitialProductId}
+            />
+          </View>
+        )}
+        {visitedTabs.has('reports') && (
+          <View style={{ flex: 1, display: currentTab === 'reports' ? 'flex' : 'none' }}>
+            <ReportsScreen />
+          </View>
+        )}
+        {visitedTabs.has('settings') && (
+          <View style={{ flex: 1, display: currentTab === 'settings' ? 'flex' : 'none' }}>
+            <SettingsScreen />
+          </View>
+        )}
+      </View>
+      <BottomTabBar currentTab={currentTab} onTabChange={handleBottomTabChange} />
     </View>
   );
 };

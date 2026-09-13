@@ -15,7 +15,7 @@ import {
 } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { BarcodeScannerModal } from '../components/BarcodeScannerModal';
-import { BottomTabBar, TabScreen } from '../components/BottomTabBar';
+import { TabScreen } from '../components/BottomTabBar';
 import { Header } from '../components/Header';
 import { ReceiptModal } from '../components/ReceiptModal';
 import { StockBadge } from '../components/StockBadge';
@@ -41,8 +41,9 @@ import {
   Sparkles,
   Banknote,
   QrCode,
-  CreditCard,
+  BookUser,
   ArrowRight,
+  Filter,
 } from 'lucide-react-native';
 
 const UNITS: ProductUnit[] = ['PIECE', 'PACKET', 'BOX', 'BOTTLE', 'KG', 'GRAM', 'LITRE', 'ML'];
@@ -63,11 +64,17 @@ function sanitizeSku(input: string): string {
   return input.replace(/[^a-zA-Z0-9-_]/g, '').slice(0, 50).trim();
 }
 
+export type StockFilterType = 'ALL' | 'OUT_OF_STOCK' | 'LOW_STOCK' | 'IN_STOCK';
+
 interface ProductsScreenProps {
   onNavigateTab?: (tab: TabScreen) => void;
+  initialStockFilter?: StockFilterType;
 }
 
-export const ProductsScreen: React.FC<ProductsScreenProps> = ({ onNavigateTab }) => {
+export const ProductsScreen: React.FC<ProductsScreenProps> = ({
+  onNavigateTab,
+  initialStockFilter = 'ALL',
+}) => {
   const insets = useSafeAreaInsets();
   const modalBottomPadding = Math.max(
     insets.bottom > 0 ? insets.bottom + 20 : 0,
@@ -76,15 +83,22 @@ export const ProductsScreen: React.FC<ProductsScreenProps> = ({ onNavigateTab })
   const { items, addItem, totalAmount, totalItems } = useCart();
   const { shopProfile } = useAuth();
 
-  const [products, setProducts] = useState<Product[]>([]);
-  const [categories, setCategories] = useState<Category[]>([]);
-  const [loading, setLoading] = useState<boolean>(true);
+  const [products, setProducts] = useState<Product[]>(() => productsApi.getCachedProducts() ?? []);
+  const [categories, setCategories] = useState<Category[]>(() => productsApi.getCachedCategories() ?? []);
+  const [loading, setLoading] = useState<boolean>(() => !productsApi.getCachedProducts()?.length);
   const [refreshing, setRefreshing] = useState<boolean>(false);
   const [error, setError] = useState<string | null>(null);
 
   const [searchQuery, setSearchQuery] = useState<string>('');
   const [debouncedSearch, setDebouncedSearch] = useState<string>('');
   const [selectedCategory, setSelectedCategory] = useState<number | 'ALL'>('ALL');
+  const [selectedStockFilter, setSelectedStockFilter] = useState<StockFilterType>(initialStockFilter);
+
+  useEffect(() => {
+    if (initialStockFilter) {
+      setSelectedStockFilter(initialStockFilter);
+    }
+  }, [initialStockFilter]);
 
   // Form Modals
   const [formModalOpen, setFormModalOpen] = useState<boolean>(false);
@@ -98,7 +112,7 @@ export const ProductsScreen: React.FC<ProductsScreenProps> = ({ onNavigateTab })
   const [quickSellModalOpen, setQuickSellModalOpen] = useState<boolean>(false);
   const [quickSellProduct, setQuickSellProduct] = useState<Product | null>(null);
   const [quickSellQty, setQuickSellQty] = useState<string>('1');
-  const [quickSellPaymentMethod, setQuickSellPaymentMethod] = useState<'CASH' | 'UPI' | 'CARD'>('CASH');
+  const [quickSellPaymentMethod, setQuickSellPaymentMethod] = useState<'CASH' | 'UPI' | 'CREDIT'>('CASH');
   const [quickSellPhone, setQuickSellPhone] = useState<string>('');
   const [quickSelling, setQuickSelling] = useState<boolean>(false);
   const [completedSale, setCompletedSale] = useState<SaleResponse | null>(null);
@@ -122,7 +136,7 @@ export const ProductsScreen: React.FC<ProductsScreenProps> = ({ onNavigateTab })
 
   const loadData = useCallback(
     async (opts: { showSpinner?: boolean; isRefresh?: boolean } = {}) => {
-      const showSpinner = opts.showSpinner ?? !opts.isRefresh;
+      const showSpinner = opts.showSpinner ?? (!opts.isRefresh && products.length === 0);
       if (showSpinner) setLoading(true);
       if (opts.isRefresh) setRefreshing(true);
       setError(null);
@@ -130,6 +144,7 @@ export const ProductsScreen: React.FC<ProductsScreenProps> = ({ onNavigateTab })
         const params: any = { size: PAGE_SIZE, page: 0 };
         if (debouncedSearch) params.search = debouncedSearch;
         if (selectedCategory !== 'ALL') params.categoryId = selectedCategory;
+        if (selectedStockFilter !== 'ALL') params.stockStatus = selectedStockFilter;
         const [prodData, catData] = await Promise.all([
           productsApi.list(params),
           productsApi.listCategories().catch(() => [] as Category[]),
@@ -146,11 +161,11 @@ export const ProductsScreen: React.FC<ProductsScreenProps> = ({ onNavigateTab })
         setRefreshing(false);
       }
     },
-    [debouncedSearch, selectedCategory]
+    [debouncedSearch, selectedCategory, selectedStockFilter, products.length]
   );
 
   useEffect(() => {
-    loadData({ showSpinner: true });
+    loadData();
   }, [loadData]);
 
   const onRefresh = useCallback(() => {
@@ -512,27 +527,70 @@ export const ProductsScreen: React.FC<ProductsScreenProps> = ({ onNavigateTab })
         </TouchableOpacity>
       </View>
 
-      {/* Category Pills */}
-      <View className="border-b border-[#e2e8f0] bg-white py-3">
+      {/* Stock Status & Category Filters */}
+      <View className="border-b border-[#e2e8f0] bg-white py-2">
+        {/* Stock Filter Pills */}
         <ScrollView
           horizontal
           showsHorizontalScrollIndicator={false}
-          contentContainerClassName="flex-row gap-2 px-4"
+          contentContainerClassName="flex-row gap-1.5 px-4 mb-2"
+        >
+          {[
+            { id: 'ALL', label: 'All Stock' },
+            { id: 'OUT_OF_STOCK', label: 'Out of Stock' },
+            { id: 'LOW_STOCK', label: 'Low Stock' },
+            { id: 'IN_STOCK', label: 'In Stock' },
+          ].map((st) => (
+            <TouchableOpacity
+              key={st.id}
+              className={`rounded-lg border px-2.5 py-1 ${
+                selectedStockFilter === st.id
+                  ? st.id === 'OUT_OF_STOCK'
+                    ? 'border-[#ef4444] bg-[#fee2e2]'
+                    : st.id === 'LOW_STOCK'
+                    ? 'border-[#f59e0b] bg-[#fef3c7]'
+                    : 'border-[#059669] bg-[#d1fae5]'
+                  : 'border-[#e2e8f0] bg-[#f8fafc]'
+              }`}
+              onPress={() => setSelectedStockFilter(st.id as StockFilterType)}
+            >
+              <Text
+                className={`text-[11px] font-extrabold ${
+                  selectedStockFilter === st.id
+                    ? st.id === 'OUT_OF_STOCK'
+                      ? 'text-[#ef4444]'
+                      : st.id === 'LOW_STOCK'
+                      ? 'text-[#b45309]'
+                      : 'text-[#059669]'
+                    : 'text-[#64748b]'
+                }`}
+              >
+                {st.label}
+              </Text>
+            </TouchableOpacity>
+          ))}
+        </ScrollView>
+
+        {/* Category Pills */}
+        <ScrollView
+          horizontal
+          showsHorizontalScrollIndicator={false}
+          contentContainerClassName="flex-row gap-1.5 px-4"
         >
           <TouchableOpacity
-            className={`rounded-full border px-3 py-1.5 ${
+            className={`rounded-full border px-3 py-1 ${
               selectedCategory === 'ALL'
-                ? 'border-[#059669] bg-[#d1fae5]'
+                ? 'border-[#059669] bg-[#059669]'
                 : 'border-[#e2e8f0] bg-[#f8fafc]'
             }`}
             onPress={() => setSelectedCategory('ALL')}
           >
             <Text
-              className={`text-xs font-semibold ${
-                selectedCategory === 'ALL' ? 'text-[#059669]' : 'text-[#64748b]'
+              className={`text-xs font-bold ${
+                selectedCategory === 'ALL' ? 'text-white' : 'text-[#64748b]'
               }`}
             >
-              All
+              All Categories
             </Text>
           </TouchableOpacity>
           {(categories || [])
@@ -540,16 +598,16 @@ export const ProductsScreen: React.FC<ProductsScreenProps> = ({ onNavigateTab })
             .map((c) => (
               <TouchableOpacity
                 key={c.id}
-                className={`rounded-full border px-3 py-1.5 ${
+                className={`rounded-full border px-3 py-1 ${
                   selectedCategory === c.id
-                    ? 'border-[#059669] bg-[#d1fae5]'
+                    ? 'border-[#059669] bg-[#059669]'
                     : 'border-[#e2e8f0] bg-[#f8fafc]'
                 }`}
                 onPress={() => setSelectedCategory(c.id)}
               >
                 <Text
-                  className={`text-xs font-semibold ${
-                    selectedCategory === c.id ? 'text-[#059669]' : 'text-[#64748b]'
+                  className={`text-xs font-bold ${
+                    selectedCategory === c.id ? 'text-white' : 'text-[#64748b]'
                   }`}
                   numberOfLines={1}
                 >
@@ -564,6 +622,7 @@ export const ProductsScreen: React.FC<ProductsScreenProps> = ({ onNavigateTab })
       <View className="flex-row items-center justify-between px-4 py-2">
         <Text className="flex-1 text-xs font-medium text-[#64748b]">
           Showing {filtered.length} items {debouncedSearch ? `for "${debouncedSearch}"` : ''}
+          {selectedStockFilter !== 'ALL' ? ` • ${selectedStockFilter.replace(/_/g, ' ')}` : ''}
         </Text>
         {error ? (
           <TouchableOpacity className="flex-row items-center gap-1 py-0.5" onPress={() => loadData()}>
@@ -591,6 +650,10 @@ export const ProductsScreen: React.FC<ProductsScreenProps> = ({ onNavigateTab })
           keyExtractor={(item, index) => (item?.id != null ? String(item.id) : String(index))}
           contentContainerClassName="gap-2.5 p-4 pb-28"
           renderItem={renderProductCard}
+          initialNumToRender={8}
+          maxToRenderPerBatch={10}
+          windowSize={5}
+          removeClippedSubviews={Platform.OS === 'android'}
           refreshControl={
             <RefreshControl
               refreshing={refreshing}
@@ -603,11 +666,13 @@ export const ProductsScreen: React.FC<ProductsScreenProps> = ({ onNavigateTab })
             <View className="flex-1 items-center justify-center p-7">
               <Package size={40} color={colors.textLight} />
               <Text className="mt-2 text-[15px] font-bold text-[#0f172a]">
-                {debouncedSearch ? 'No Matches' : 'No Products Yet'}
+                {debouncedSearch ? 'No Matches' : 'No Products Found'}
               </Text>
               <Text className="mt-1 text-center text-xs leading-[18px] text-[#64748b]">
                 {debouncedSearch
                   ? `No products found for "${debouncedSearch}".`
+                  : selectedStockFilter !== 'ALL'
+                  ? `No products match "${selectedStockFilter.replace(/_/g, ' ')}".`
                   : 'Tap "+ Add" to create your first inventory item'}
               </Text>
             </View>
@@ -744,22 +809,22 @@ export const ProductsScreen: React.FC<ProductsScreenProps> = ({ onNavigateTab })
 
                 <TouchableOpacity
                   className={`flex-1 flex-row items-center justify-center gap-1.5 rounded-xl border px-1 py-3 ${
-                    quickSellPaymentMethod === 'CARD'
-                      ? 'border-[#059669] bg-[#d1fae5]'
+                    quickSellPaymentMethod === 'CREDIT'
+                      ? 'border-[#d97706] bg-[#fef3c7]'
                       : 'border-[#e2e8f0] bg-[#f8fafc]'
                   }`}
-                  onPress={() => setQuickSellPaymentMethod('CARD')}
+                  onPress={() => setQuickSellPaymentMethod('CREDIT')}
                 >
-                  <CreditCard
+                  <BookUser
                     size={18}
-                    color={quickSellPaymentMethod === 'CARD' ? colors.primary : colors.textMuted}
+                    color={quickSellPaymentMethod === 'CREDIT' ? '#d97706' : colors.textMuted}
                   />
                   <Text
                     className={`text-xs font-bold ${
-                      quickSellPaymentMethod === 'CARD' ? 'text-[#059669]' : 'text-[#64748b]'
+                      quickSellPaymentMethod === 'CREDIT' ? 'text-[#b45309]' : 'text-[#64748b]'
                     }`}
                   >
-                    Card
+                    Credit / Udhaar
                   </Text>
                 </TouchableOpacity>
               </View>

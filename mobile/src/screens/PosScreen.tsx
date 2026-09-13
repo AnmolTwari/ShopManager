@@ -15,14 +15,16 @@ import {
 } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { BarcodeScannerModal } from '../components/BarcodeScannerModal';
+import { CustomerDebtModal } from '../components/CustomerDebtModal';
 import { Header } from '../components/Header';
 import { ReceiptModal } from '../components/ReceiptModal';
 import { StockBadge } from '../components/StockBadge';
 import { useCart } from '../context/CartContext';
 import { useAuth } from '../context/AuthContext';
 import { productsApi, salesApi } from '../services/shopApi';
+import { debtStorage } from '../services/debtStorage';
 import { colors } from '../theme/colors';
-import { Category, Product, SaleResponse, SaleSummaryResponse } from '../types';
+import { Category, Product, SaleResponse, SaleSummaryResponse, CustomerDebtAccount } from '../types';
 import { formatDateTime } from '../utils/dateUtils';
 import * as Haptics from 'expo-haptics';
 import {
@@ -32,9 +34,9 @@ import {
   Minus,
   Trash2,
   CircleCheck,
-  CreditCard,
   QrCode,
   Banknote,
+  BookUser,
   Sparkles,
   ShoppingBag,
   Flame,
@@ -45,6 +47,7 @@ import {
   ChevronDown,
   ChevronUp,
   Hash,
+  User,
 } from 'lucide-react-native';
 
 export const PosScreen: React.FC = () => {
@@ -70,12 +73,12 @@ export const PosScreen: React.FC = () => {
   const [activeSubTab, setActiveSubTab] = useState<'new-sale' | 'history'>('new-sale');
 
   // Product Data
-  const [products, setProducts] = useState<Product[]>([]);
+  const [products, setProducts] = useState<Product[]>(() => productsApi.getCachedProducts() ?? []);
   const [popularProducts, setPopularProducts] = useState<Product[]>([]);
-  const [categories, setCategories] = useState<Category[]>([]);
+  const [categories, setCategories] = useState<Category[]>(() => productsApi.getCachedCategories() ?? []);
   const [selectedCategory, setSelectedCategory] = useState<number | 'ALL'>('ALL');
   const [searchQuery, setSearchQuery] = useState<string>('');
-  const [loading, setLoading] = useState<boolean>(true);
+  const [loading, setLoading] = useState<boolean>(() => !productsApi.getCachedProducts()?.length);
   const [refreshing, setRefreshing] = useState<boolean>(false);
   const [loadError, setLoadError] = useState<string | null>(null);
 
@@ -88,8 +91,11 @@ export const PosScreen: React.FC = () => {
   // Modals
   const [scannerOpen, setScannerOpen] = useState<boolean>(false);
   const [checkoutModalOpen, setCheckoutModalOpen] = useState<boolean>(false);
-  const [paymentMethod, setPaymentMethod] = useState<'CASH' | 'UPI' | 'CARD'>('CASH');
+  const [paymentMethod, setPaymentMethod] = useState<'CASH' | 'UPI' | 'CREDIT'>('CASH');
+  const [customerName, setCustomerName] = useState<string>('');
   const [customerPhone, setCustomerPhone] = useState<string>('');
+  const [creditNote, setCreditNote] = useState<string>('');
+  const [debtModalOpen, setDebtModalOpen] = useState<boolean>(false);
   const [submitting, setSubmitting] = useState<boolean>(false);
   const [completedSale, setCompletedSale] = useState<SaleResponse | null>(null);
 
@@ -109,8 +115,10 @@ export const PosScreen: React.FC = () => {
     return Number.isFinite(n) ? n : fallback;
   }
 
-  const loadInitialData = useCallback(async () => {
-    setLoading(true);
+  const loadInitialData = useCallback(async (opts: { showSpinner?: boolean } = {}) => {
+    if (opts.showSpinner || !products.length) {
+      setLoading(true);
+    }
     setLoadError(null);
     try {
       const [prodData, popularData, catData] = await Promise.all([
@@ -129,7 +137,7 @@ export const PosScreen: React.FC = () => {
       setLoading(false);
       setRefreshing(false);
     }
-  }, []);
+  }, [products.length]);
 
   const loadSalesHistory = useCallback(async () => {
     setLoadingHistory(true);
@@ -287,6 +295,11 @@ export const PosScreen: React.FC = () => {
   const handleCheckoutSubmit = async () => {
     if (items.length === 0) return;
 
+    if (paymentMethod === 'CREDIT' && !customerName.trim()) {
+      Alert.alert('Customer Name Required', 'Please enter customer name to record this credit / udhaar sale.');
+      return;
+    }
+
     setSubmitting(true);
     try {
       const salePayload = {
@@ -297,6 +310,19 @@ export const PosScreen: React.FC = () => {
       };
 
       const result = await salesApi.create(salePayload);
+
+      // If credit sale, automatically record in customer debt account
+      if (paymentMethod === 'CREDIT') {
+        await debtStorage.recordCreditSale(
+          {
+            name: customerName.trim(),
+            phone: customerPhone.trim() || undefined,
+          },
+          result,
+          creditNote.trim() || 'POS Credit Sale'
+        );
+      }
+
       try {
         Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
       } catch {}
@@ -592,6 +618,10 @@ export const PosScreen: React.FC = () => {
               data={filteredProducts}
               keyExtractor={(item) => item.id.toString()}
               contentContainerClassName="gap-2 p-4 pb-44"
+              initialNumToRender={10}
+              maxToRenderPerBatch={10}
+              windowSize={5}
+              removeClippedSubviews={Platform.OS === 'android'}
               refreshControl={
                 <RefreshControl
                   refreshing={refreshing}
@@ -889,6 +919,10 @@ export const PosScreen: React.FC = () => {
               data={salesHistory}
               keyExtractor={(item) => item.id.toString()}
               contentContainerClassName="gap-2.5 p-4 pb-10"
+              initialNumToRender={10}
+              maxToRenderPerBatch={10}
+              windowSize={5}
+              removeClippedSubviews={Platform.OS === 'android'}
               refreshControl={
                 <RefreshControl
                   refreshing={refreshing}
@@ -1189,38 +1223,90 @@ export const PosScreen: React.FC = () => {
 
                 <TouchableOpacity
                   className={`flex-1 flex-row items-center justify-center gap-1.5 rounded-xl border px-1 py-3 ${
-                    paymentMethod === 'CARD'
-                      ? 'border-[#059669] bg-[#d1fae5]'
+                    paymentMethod === 'CREDIT'
+                      ? 'border-[#d97706] bg-[#fef3c7]'
                       : 'border-[#e2e8f0] bg-[#f8fafc]'
                   }`}
-                  onPress={() => setPaymentMethod('CARD')}
+                  onPress={() => setPaymentMethod('CREDIT')}
                 >
-                  <CreditCard
+                  <BookUser
                     size={18}
-                    color={paymentMethod === 'CARD' ? colors.primary : colors.textMuted}
+                    color={paymentMethod === 'CREDIT' ? '#d97706' : colors.textMuted}
                   />
                   <Text
                     className={`text-xs font-bold ${
-                      paymentMethod === 'CARD' ? 'text-[#059669]' : 'text-[#64748b]'
+                      paymentMethod === 'CREDIT' ? 'text-[#b45309]' : 'text-[#64748b]'
                     }`}
                   >
-                    Card
+                    Credit / Udhaar
                   </Text>
                 </TouchableOpacity>
               </View>
 
-              {/* Optional Customer Phone for WhatsApp Receipt */}
-              <Text className="mb-1.5 text-[11px] font-bold uppercase tracking-[0.4px] text-[#64748b]">
-                Customer WhatsApp Phone (Optional)
-              </Text>
-              <TextInput
-                className="mb-3 h-12 rounded-xl border border-[#e2e8f0] bg-[#f8fafc] px-3.5 text-sm font-medium text-[#0f172a]"
-                placeholder="e.g. 9876543210"
-                placeholderTextColor={colors.textLight}
-                keyboardType="phone-pad"
-                value={customerPhone}
-                onChangeText={setCustomerPhone}
-              />
+              {/* Conditional Inputs based on Payment Method */}
+              {paymentMethod === 'CREDIT' ? (
+                <View className="mb-3 rounded-2xl border border-[#fde68a] bg-[#fefce8] p-3.5">
+                  <View className="mb-2 flex-row items-center justify-between">
+                    <Text className="text-xs font-black text-[#92400e]">
+                      Customer Debt Details (Udhaar)
+                    </Text>
+                    <TouchableOpacity
+                      onPress={() => setDebtModalOpen(true)}
+                      className="rounded-md bg-[#fef3c7] px-2 py-0.5"
+                    >
+                      <Text className="text-[10px] font-bold text-[#b45309]">View Debt Book →</Text>
+                    </TouchableOpacity>
+                  </View>
+
+                  <Text className="mb-1 text-[11px] font-bold text-[#92400e]">
+                    Customer Name *
+                  </Text>
+                  <TextInput
+                    className="mb-2.5 h-11 rounded-xl border border-[#fde68a] bg-white px-3.5 text-xs font-bold text-[#0f172a]"
+                    placeholder="e.g. Ramesh Kumar"
+                    placeholderTextColor={colors.textLight}
+                    value={customerName}
+                    onChangeText={setCustomerName}
+                  />
+
+                  <Text className="mb-1 text-[11px] font-bold text-[#92400e]">
+                    Customer Phone (Optional)
+                  </Text>
+                  <TextInput
+                    className="mb-2.5 h-11 rounded-xl border border-[#fde68a] bg-white px-3.5 text-xs font-medium text-[#0f172a]"
+                    placeholder="e.g. 9876543210"
+                    placeholderTextColor={colors.textLight}
+                    keyboardType="phone-pad"
+                    value={customerPhone}
+                    onChangeText={setCustomerPhone}
+                  />
+
+                  <Text className="mb-1 text-[11px] font-bold text-[#92400e]">
+                    Notes / Promise Date (Optional)
+                  </Text>
+                  <TextInput
+                    className="h-10 rounded-xl border border-[#fde68a] bg-white px-3 text-xs font-medium text-[#0f172a]"
+                    placeholder="e.g. Will pay next Monday"
+                    placeholderTextColor={colors.textLight}
+                    value={creditNote}
+                    onChangeText={setCreditNote}
+                  />
+                </View>
+              ) : (
+                <>
+                  <Text className="mb-1.5 text-[11px] font-bold uppercase tracking-[0.4px] text-[#64748b]">
+                    Customer Phone (Optional)
+                  </Text>
+                  <TextInput
+                    className="mb-3 h-12 rounded-xl border border-[#e2e8f0] bg-[#f8fafc] px-3.5 text-sm font-medium text-[#0f172a]"
+                    placeholder="e.g. 9876543210"
+                    placeholderTextColor={colors.textLight}
+                    keyboardType="phone-pad"
+                    value={customerPhone}
+                    onChangeText={setCustomerPhone}
+                  />
+                </>
+              )}
             </ScrollView>
 
             {/* Action Buttons */}
@@ -1234,7 +1320,9 @@ export const PosScreen: React.FC = () => {
               </TouchableOpacity>
 
               <TouchableOpacity
-                className="flex-[2] flex-row items-center justify-center gap-1.5 rounded-xl bg-[#059669] py-3"
+                className={`flex-[2] flex-row items-center justify-center gap-1.5 rounded-xl py-3 ${
+                  paymentMethod === 'CREDIT' ? 'bg-[#d97706]' : 'bg-[#059669]'
+                }`}
                 style={submitting ? { opacity: 0.6 } : undefined}
                 onPress={handleCheckoutSubmit}
                 disabled={submitting}
@@ -1244,7 +1332,9 @@ export const PosScreen: React.FC = () => {
                 ) : (
                   <>
                     <CircleCheck size={18} color="#fff" />
-                    <Text className="text-sm font-black text-white">Complete Sale</Text>
+                    <Text className="text-sm font-black text-white">
+                      {paymentMethod === 'CREDIT' ? 'Confirm Credit Sale' : 'Complete Sale'}
+                    </Text>
                   </>
                 )}
               </TouchableOpacity>
@@ -1252,6 +1342,17 @@ export const PosScreen: React.FC = () => {
           </View>
         </KeyboardAvoidingView>
       </Modal>
+
+      {/* Customer Debt Book Modal */}
+      <CustomerDebtModal
+        visible={debtModalOpen}
+        onClose={() => setDebtModalOpen(false)}
+        onSelectCustomerForCredit={(cust) => {
+          setCustomerName(cust.name);
+          if (cust.phone) setCustomerPhone(cust.phone);
+          setDebtModalOpen(false);
+        }}
+      />
 
       {/* Completed Sale Receipt Modal */}
       <ReceiptModal
@@ -1263,7 +1364,9 @@ export const PosScreen: React.FC = () => {
         onClose={() => {
           setCompletedSale(null);
           setSelectedHistorySale(null);
+          setCustomerName('');
           setCustomerPhone('');
+          setCreditNote('');
         }}
       />
     </View>

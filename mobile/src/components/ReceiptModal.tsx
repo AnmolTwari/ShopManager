@@ -88,8 +88,9 @@ export const ReceiptModal: React.FC<ReceiptModalProps> = ({
         .join('\n');
 
       const savingsBlock = totalSavings > 0 ? `\n🎉 *TOTAL SAVINGS: ₹${totalSavings.toFixed(2)}*` : '';
+      const modeLabel = paymentMethod === 'CREDIT' ? 'Credit / Udhaar (Pending Due)' : paymentMethod;
 
-      const message = `🧾 *INVOICE #${sale.id}*\n🏬 *${effectiveShopName}*${effectivePhone ? `\n📞 ${effectivePhone}` : ''}${effectiveAddress ? `\n📍 ${effectiveAddress}` : ''}\n📅 ${formattedDate}\n\n*Items Purchased:*\n${itemsList}\n\n-------------------------\n💰 *TOTAL AMOUNT: ₹${totalAmount.toFixed(2)}*${savingsBlock}\n💳 Payment Mode: ${paymentMethod}\n-------------------------\nThank you for shopping with us! 🙏\n_⚡ Powered by ShopManager_`;
+      const message = `🧾 *INVOICE #${sale.id}*\n🏬 *${effectiveShopName}*${effectivePhone ? `\n📞 ${effectivePhone}` : ''}${effectiveAddress ? `\n📍 ${effectiveAddress}` : ''}\n📅 ${formattedDate}\n\n*Items Purchased:*\n${itemsList}\n\n-------------------------\n💰 *TOTAL AMOUNT: ₹${totalAmount.toFixed(2)}*${savingsBlock}\n💳 Payment Mode: ${modeLabel}\n-------------------------\nThank you for shopping with us! 🙏\n_⚡ Powered by ShopManager_`;
 
       const encoded = encodeURI(message);
       let url = `whatsapp://send?text=${encoded}`;
@@ -389,16 +390,20 @@ export const ReceiptModal: React.FC<ReceiptModalProps> = ({
         </html>
       `;
 
-      const { uri } = await Print.printToFileAsync({ html });
-      const isSharingAvailable = await Sharing.isAvailableAsync();
-      if (isSharingAvailable) {
-        await Sharing.shareAsync(uri, {
-          UTI: '.pdf',
-          mimeType: 'application/pdf',
-          dialogTitle: `Invoice #${sale.id} - ${effectiveShopName}`,
-        });
-      } else {
-        // Fallback to system print dialog
+      try {
+        const { uri } = await Print.printToFileAsync({ html });
+        const isSharingAvailable = await Sharing.isAvailableAsync();
+        if (isSharingAvailable) {
+          await Sharing.shareAsync(uri, {
+            UTI: '.pdf',
+            mimeType: 'application/pdf',
+            dialogTitle: `Invoice #${sale.id} - ${effectiveShopName}`,
+          });
+        } else {
+          await Print.printAsync({ html });
+        }
+      } catch (shareErr) {
+        // Fallback directly to native Print preview/dialog
         await Print.printAsync({ html });
       }
     } catch (e: any) {
@@ -504,8 +509,16 @@ export const ReceiptModal: React.FC<ReceiptModalProps> = ({
               )}
 
               <View className="flex-row items-center justify-between">
-                <Text className="text-sm font-extrabold text-[#0f172a]">Total Amount ({paymentMethod})</Text>
-                <Text className="text-lg font-black text-[#059669]">₹{totalAmount.toFixed(2)}</Text>
+                <Text className="text-sm font-extrabold text-[#0f172a]">
+                  Total Amount ({paymentMethod === 'CREDIT' ? 'Credit / Udhaar' : paymentMethod})
+                </Text>
+                <Text
+                  className={`text-lg font-black ${
+                    paymentMethod === 'CREDIT' ? 'text-[#d97706]' : 'text-[#059669]'
+                  }`}
+                >
+                  ₹{totalAmount.toFixed(2)}
+                </Text>
               </View>
 
               {calculatedProfit > 0 && (
