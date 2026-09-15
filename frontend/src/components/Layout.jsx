@@ -2,6 +2,7 @@ import { useState } from 'react'
 import { NavLink, Outlet } from 'react-router-dom'
 import { auth } from '../services/api'
 import {
+  IconBookUser,
   IconBox,
   IconCart,
   IconChart,
@@ -18,6 +19,7 @@ const NAV_ITEMS = [
   { to: '/products', label: 'Products', Icon: IconBox },
   { to: '/inventory', label: 'Inventory', Icon: IconInventory },
   { to: '/sales', label: 'Sales', Icon: IconCart },
+  { to: '/debts', label: 'Credit Book', Icon: IconBookUser },
   { to: '/reports', label: 'Reports', Icon: IconChart },
   { to: '/settings', label: 'Settings', Icon: IconSettings },
 ]
@@ -94,7 +96,7 @@ export default function Layout() {
           </ul>
           <div className="mt-3 flex flex-col gap-2 border-t border-border pt-3 md:mt-auto md:pt-4">
             <a
-              href="https://expo.dev/artifacts/eas/zFCY18ImCAJ3s45aGcusT5jQ42xsdfCUooibFQcurqM.apk"
+              href="https://expo.dev/artifacts/eas/OID9sOng0qBRpe7WunwOzUtxX2tNv6pTljILYwR5ayU.apk"
               download="ShopManager.apk"
               target="_blank"
               rel="noreferrer"

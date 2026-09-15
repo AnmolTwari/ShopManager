@@ -824,7 +824,7 @@ export const ProductsScreen: React.FC<ProductsScreenProps> = ({
                       quickSellPaymentMethod === 'CREDIT' ? 'text-[#b45309]' : 'text-[#64748b]'
                     }`}
                   >
-                    Credit / Udhaar
+                    Customer Credit
                   </Text>
                 </TouchableOpacity>
               </View>

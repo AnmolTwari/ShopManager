@@ -183,6 +183,21 @@ export interface CustomerDebtAccount {
   entries: DebtLedgerEntry[];
 }
 
+export interface DebtStats {
+  todayCreditGiven: number;
+  todayPosCreditSales: number;
+  todayManualDebt: number;
+  todayPaymentReceived: number;
+  totalOutstanding: number;
+}
+
+export interface DateRangeDebtStats {
+  creditGiven: number;
+  posCreditSales: number;
+  manualDebt: number;
+  paymentReceived: number;
+}
+
 export interface PageResponse<T> {
   content: T[];
   totalElements: number;

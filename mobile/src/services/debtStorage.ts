@@ -1,6 +1,6 @@
 import * as SecureStore from 'expo-secure-store';
 import { Platform } from 'react-native';
-import { CustomerDebtAccount, DebtLedgerEntry } from '../types';
+import { CustomerDebtAccount, DebtLedgerEntry, DebtStats, DateRangeDebtStats } from '../types';
 
 const DEBT_STORAGE_KEY = 'shopmanager_customer_debts_v1';
 
@@ -241,5 +241,100 @@ export const debtStorage = {
   async getTotalOutstandingDebt(): Promise<number> {
     const debts = await this.getCustomerDebts();
     return debts.reduce((sum, c) => sum + (c.totalDebt || 0), 0);
+  },
+
+  async getTodayDebtStats(): Promise<DebtStats> {
+    const debts = await this.getCustomerDebts();
+    let todayPosCreditSales = 0;
+    let todayManualDebt = 0;
+    let todayPaymentReceived = 0;
+
+    const now = new Date();
+    const todayYear = now.getFullYear();
+    const todayMonth = now.getMonth();
+    const todayDate = now.getDate();
+
+    for (const customer of debts) {
+      if (Array.isArray(customer.entries)) {
+        for (const entry of customer.entries) {
+          if (!entry.date) continue;
+          const entryDate = new Date(entry.date);
+          const isToday =
+            entryDate.getFullYear() === todayYear &&
+            entryDate.getMonth() === todayMonth &&
+            entryDate.getDate() === todayDate;
+
+          if (isToday) {
+            const amt = Number(entry.amount) || 0;
+            if (entry.type === 'CREDIT_SALE') {
+              todayPosCreditSales += amt;
+            } else if (entry.type === 'MANUAL_DEBT') {
+              todayManualDebt += amt;
+            } else if (entry.type === 'PAYMENT_RECEIVED') {
+              todayPaymentReceived += amt;
+            }
+          }
+        }
+      }
+    }
+
+    const todayCreditGiven = todayPosCreditSales + todayManualDebt;
+    const totalOutstanding = debts.reduce((sum, c) => sum + (c.totalDebt || 0), 0);
+
+    return {
+      todayCreditGiven,
+      todayPosCreditSales,
+      todayManualDebt,
+      todayPaymentReceived,
+      totalOutstanding,
+    };
+  },
+
+  async getDebtStatsForRange(from?: string, to?: string): Promise<DateRangeDebtStats> {
+    const debts = await this.getCustomerDebts();
+    let posCreditSales = 0;
+    let manualDebt = 0;
+    let paymentReceived = 0;
+
+    let fromTime: number | null = null;
+    let toTime: number | null = null;
+
+    if (from) {
+      const f = new Date(from);
+      f.setHours(0, 0, 0, 0);
+      fromTime = f.getTime();
+    }
+    if (to) {
+      const t = new Date(to);
+      t.setHours(23, 59, 59, 999);
+      toTime = t.getTime();
+    }
+
+    for (const customer of debts) {
+      if (Array.isArray(customer.entries)) {
+        for (const entry of customer.entries) {
+          if (!entry.date) continue;
+          const entryTime = new Date(entry.date).getTime();
+          if (fromTime !== null && entryTime < fromTime) continue;
+          if (toTime !== null && entryTime > toTime) continue;
+
+          const amt = Number(entry.amount) || 0;
+          if (entry.type === 'CREDIT_SALE') {
+            posCreditSales += amt;
+          } else if (entry.type === 'MANUAL_DEBT') {
+            manualDebt += amt;
+          } else if (entry.type === 'PAYMENT_RECEIVED') {
+            paymentReceived += amt;
+          }
+        }
+      }
+    }
+
+    return {
+      creditGiven: posCreditSales + manualDebt,
+      posCreditSales,
+      manualDebt,
+      paymentReceived,
+    };
   },
 };

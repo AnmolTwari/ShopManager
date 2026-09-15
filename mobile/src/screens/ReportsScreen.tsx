@@ -10,20 +10,29 @@ import {
 import { Header } from '../components/Header';
 import { MetricCard } from '../components/MetricCard';
 import { reportsApi } from '../services/shopApi';
+import { debtStorage } from '../services/debtStorage';
 import { colors } from '../theme/colors';
-import { ReportSummary } from '../types';
+import { DateRangeDebtStats, ReportSummary } from '../types';
 import {
   IndianRupee,
   TrendingUp,
   ShoppingCart,
   Percent,
   Wallet,
+  Banknote,
+  BookUser,
 } from 'lucide-react-native';
 
 type DatePreset = 'today' | '7d' | '30d' | 'all';
 
 export const ReportsScreen: React.FC = () => {
   const [preset, setPreset] = useState<DatePreset>('today');
+  const [debtStats, setDebtStats] = useState<DateRangeDebtStats>({
+    creditGiven: 0,
+    posCreditSales: 0,
+    manualDebt: 0,
+    paymentReceived: 0,
+  });
 
   const calculateDates = useCallback((p: DatePreset) => {
     const today = new Date();
@@ -63,8 +72,17 @@ export const ReportsScreen: React.FC = () => {
       setLoading(true);
     }
     try {
-      const data = await reportsApi.getSummary(from, to);
+      const [data, dStats] = await Promise.all([
+        reportsApi.getSummary(from, to),
+        debtStorage.getDebtStatsForRange(from, to).catch(() => ({
+          creditGiven: 0,
+          posCreditSales: 0,
+          manualDebt: 0,
+          paymentReceived: 0,
+        })),
+      ]);
       setSummary(data);
+      setDebtStats(dStats);
     } catch (e) {
       console.warn('Error loading reports:', e);
     } finally {
@@ -87,6 +105,12 @@ export const ReportsScreen: React.FC = () => {
   const totalSales = summary?.salesCount || 0;
   const avgOrder = typeof summary?.averageOrderValue === 'number' ? summary.averageOrderValue : parseFloat(String(summary?.averageOrderValue || 0));
   const marginPct = totalRev > 0 ? (totalProfit / totalRev) * 100 : 0;
+
+  const creditGiven = debtStats.creditGiven || 0;
+  const posCredit = debtStats.posCreditSales || 0;
+  const directPaid = Math.max(0, totalRev - posCredit);
+  const paymentRec = debtStats.paymentReceived || 0;
+  const totalReceived = directPaid + paymentRec;
 
   return (
     <View className="flex-1 bg-[#f8fafc]">
@@ -156,6 +180,25 @@ export const ReportsScreen: React.FC = () => {
                 subtitle="Per bill average"
                 icon={<Wallet size={18} color={colors.primary} />}
                 variant="primary"
+              />
+            </View>
+
+            {/* Payment & Credit Breakdown */}
+            <View className="mt-2.5 flex-row gap-2.5">
+              <MetricCard
+                label="Payment Received"
+                value={`₹${totalReceived.toLocaleString('en-IN', { minimumFractionDigits: 2 })}`}
+                subtitle={paymentRec > 0 ? `₹${directPaid.toFixed(0)} sales + ₹${paymentRec.toFixed(0)} rec.` : 'Direct Cash & Online'}
+                icon={<Banknote size={18} color={colors.success} />}
+                variant="success"
+              />
+
+              <MetricCard
+                label="Credit Given"
+                value={`₹${creditGiven.toLocaleString('en-IN', { minimumFractionDigits: 2 })}`}
+                subtitle={creditGiven > 0 ? 'Pending collection' : 'No credit given'}
+                icon={<BookUser size={18} color={colors.warning} />}
+                variant="warning"
               />
             </View>
 

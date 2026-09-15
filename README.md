@@ -126,17 +126,19 @@ Frontend: `npm run build` and `npm run lint` (oxlint) in `frontend/`.
 ## Mobile Application (Android APK)
 
 ShopManager includes a native mobile POS and store management application built with Expo and React Native:
-- **Instant POS & Billing**: Fast barcode scanner, multi-product selector, and digital receipt generation.
-- **Customer Debt Book (Khata)**: Simple customer credit / loan tracking, unpaid balance tracking, and partial/full payment settlements.
+- **Instant POS & Billing**: Fast barcode scanner, multi-product selector, MRP/discount calculation, and digital receipt generation.
+- **Customer Credit Book**: Customer credit/loan tracking, unpaid balance tracking, WhatsApp reminders, and partial/full payment settlements.
 - **Real-time Inventory & Stock Alerts**: Dynamic low/out-of-stock inspection modal with 1-tap restocks.
 - **Blazing Fast (0ms Transitions)**: Persistent multi-screen lazy stacking and Stale-While-Revalidate memory caching.
 
 ### 📲 Download Latest Android APK
-- **EAS Build Logs & APK Download**: [Expo Android APK Build Dashboard](https://expo.dev/accounts/anmolxtiwari/projects/shopmanager/builds)
-- **Latest Build**: [Android APK Build #c32d9ea5](https://expo.dev/accounts/anmolxtiwari/projects/shopmanager/builds/c32d9ea5-077c-4252-9481-bd948a29c177)
+- **Direct APK Download**: [Download ShopManager Android APK](https://expo.dev/artifacts/eas/OID9sOng0qBRpe7WunwOzUtxX2tNv6pTljILYwR5ayU.apk)
+- **EAS Build Dashboard**: [Expo Android APK Build Dashboard](https://expo.dev/accounts/anmolxtiwari/projects/shopmanager/builds)
+- **Latest Build ID**: `760b184f-1e4b-4000-9fcd-da68044dd69b`
 
 ---
 
 ## License
 
 Private project — not open-sourced.
+

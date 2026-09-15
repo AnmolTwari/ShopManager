@@ -4,6 +4,7 @@ import { IconArrowLeft } from '../../components/icons'
 import StockStatusBadge from '../../components/StockStatusBadge'
 import { createSale } from '../../services/sales'
 import { listPopularProducts, listProducts } from '../../services/products'
+import { debtService } from '../../services/debts'
 import { formatCurrency, toNumber } from '../../utils/format'
 import { UNIT_LABELS } from '../../utils/units'
 
@@ -20,6 +21,11 @@ export default function NewSalePage() {
   const [popular, setPopular] = useState(null)
 
   const [lines, setLines] = useState([])
+  const [paymentMethod, setPaymentMethod] = useState('CASH')
+  const [customerName, setCustomerName] = useState('')
+  const [customerPhone, setCustomerPhone] = useState('')
+  const [creditNote, setCreditNote] = useState('')
+
   const [submitting, setSubmitting] = useState(false)
   const [error, setError] = useState(null)
   const [success, setSuccess] = useState(null)
@@ -83,6 +89,7 @@ export default function NewSalePage() {
             sku: product.sku,
             unit: product.unit,
             unitPrice: product.sellingPrice,
+            mrp: product.mrp != null ? Number(product.mrp) : null,
             currentQuantity: product.currentQuantity,
             quantity: '1',
           })
@@ -140,6 +147,19 @@ export default function NewSalePage() {
   }
 
   const bagTotal = lines.reduce((sum, line) => sum + lineTotal(line), 0)
+  let totalMrp = 0
+  let totalSavings = 0
+  for (const line of lines) {
+    const qty = toNumber(line.quantity)
+    const rate = Number(line.unitPrice) || 0
+    const mrp = line.mrp != null ? Number(line.mrp) : null
+    if (mrp != null && mrp > rate) {
+      totalMrp += mrp * qty
+      totalSavings += (mrp - rate) * qty
+    } else {
+      totalMrp += rate * qty
+    }
+  }
   const selectableResults = visibleProducts.filter((product) => Number(product.currentQuantity) > 0)
 
   async function completeSale() {
@@ -156,6 +176,11 @@ export default function NewSalePage() {
       }
     }
 
+    if (paymentMethod === 'CREDIT' && !customerName.trim()) {
+      setError('Please enter customer name to record this credit sale.')
+      return
+    }
+
     const payload = {
       items: lines.map((line) => ({
         productId: line.productId,
@@ -166,6 +191,19 @@ export default function NewSalePage() {
     setSubmitting(true)
     try {
       const sale = await createSale(payload)
+
+      // If credit sale, save to debtService
+      if (paymentMethod === 'CREDIT') {
+        debtService.recordCreditSale(
+          {
+            name: customerName.trim(),
+            phone: customerPhone.trim() || undefined,
+          },
+          sale,
+          creditNote.trim() || 'POS Credit Sale'
+        )
+      }
+
       setSuccess(`Sale #${sale.id} completed.`)
       navigate(`/sales/${sale.id}`, { state: { justCompleted: true } })
     } catch (err) {
@@ -289,7 +327,10 @@ export default function NewSalePage() {
                     Product
                   </th>
                   <th className="border-b border-border p-3 text-left align-middle text-xs font-semibold tracking-wider text-muted uppercase">
-                    Unit Price
+                    MRP
+                  </th>
+                  <th className="border-b border-border p-3 text-left align-middle text-xs font-semibold tracking-wider text-muted uppercase">
+                    Selling Price
                   </th>
                   <th className="border-b border-border p-3 text-left align-middle text-xs font-semibold tracking-wider text-muted uppercase">
                     Qty
@@ -301,47 +342,193 @@ export default function NewSalePage() {
                 </tr>
               </thead>
               <tbody>
-                {lines.map((line, index) => (
-                  <tr key={line.productId}>
-                    <td className="border-b border-border p-3 text-left align-middle">
-                      <div className="font-semibold">{line.name}</div>
-                      {line.sku && <div className="text-xs text-secondary">{line.sku}</div>}
-                    </td>
-                    <td className="border-b border-border p-3 text-left align-middle">
-                      {formatCurrency(line.unitPrice)}
-                    </td>
-                    <td className="border-b border-border p-3 text-left align-middle">
-                      <input
-                        className="min-h-10 w-[90px] rounded-sm border border-border bg-surface px-3 py-2 text-sm text-text focus-visible:border-primary focus-visible:outline-2 focus-visible:outline-offset-1 focus-visible:outline-primary"
-                        type="number"
-                        min={COUNT_UNITS.has(line.unit) ? '1' : '0.001'}
-                        step={COUNT_UNITS.has(line.unit) ? '1' : 'any'}
-                        value={line.quantity}
-                        onChange={(event) => setQuantity(index, event.target.value)}
-                      />
-                    </td>
-                    <td className="border-b border-border p-3 text-left align-middle">
-                      {formatCurrency(lineTotal(line))}
-                    </td>
-                    <td className="flex items-center gap-2 border-b border-border p-3 text-left align-middle whitespace-nowrap">
-                      <button
-                        type="button"
-                        className="inline-flex min-h-10 cursor-pointer items-center justify-center gap-2 rounded-sm border border-border bg-surface px-3 py-1 text-[13px] font-semibold text-danger transition-colors hover:enabled:border-danger hover:enabled:bg-[#fef2f2] disabled:cursor-not-allowed disabled:opacity-60 md:min-h-0"
-                        onClick={() => removeLine(index)}
-                      >
-                        Remove
-                      </button>
-                    </td>
-                  </tr>
-                ))}
+                {lines.map((line, index) => {
+                  const rate = Number(line.unitPrice) || 0
+                  const mrp = line.mrp != null ? Number(line.mrp) : null
+                  const hasDiscount = mrp != null && mrp > rate
+                  const discountPct = hasDiscount ? Math.round(((mrp - rate) / mrp) * 100) : 0
+
+                  return (
+                    <tr key={line.productId}>
+                      <td className="border-b border-border p-3 text-left align-middle">
+                        <div className="font-semibold">{line.name}</div>
+                        {line.sku && <div className="text-xs text-secondary">{line.sku}</div>}
+                        {hasDiscount && (
+                          <span className="mt-0.5 inline-block rounded bg-[#ecfdf5] border border-[#a7f3d0] px-1.5 py-0.5 text-[10px] font-bold text-[#047857]">
+                            {discountPct}% OFF (Save ₹{((mrp - rate) * toNumber(line.quantity)).toFixed(2)})
+                          </span>
+                        )}
+                      </td>
+                      <td className="border-b border-border p-3 text-left align-middle">
+                        {mrp != null ? (
+                          <span className={hasDiscount ? 'text-secondary line-through text-xs' : 'font-medium'}>
+                            {formatCurrency(mrp)}
+                          </span>
+                        ) : (
+                          '—'
+                        )}
+                      </td>
+                      <td className="border-b border-border p-3 text-left align-middle font-bold text-text">
+                        {formatCurrency(line.unitPrice)}
+                      </td>
+                      <td className="border-b border-border p-3 text-left align-middle">
+                        <input
+                          className="min-h-10 w-[90px] rounded-sm border border-border bg-surface px-3 py-2 text-sm text-text focus-visible:border-primary focus-visible:outline-2 focus-visible:outline-offset-1 focus-visible:outline-primary"
+                          type="number"
+                          min={COUNT_UNITS.has(line.unit) ? '1' : '0.001'}
+                          step={COUNT_UNITS.has(line.unit) ? '1' : 'any'}
+                          value={line.quantity}
+                          onChange={(event) => setQuantity(index, event.target.value)}
+                        />
+                      </td>
+                      <td className="border-b border-border p-3 text-left align-middle font-bold text-[#047857]">
+                        {formatCurrency(lineTotal(line))}
+                      </td>
+                      <td className="flex items-center gap-2 border-b border-border p-3 text-left align-middle whitespace-nowrap">
+                        <button
+                          type="button"
+                          className="inline-flex min-h-10 cursor-pointer items-center justify-center gap-2 rounded-sm border border-border bg-surface px-3 py-1 text-[13px] font-semibold text-danger transition-colors hover:enabled:border-danger hover:enabled:bg-[#fef2f2] disabled:cursor-not-allowed disabled:opacity-60 md:min-h-0"
+                          onClick={() => removeLine(index)}
+                        >
+                          Remove
+                        </button>
+                      </td>
+                    </tr>
+                  )
+                })}
               </tbody>
             </table>
           </div>
         )}
 
+        {/* Payment Method Selector */}
+        <div className="mt-6 rounded-xl border border-border bg-bg/40 p-4">
+          <label className="text-xs font-bold uppercase tracking-wider text-secondary">
+            Payment Mode
+          </label>
+          <div className="mt-2 grid grid-cols-3 gap-2">
+            {[
+              { id: 'CASH', label: '💵 Cash' },
+              { id: 'UPI', label: '📱 UPI / Online' },
+              { id: 'CREDIT', label: '📒 Customer Credit' },
+            ].map((mode) => (
+              <button
+                key={mode.id}
+                type="button"
+                onClick={() => setPaymentMethod(mode.id)}
+                className={`flex items-center justify-center rounded-xl border p-2.5 text-xs font-bold transition-colors cursor-pointer ${
+                  paymentMethod === mode.id
+                    ? mode.id === 'CREDIT'
+                      ? 'border-[#f59e0b] bg-[#fef3c7] text-[#92400e]'
+                      : 'border-primary bg-primary-light text-primary'
+                    : 'border-border bg-surface text-secondary hover:bg-surface/80'
+                }`}
+              >
+                {mode.label}
+              </button>
+            ))}
+          </div>
+
+          {/* If Credit is selected, show customer inputs */}
+          {paymentMethod === 'CREDIT' && (
+            <div className="mt-3.5 grid grid-cols-1 gap-3 rounded-xl border border-[#fde68a] bg-[#fffbeb] p-3.5 sm:grid-cols-3">
+              <div className="relative">
+                <label className="text-[11px] font-bold text-[#92400e]">
+                  Customer Name *
+                </label>
+                <input
+                  type="text"
+                  required
+                  placeholder="e.g. Ramesh Kumar"
+                  value={customerName}
+                  onChange={(e) => setCustomerName(e.target.value)}
+                  className="mt-1 w-full rounded-lg border border-[#fde68a] bg-white px-3 py-1.5 text-xs text-text focus:outline-none focus:ring-1 focus:ring-amber-500"
+                />
+                {customerName.trim().length > 0 && (
+                  (() => {
+                    const matches = debtService
+                      .getCustomerDebts()
+                      .filter(
+                        (c) =>
+                          c.name.toLowerCase().includes(customerName.toLowerCase().trim()) &&
+                          c.name.toLowerCase() !== customerName.toLowerCase().trim()
+                      )
+                      .slice(0, 3)
+                    if (matches.length === 0) return null
+                    return (
+                      <div className="absolute left-0 top-full z-20 mt-1 w-full rounded-lg border border-[#fde68a] bg-white p-1 shadow-lg">
+                        {matches.map((m) => (
+                          <button
+                            key={m.id}
+                            type="button"
+                            onClick={() => {
+                              setCustomerName(m.name)
+                              if (m.phone) setCustomerPhone(m.phone)
+                            }}
+                            className="flex w-full cursor-pointer items-center justify-between rounded px-2 py-1 text-left text-xs hover:bg-[#fef3c7]"
+                          >
+                            <span className="font-semibold text-[#78350f]">{m.name}</span>
+                            <span className="text-[10px] text-[#b45309]">₹{m.totalDebt.toFixed(0)} due</span>
+                          </button>
+                        ))}
+                      </div>
+                    )
+                  })()
+                )}
+              </div>
+
+              <div>
+                <label className="text-[11px] font-bold text-[#92400e]">
+                  Customer Phone (Optional)
+                </label>
+                <input
+                  type="tel"
+                  placeholder="e.g. 9876543210"
+                  value={customerPhone}
+                  onChange={(e) => setCustomerPhone(e.target.value)}
+                  className="mt-1 w-full rounded-lg border border-[#fde68a] bg-white px-3 py-1.5 text-xs text-text focus:outline-none focus:ring-1 focus:ring-amber-500"
+                />
+              </div>
+
+              <div>
+                <label className="text-[11px] font-bold text-[#92400e]">
+                  Credit Note (Optional)
+                </label>
+                <input
+                  type="text"
+                  placeholder="e.g. Due next week"
+                  value={creditNote}
+                  onChange={(e) => setCreditNote(e.target.value)}
+                  className="mt-1 w-full rounded-lg border border-[#fde68a] bg-white px-3 py-1.5 text-xs text-text focus:outline-none focus:ring-1 focus:ring-amber-500"
+                />
+              </div>
+            </div>
+          )}
+        </div>
+
+        {totalSavings > 0 && (
+          <div className="mt-3 rounded-lg border border-[#86efac] bg-[#f0fdf4] p-3 text-center text-xs font-bold text-[#166534]">
+            🎉 Total Customer Savings: {formatCurrency(totalSavings)} (Subtotal: {formatCurrency(totalMrp)})
+          </div>
+        )}
+
         <div className="mt-4 flex flex-col items-start gap-2 border-t border-border pt-4 md:flex-row md:items-center md:justify-between md:gap-4">
-          <span className="text-sm font-semibold">Total</span>
-          <span className="text-[22px] font-bold">{formatCurrency(bagTotal)}</span>
+          <div>
+            <div className="text-sm font-semibold">Total Amount</div>
+            {totalSavings > 0 && (
+              <div className="text-xs text-secondary">
+                Total MRP: <span className="line-through">{formatCurrency(totalMrp)}</span>
+              </div>
+            )}
+          </div>
+          <div className="text-right">
+            <span className="text-[22px] font-bold text-primary">{formatCurrency(bagTotal)}</span>
+            {paymentMethod === 'CREDIT' && (
+              <span className="ml-2 rounded-full bg-[#fef3c7] px-2 py-0.5 text-xs font-bold text-[#b45309]">
+                Credit Sale
+              </span>
+            )}
+          </div>
         </div>
 
         <div className="mt-6 flex flex-col-reverse gap-2 md:flex-row md:justify-end">

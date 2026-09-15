@@ -121,3 +121,27 @@
 .menu-toggle[aria-expanded='true'] .menu-bar:nth-child(3) {
   transform: translateY(-6px) rotate(-45deg);
 }
+
+@media print {
+  aside,
+  nav,
+  .print\:hidden,
+  button,
+  .menu-toggle {
+    display: none !important;
+  }
+
+  body {
+    background: #ffffff !important;
+    color: #000000 !important;
+  }
+
+  main,
+  #root,
+  .min-h-screen {
+    min-height: auto !important;
+    display: block !important;
+    padding: 0 !important;
+    margin: 0 !important;
+  }
+}

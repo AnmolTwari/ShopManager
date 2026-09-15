@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react'
 import { auth } from '../../services/api'
 import { changeEmail, changePassword } from '../../services/settings'
+import { shopProfileService } from '../../services/shopProfile'
 
 export default function SettingsPage() {
   const [username, setUsername] = useState('')
@@ -20,6 +21,15 @@ export default function SettingsPage() {
   const [emailFieldError, setEmailFieldError] = useState('')
   const [emailSuccess, setEmailSuccess] = useState('')
 
+  // Shop Profile State
+  const [shopName, setShopName] = useState('')
+  const [shopPhone, setShopPhone] = useState('')
+  const [shopAddress, setShopAddress] = useState('')
+  const [shopTagline, setShopTagline] = useState('')
+  const [shopGst, setShopGst] = useState('')
+  const [profileSaving, setProfileSaving] = useState(false)
+  const [profileSuccess, setProfileSuccess] = useState('')
+
   useEffect(() => {
     auth.me()
       .then((data) => {
@@ -30,7 +40,36 @@ export default function SettingsPage() {
       .catch(() => {
         setUsername('')
       })
+
+    const initialProfile = shopProfileService.getProfile()
+    setShopName(initialProfile.shopName || '')
+    setShopPhone(initialProfile.phone || '')
+    setShopAddress(initialProfile.address || '')
+    setShopTagline(initialProfile.tagline || '')
+    setShopGst(initialProfile.gstNumber || '')
   }, [])
+
+  function handleProfileSubmit(e) {
+    e.preventDefault()
+    setProfileSuccess('')
+    if (!shopName.trim()) {
+      alert('Please enter your shop or business name.')
+      return
+    }
+    setProfileSaving(true)
+    try {
+      shopProfileService.saveProfile({
+        shopName: shopName.trim(),
+        phone: shopPhone.trim(),
+        address: shopAddress.trim(),
+        tagline: shopTagline.trim(),
+        gstNumber: shopGst.trim(),
+      })
+      setProfileSuccess('Shop profile updated successfully! Changes will appear on all bills & receipts.')
+    } finally {
+      setProfileSaving(false)
+    }
+  }
 
   function validate() {
     const errors = {}
@@ -98,9 +137,111 @@ export default function SettingsPage() {
     <div className="mx-auto flex w-full max-w-[1180px] flex-1 flex-col gap-4 p-3 px-4 pb-10 md:p-6">
       <div>
         <h1 className="text-lg font-semibold min-[481px]:text-xl md:text-2xl">Settings</h1>
-        <p className="mt-1 text-sm text-secondary">Manage your account details and password.</p>
+        <p className="mt-1 text-sm text-secondary">Manage your shop branding, account details, and security.</p>
       </div>
 
+      {/* 1. Shop Profile & Branding */}
+      <div className="rounded-lg border border-border bg-surface p-4 shadow-sm md:p-6">
+        <div className="mb-4 flex flex-col gap-1">
+          <h2 className="text-base font-semibold">Shop Branding &amp; Invoices</h2>
+          <p className="text-sm text-secondary">
+            Customize your store name, contact info, and receipt footer. This information appears on all customer bills, digital receipts, and WhatsApp shares.
+          </p>
+        </div>
+
+        <form onSubmit={handleProfileSubmit} className="flex flex-col gap-4 max-w-[560px]">
+          {profileSuccess && (
+            <div className="rounded-sm border border-[#bbf7d0] bg-primary-light px-4 py-3 text-sm text-[#166534]">
+              {profileSuccess}
+            </div>
+          )}
+
+          <div className="flex flex-col gap-1">
+            <label className="text-sm font-semibold" htmlFor="shop-name">
+              Shop / Business Name *
+            </label>
+            <input
+              id="shop-name"
+              type="text"
+              required
+              className="min-h-10 rounded-sm border border-border bg-surface px-3 py-2 text-sm font-bold text-text focus-visible:border-primary focus-visible:outline-2 focus-visible:outline-offset-1 focus-visible:outline-primary"
+              placeholder="e.g. Sandeep Minimart"
+              value={shopName}
+              onChange={(e) => setShopName(e.target.value)}
+            />
+          </div>
+
+          <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
+            <div className="flex flex-col gap-1">
+              <label className="text-sm font-semibold" htmlFor="shop-phone">
+                Contact Phone (Optional)
+              </label>
+              <input
+                id="shop-phone"
+                type="tel"
+                className="min-h-10 rounded-sm border border-border bg-surface px-3 py-2 text-sm text-text focus-visible:border-primary focus-visible:outline-2 focus-visible:outline-offset-1 focus-visible:outline-primary"
+                placeholder="e.g. +91 98765 43210"
+                value={shopPhone}
+                onChange={(e) => setShopPhone(e.target.value)}
+              />
+            </div>
+
+            <div className="flex flex-col gap-1">
+              <label className="text-sm font-semibold" htmlFor="shop-gst">
+                GST / Tax Number (Optional)
+              </label>
+              <input
+                id="shop-gst"
+                type="text"
+                className="min-h-10 rounded-sm border border-border bg-surface px-3 py-2 text-sm text-text focus-visible:border-primary focus-visible:outline-2 focus-visible:outline-offset-1 focus-visible:outline-primary"
+                placeholder="e.g. 27AAAAA0000A1Z5"
+                value={shopGst}
+                onChange={(e) => setShopGst(e.target.value)}
+              />
+            </div>
+          </div>
+
+          <div className="flex flex-col gap-1">
+            <label className="text-sm font-semibold" htmlFor="shop-address">
+              Shop Address / Location (Optional)
+            </label>
+            <input
+              id="shop-address"
+              type="text"
+              className="min-h-10 rounded-sm border border-border bg-surface px-3 py-2 text-sm text-text focus-visible:border-primary focus-visible:outline-2 focus-visible:outline-offset-1 focus-visible:outline-primary"
+              placeholder="e.g. Shop #4, Main Market, City"
+              value={shopAddress}
+              onChange={(e) => setShopAddress(e.target.value)}
+            />
+          </div>
+
+          <div className="flex flex-col gap-1">
+            <label className="text-sm font-semibold" htmlFor="shop-tagline">
+              Receipt Tagline / Greeting (Optional)
+            </label>
+            <input
+              id="shop-tagline"
+              type="text"
+              className="min-h-10 rounded-sm border border-border bg-surface px-3 py-2 text-sm text-text focus-visible:border-primary focus-visible:outline-2 focus-visible:outline-offset-1 focus-visible:outline-primary"
+              placeholder="e.g. Quality Groceries at Best Prices"
+              value={shopTagline}
+              onChange={(e) => setShopTagline(e.target.value)}
+            />
+          </div>
+
+          <div className="flex justify-end">
+            <button
+              type="submit"
+              disabled={profileSaving}
+              className="inline-flex min-h-10 w-full cursor-pointer items-center justify-center gap-2 rounded-sm border border-transparent bg-primary px-4 py-2 text-sm font-semibold text-white transition-colors hover:enabled:bg-primary-hover disabled:cursor-not-allowed disabled:opacity-60 md:min-h-0 md:w-auto"
+            >
+              {profileSaving ? 'Saving…' : 'Save Shop Profile'}
+            </button>
+          </div>
+        </form>
+      </div>
+
+      {/* 2. Account Details */}
       <div className="rounded-lg border border-border bg-surface p-4 shadow-sm md:p-6">
         <h2 className="mb-1 text-base font-semibold">Account</h2>
         <p className="mb-4 text-sm text-secondary">Your login details. Changes apply to your next session.</p>

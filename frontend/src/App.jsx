@@ -8,6 +8,7 @@ import InventoryPage from './pages/inventory/InventoryPage'
 import ProductFormPage from './pages/products/ProductFormPage'
 import ProductListPage from './pages/products/ProductListPage'
 import ReportsPage from './pages/reports/ReportsPage'
+import DebtsPage from './pages/debts/DebtsPage'
 import NewSalePage from './pages/sales/NewSalePage'
 import SaleDetailPage from './pages/sales/SaleDetailPage'
 import SalesPage from './pages/sales/SalesPage'
@@ -69,6 +70,7 @@ function App() {
           <Route path="sales" element={<SalesPage />} />
           <Route path="sales/new" element={<NewSalePage />} />
           <Route path="sales/:id" element={<SaleDetailPage />} />
+          <Route path="debts" element={<DebtsPage />} />
           <Route path="reports" element={<ReportsPage />} />
           <Route path="settings" element={<SettingsPage />} />
           <Route path="admin" element={

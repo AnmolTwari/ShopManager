@@ -202,7 +202,7 @@ export const CustomerDebtModal: React.FC<CustomerDebtModalProps> = ({
           phone: newCustPhone.trim() || undefined,
         },
         amount,
-        newDebtNote.trim() || 'Credit / Udhaar added'
+        newDebtNote.trim() || 'Customer credit added'
       );
       setAddDebtModalOpen(false);
       await loadDebts();

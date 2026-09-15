@@ -296,7 +296,7 @@ export const PosScreen: React.FC = () => {
     if (items.length === 0) return;
 
     if (paymentMethod === 'CREDIT' && !customerName.trim()) {
-      Alert.alert('Customer Name Required', 'Please enter customer name to record this credit / udhaar sale.');
+      Alert.alert('Customer Name Required', 'Please enter customer name to record this credit sale.');
       return;
     }
 
@@ -1238,7 +1238,7 @@ export const PosScreen: React.FC = () => {
                       paymentMethod === 'CREDIT' ? 'text-[#b45309]' : 'text-[#64748b]'
                     }`}
                   >
-                    Credit / Udhaar
+                    Customer Credit
                   </Text>
                 </TouchableOpacity>
               </View>
@@ -1248,13 +1248,13 @@ export const PosScreen: React.FC = () => {
                 <View className="mb-3 rounded-2xl border border-[#fde68a] bg-[#fefce8] p-3.5">
                   <View className="mb-2 flex-row items-center justify-between">
                     <Text className="text-xs font-black text-[#92400e]">
-                      Customer Debt Details (Udhaar)
+                      Customer Credit Details
                     </Text>
                     <TouchableOpacity
                       onPress={() => setDebtModalOpen(true)}
                       className="rounded-md bg-[#fef3c7] px-2 py-0.5"
                     >
-                      <Text className="text-[10px] font-bold text-[#b45309]">View Debt Book →</Text>
+                      <Text className="text-[10px] font-bold text-[#b45309]">View Credit Book →</Text>
                     </TouchableOpacity>
                   </View>
 

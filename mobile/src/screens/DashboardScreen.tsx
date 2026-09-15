@@ -14,7 +14,7 @@ import { CustomerDebtModal } from '../components/CustomerDebtModal';
 import { dashboardApi, salesApi } from '../services/shopApi';
 import { debtStorage } from '../services/debtStorage';
 import { colors } from '../theme/colors';
-import { DashboardSummary, SaleResponse, SaleSummaryResponse } from '../types';
+import { DashboardSummary, DebtStats, SaleResponse, SaleSummaryResponse } from '../types';
 import { TabScreen } from '../components/BottomTabBar';
 import { useAuth } from '../context/AuthContext';
 import { formatTimeOnly } from '../utils/dateUtils';
@@ -30,6 +30,7 @@ import {
   Sparkles,
   ShoppingCart,
   BookUser,
+  Banknote,
 } from 'lucide-react-native';
 
 export interface NavigationParams {
@@ -50,15 +51,29 @@ export const DashboardScreen: React.FC<DashboardScreenProps> = ({ onNavigateTab 
   const [stockAlertModalOpen, setStockAlertModalOpen] = useState<boolean>(false);
   const [debtModalOpen, setDebtModalOpen] = useState<boolean>(false);
   const [totalDebt, setTotalDebt] = useState<number>(0);
+  const [debtStats, setDebtStats] = useState<DebtStats>({
+    todayCreditGiven: 0,
+    todayPosCreditSales: 0,
+    todayManualDebt: 0,
+    todayPaymentReceived: 0,
+    totalOutstanding: 0,
+  });
 
   const loadDashboard = useCallback(async () => {
     try {
-      const [data, debtVal] = await Promise.all([
+      const [data, statsVal] = await Promise.all([
         dashboardApi.getSummary(),
-        debtStorage.getTotalOutstandingDebt().catch(() => 0),
+        debtStorage.getTodayDebtStats().catch(() => ({
+          todayCreditGiven: 0,
+          todayPosCreditSales: 0,
+          todayManualDebt: 0,
+          todayPaymentReceived: 0,
+          totalOutstanding: 0,
+        })),
       ]);
       setSummary(data);
-      setTotalDebt(debtVal);
+      setDebtStats(statsVal);
+      setTotalDebt(statsVal.totalOutstanding);
     } catch (e) {
       console.warn('Dashboard load error:', e);
     } finally {
@@ -131,6 +146,13 @@ export const DashboardScreen: React.FC<DashboardScreenProps> = ({ onNavigateTab 
   const attentionCount = lowStock + outOfStock;
   const marginPct = todayRev > 0 ? (todayProfit / todayRev) * 100 : 0;
 
+  // Breakdown of Today's Sales & Received Cash/Online vs Credit
+  const todayCreditGiven = debtStats.todayCreditGiven || 0;
+  const todayPosCredit = debtStats.todayPosCreditSales || 0;
+  const todaySalesPaid = Math.max(0, todayRev - todayPosCredit);
+  const todayPaymentReceived = debtStats.todayPaymentReceived || 0;
+  const todayTotalReceived = todaySalesPaid + todayPaymentReceived;
+
   // Chart max value calculation
   const dailyPoints = summary?.dailyRevenue || [];
   const maxRev = Math.max(...dailyPoints.map((d) => (typeof d.total === 'number' ? d.total : parseFloat(String(d.total || 0)))), 100);
@@ -162,7 +184,7 @@ export const DashboardScreen: React.FC<DashboardScreenProps> = ({ onNavigateTab 
         </View>
 
         {/* 2. Hero Sales Summary Card */}
-        <View className="mb-4 overflow-hidden rounded-3xl bg-[#0f172a] p-5 shadow-lg">
+        <View className="mb-3 overflow-hidden rounded-3xl bg-[#0f172a] p-5 shadow-lg">
           <View className="flex-row items-center justify-between">
             <Text className="text-xs font-bold uppercase tracking-wider text-[#94a3b8]">
               Today's Total Sales
@@ -195,6 +217,67 @@ export const DashboardScreen: React.FC<DashboardScreenProps> = ({ onNavigateTab 
               <Text className="text-xs font-black text-white">Start Billing</Text>
             </TouchableOpacity>
           </View>
+        </View>
+
+        {/* 2.5. Sales Breakdown: Received (Cash & Online) vs Credit Sales */}
+        <View className="mb-4 flex-row gap-2.5">
+          {/* Card 1: Payment Received */}
+          <View className="flex-1 rounded-2xl border border-[#a7f3d0] bg-[#ecfdf5] p-3.5 shadow-xs">
+            <View className="flex-row items-center justify-between">
+              <View className="flex-row items-center gap-1.5">
+                <View className="h-6 w-6 items-center justify-center rounded-lg bg-[#d1fae5]">
+                  <Banknote size={14} color="#059669" />
+                </View>
+                <Text className="text-xs font-black text-[#065f46]">Received</Text>
+              </View>
+              <View className="rounded-md bg-[#d1fae5] px-1.5 py-0.5">
+                <Text className="text-[9px] font-black text-[#047857]">Cash & UPI</Text>
+              </View>
+            </View>
+
+            <Text className="mt-2 text-xl font-black text-[#047857]" numberOfLines={1}>
+              ₹{todayTotalReceived.toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+            </Text>
+
+            <View className="mt-1.5 flex-row items-center gap-1 border-t border-[#bbf7d0]/60 pt-1.5">
+              <CircleCheck size={11} color="#059669" />
+              <Text className="text-[10px] font-semibold text-[#047857]" numberOfLines={1}>
+                {todayPaymentReceived > 0
+                  ? `₹${todaySalesPaid.toFixed(0)} sales + ₹${todayPaymentReceived.toFixed(0)} rec.`
+                  : 'Direct Cash & Online'}
+              </Text>
+            </View>
+          </View>
+
+          {/* Card 2: Credit Sales Given */}
+          <TouchableOpacity
+            className="flex-1 rounded-2xl border border-[#fde68a] bg-[#fffbeb] p-3.5 shadow-xs"
+            onPress={() => setDebtModalOpen(true)}
+            activeOpacity={0.7}
+          >
+            <View className="flex-row items-center justify-between">
+              <View className="flex-row items-center gap-1.5">
+                <View className="h-6 w-6 items-center justify-center rounded-lg bg-[#fef3c7]">
+                  <BookUser size={14} color="#d97706" />
+                </View>
+                <Text className="text-xs font-black text-[#92400e]">Credit Sales</Text>
+              </View>
+              <View className="rounded-md bg-[#fef3c7] px-1.5 py-0.5">
+                <Text className="text-[9px] font-black text-[#b45309]">Credit</Text>
+              </View>
+            </View>
+
+            <Text className="mt-2 text-xl font-black text-[#b45309]" numberOfLines={1}>
+              ₹{todayCreditGiven.toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+            </Text>
+
+            <View className="mt-1.5 flex-row items-center justify-between border-t border-[#fde68a]/60 pt-1.5">
+              <Text className="text-[10px] font-semibold text-[#b45309]" numberOfLines={1}>
+                {todayCreditGiven > 0 ? 'Pending collection' : 'No credit given today'}
+              </Text>
+              <ArrowRight size={11} color="#b45309" />
+            </View>
+          </TouchableOpacity>
         </View>
 
         {/* 3. Fast Action Buttons */}
@@ -299,7 +382,7 @@ export const DashboardScreen: React.FC<DashboardScreenProps> = ({ onNavigateTab 
                 <BookUser size={18} color="#d97706" />
               </View>
               <View style={{ flex: 1 }}>
-                <Text className="text-[13px] font-black text-[#92400e]">Customer Credit (Udhaar Book)</Text>
+                <Text className="text-[13px] font-black text-[#92400e]">Customer Credit Book</Text>
                 <Text className="mt-0.5 text-xs font-bold text-[#b45309]">
                   ₹{totalDebt.toFixed(2)} total pending collection
                 </Text>

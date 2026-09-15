@@ -4,14 +4,18 @@ import RevenueChart from '../../components/RevenueChart'
 import {
   IconAlert,
   IconBanknote,
+  IconBookUser,
   IconBox,
   IconCart,
   IconChart,
+  IconCheck,
   IconRefresh,
   IconTrendDown,
   IconTrendUp,
 } from '../../components/icons'
 import { getDashboardSummary } from '../../services/dashboard'
+import { debtService } from '../../services/debts'
+import { shopProfileService } from '../../services/shopProfile'
 import { formatCurrency, formatDateTime, formatRelativeTime } from '../../utils/format'
 import { api, auth } from '../../services/api'
 
@@ -53,6 +57,14 @@ function TrendPill({ today, yesterday, format }) {
 export default function DashboardPage() {
   const [summary, setSummary] = useState(null)
   const [user, setUser] = useState(null)
+  const [shopProfile, setShopProfile] = useState(() => shopProfileService.getProfile())
+  const [debtStats, setDebtStats] = useState({
+    todayCreditGiven: 0,
+    todayPosCreditSales: 0,
+    todayManualDebt: 0,
+    todayPaymentReceived: 0,
+    totalOutstanding: 0,
+  })
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState(null)
   const [reload, setReload] = useState(0)
@@ -80,8 +92,20 @@ export default function DashboardPage() {
       .finally(() => {
         if (!cancelled) setLoading(false)
       })
+
+    try {
+      const stats = debtService.getTodayDebtStats()
+      if (!cancelled) setDebtStats(stats)
+    } catch {}
+
+    const handleProfileUpdate = (e) => {
+      if (e.detail) setShopProfile(e.detail)
+    }
+    window.addEventListener('shopmanager_profile_updated', handleProfileUpdate)
+
     return () => {
       cancelled = true
+      window.removeEventListener('shopmanager_profile_updated', handleProfileUpdate)
     }
   }, [reload])
 
@@ -95,45 +119,65 @@ export default function DashboardPage() {
     setAlertDismissed(true)
   }
 
+  const effectiveDisplayName =
+    shopProfile?.shopName && shopProfile.shopName !== 'ShopManager Store'
+      ? shopProfile.shopName
+      : user?.name || user?.username || 'My Store'
+
+  const todayRev = Number(summary?.revenueToday) || 0
+  const todayProfit = Number(summary?.profitToday) || 0
+  const todaySales = summary?.salesToday || 0
+  const todayCreditGiven = debtStats.todayCreditGiven || 0
+  const todayPosCredit = debtStats.todayPosCreditSales || 0
+  const todaySalesPaid = Math.max(0, todayRev - todayPosCredit)
+  const todayPaymentReceived = debtStats.todayPaymentReceived || 0
+  const todayTotalReceived = todaySalesPaid + todayPaymentReceived
+
   const cards = summary
     ? [
         {
-          label: 'Sales Today',
-          value: String(summary.salesToday),
-          hint: 'Sales',
-          Icon: IconCart,
-          accent: 'bg-primary-light text-primary',
-          to: '/sales',
-          trend: <TrendPill today={summary.salesToday} yesterday={summary.salesYesterday} />,
-        },
-        {
-          label: 'Revenue Today',
+          label: "Today's Sales",
           value: formatCurrency(summary.revenueToday),
-          hint: 'Revenue',
-          Icon: IconBanknote,
-          accent: 'bg-info-light text-info',
+          accent: 'bg-primary-light text-primary',
+          Icon: IconCart,
+          to: '/sales',
           trend: (
             <TrendPill
-              today={Number(summary.revenueToday)}
-              yesterday={Number(summary.revenueYesterday)}
-              format={(n) => formatCurrency(n)}
+              today={summary.revenueToday}
+              yesterday={summary.revenueYesterday}
+              format={formatCurrency}
             />
           ),
         },
         {
-          label: 'Profit Today',
+          label: 'Estimated Profit',
           value: formatCurrency(summary.profitToday),
-          hint: 'Profit',
-          Icon: IconTrendUp,
-          accent: 'bg-primary-light text-primary',
+          accent: 'bg-[#dcfce7] text-[#166534]',
+          Icon: IconChart,
+          to: '/reports',
           trend: <span className="text-xs text-muted">Estimated margin</span>,
         },
         {
-          label: 'Products',
-          value: String(summary.totalProducts),
-          hint: 'Products',
-          Icon: IconBox,
-          accent: 'bg-info-light text-info',
+          label: 'Bills Today',
+          value: String(summary.salesToday ?? 0),
+          accent: 'bg-[#e0e7ff] text-[#3730a3]',
+          Icon: IconCheck,
+          to: '/sales',
+          trend: (
+            <TrendPill
+              today={summary.salesToday}
+              yesterday={summary.salesYesterday}
+            />
+          ),
+        },
+        {
+          label: 'Stock Alerts',
+          value: String(summary.lowStockCount + summary.outOfStockCount),
+          accent:
+            summary.lowStockCount > 0 || summary.outOfStockCount > 0
+              ? 'bg-[#fef3c7] text-[#92400e]'
+              : 'bg-bg text-secondary',
+          Icon: IconAlert,
           to: '/products',
           trend: (
             <span className={`text-xs ${summary.lowStockCount > 0 || summary.outOfStockCount > 0 ? 'text-warning' : 'text-muted'}`}>
@@ -151,7 +195,7 @@ export default function DashboardPage() {
       <div className="flex items-start justify-between gap-3">
         <div className="min-w-0">
           <h1 className="text-lg font-semibold min-[481px]:text-xl md:text-2xl">
-            {greeting()}, {user ? user.name || user.username : 'loading…'}
+            {greeting()}, {effectiveDisplayName} 👋
           </h1>
           <p className="mt-1 text-sm text-secondary">
             Here&apos;s what&apos;s happening in your shop today.
@@ -265,6 +309,91 @@ export default function DashboardPage() {
             })}
           </div>
 
+          {/* Today's Sales Breakdown: Received (Cash/Online) vs Credit Sales */}
+          <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
+            {/* Card 1: Received / Cash In */}
+            <div className="flex flex-col gap-2 rounded-xl border border-[#a7f3d0] bg-[#ecfdf5] p-4 shadow-xs">
+              <div className="flex items-center justify-between">
+                <div className="flex items-center gap-2">
+                  <span className="flex h-7 w-7 items-center justify-center rounded-lg bg-[#d1fae5] text-[#059669]">
+                    <IconBanknote size={15} />
+                  </span>
+                  <span className="text-xs font-bold text-[#065f46]">Payment Received</span>
+                </div>
+                <span className="rounded-md bg-[#d1fae5] px-2 py-0.5 text-[11px] font-bold text-[#047857]">
+                  Cash & Online
+                </span>
+              </div>
+
+              <div className="text-2xl font-black text-[#047857]">
+                {formatCurrency(todayTotalReceived)}
+              </div>
+
+              <div className="flex items-center gap-1.5 border-t border-[#bbf7d0]/60 pt-2 text-xs text-[#047857]">
+                <IconCheck size={13} className="text-[#059669]" />
+                <span>
+                  {todayPaymentReceived > 0
+                    ? `${formatCurrency(todaySalesPaid)} direct sales + ${formatCurrency(todayPaymentReceived)} debt recovered`
+                    : 'Direct cash & online collections today'}
+                </span>
+              </div>
+            </div>
+
+            {/* Card 2: Credit Sales Given */}
+            <Link
+              to="/debts"
+              className="flex flex-col gap-2 rounded-xl border border-[#fde68a] bg-[#fffbeb] p-4 shadow-xs transition-colors hover:bg-[#fef3c7] cursor-pointer"
+            >
+              <div className="flex items-center justify-between">
+                <div className="flex items-center gap-2">
+                  <span className="flex h-7 w-7 items-center justify-center rounded-lg bg-[#fef3c7] text-[#d97706]">
+                    <IconBookUser size={15} />
+                  </span>
+                  <span className="text-xs font-bold text-[#92400e]">Credit Sales Given</span>
+                </div>
+                <span className="rounded-md bg-[#fef3c7] px-2 py-0.5 text-[11px] font-bold text-[#b45309]">
+                  Credit
+                </span>
+              </div>
+
+              <div className="text-2xl font-black text-[#b45309]">
+                {formatCurrency(todayCreditGiven)}
+              </div>
+
+              <div className="flex items-center justify-between border-t border-[#fde68a]/60 pt-2 text-xs text-[#b45309]">
+                <span>
+                  {todayCreditGiven > 0 ? 'Pending collection from customers' : 'No credit sales given today'}
+                </span>
+                <span className="font-bold">Open Credit Book →</span>
+              </div>
+            </Link>
+          </div>
+
+          {/* Outstanding Debt Alert Banner (if unpaid debts exist) */}
+          {debtStats.totalOutstanding > 0 && (
+            <div className="flex flex-col gap-2 rounded-xl border border-[#fde68a] bg-[#fffbeb] p-3.5 sm:flex-row sm:items-center sm:justify-between shadow-xs">
+              <div className="flex items-center gap-2.5">
+                <span className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg bg-[#fef3c7] text-[#d97706]">
+                  <IconBookUser size={16} />
+                </span>
+                <div>
+                  <span className="text-xs font-bold text-[#92400e]">
+                    Customer Credit Outstanding
+                  </span>
+                  <div className="text-xs font-semibold text-[#b45309]">
+                    {formatCurrency(debtStats.totalOutstanding)} total pending collection
+                  </div>
+                </div>
+              </div>
+              <Link
+                to="/debts"
+                className="inline-flex items-center justify-center gap-1 rounded-lg bg-white border border-[#fde68a] px-3 py-1.5 text-xs font-bold text-[#92400e] hover:bg-[#fef3c7] shadow-xs cursor-pointer sm:shrink-0"
+              >
+                View Credit Book →
+              </Link>
+            </div>
+          )}
+
           <div className="grid grid-cols-1 gap-4 lg:grid-cols-3">
             <div className="flex flex-col gap-3 rounded-lg border border-border bg-surface p-4 shadow-sm lg:col-span-2 md:p-6">
               <div className="flex items-center justify-between gap-2">
@@ -291,6 +420,12 @@ export default function DashboardPage() {
                   className="inline-flex min-h-10 cursor-pointer items-center justify-center gap-2 rounded-sm border border-transparent bg-primary px-4 py-2 text-sm font-semibold text-white transition-colors hover:enabled:bg-primary-hover disabled:cursor-not-allowed disabled:opacity-60 md:min-h-0"
                 >
                   New Sale
+                </Link>
+                <Link
+                  to="/debts"
+                  className="inline-flex min-h-10 cursor-pointer items-center justify-center gap-2 rounded-sm border border-border bg-surface px-4 py-2 text-sm font-semibold text-text transition-colors hover:enabled:bg-bg disabled:cursor-not-allowed disabled:opacity-60 md:min-h-0"
+                >
+                  Credit Book
                 </Link>
                 <Link
                   to="/products/new"

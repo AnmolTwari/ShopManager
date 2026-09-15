@@ -88,7 +88,7 @@ export const ReceiptModal: React.FC<ReceiptModalProps> = ({
         .join('\n');
 
       const savingsBlock = totalSavings > 0 ? `\n🎉 *TOTAL SAVINGS: ₹${totalSavings.toFixed(2)}*` : '';
-      const modeLabel = paymentMethod === 'CREDIT' ? 'Credit / Udhaar (Pending Due)' : paymentMethod;
+      const modeLabel = paymentMethod === 'CREDIT' ? 'Customer Credit (Pending Due)' : paymentMethod;
 
       const message = `🧾 *INVOICE #${sale.id}*\n🏬 *${effectiveShopName}*${effectivePhone ? `\n📞 ${effectivePhone}` : ''}${effectiveAddress ? `\n📍 ${effectiveAddress}` : ''}\n📅 ${formattedDate}\n\n*Items Purchased:*\n${itemsList}\n\n-------------------------\n💰 *TOTAL AMOUNT: ₹${totalAmount.toFixed(2)}*${savingsBlock}\n💳 Payment Mode: ${modeLabel}\n-------------------------\nThank you for shopping with us! 🙏\n_⚡ Powered by ShopManager_`;
 
@@ -510,7 +510,7 @@ export const ReceiptModal: React.FC<ReceiptModalProps> = ({
 
               <View className="flex-row items-center justify-between">
                 <Text className="text-sm font-extrabold text-[#0f172a]">
-                  Total Amount ({paymentMethod === 'CREDIT' ? 'Credit / Udhaar' : paymentMethod})
+                  Total Amount ({paymentMethod === 'CREDIT' ? 'Customer Credit' : paymentMethod})
                 </Text>
                 <Text
                   className={`text-lg font-black ${
