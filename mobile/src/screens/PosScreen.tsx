@@ -279,8 +279,14 @@ export const PosScreen: React.FC = () => {
       Alert.alert('Invalid Quantity', 'Please enter a valid numeric quantity.');
       return;
     }
+    if (num === 0) {
+      removeItem(qtyTargetProduct.id);
+      setQtyModalOpen(false);
+      return;
+    }
     const maxStock = safeNum(qtyTargetProduct.currentQuantity, 9999);
-    if (num > maxStock) {
+    const hasLimitedStock = safeNum(qtyTargetProduct.currentQuantity) > 0;
+    if (hasLimitedStock && num > maxStock) {
       Alert.alert(
         'Stock Limit Exceeded',
         `Maximum stock available for "${qtyTargetProduct.name}" is ${maxStock}. Setting to ${maxStock}.`
@@ -433,10 +439,10 @@ export const PosScreen: React.FC = () => {
         <View className="flex-1">
           {/* Top Search & Barcode Trigger */}
           <View className="flex-row gap-2 border-b border-[#e2e8f0] bg-white px-4 py-2.5">
-            <View className="flex-1 flex-row items-center rounded-lg border border-[#e2e8f0] bg-[#f8fafc] px-2.5">
+            <View className="flex-1 flex-row items-center rounded-xl border border-[#e2e8f0] bg-[#f8fafc] px-3">
               <Search size={16} color={colors.textMuted} />
               <TextInput
-                className="flex-1 text-sm text-[#0f172a]"
+                className="ml-2 flex-1 py-2 text-sm font-medium text-[#0f172a]"
                 placeholder="Search products by name or SKU…"
                 placeholderTextColor={colors.textLight}
                 value={searchQuery}
@@ -446,14 +452,14 @@ export const PosScreen: React.FC = () => {
                 autoCapitalize="none"
               />
               {searchQuery ? (
-                <TouchableOpacity onPress={() => setSearchQuery('')} hitSlop={8}>
+                <TouchableOpacity onPress={() => setSearchQuery('')} hitSlop={8} className="p-1">
                   <X size={16} color={colors.textMuted} />
                 </TouchableOpacity>
               ) : null}
             </View>
 
             <TouchableOpacity
-              className="flex-row items-center gap-1.5 rounded-xl bg-[#059669] px-3.5"
+              className="flex-row items-center gap-1.5 rounded-xl bg-[#059669] px-3.5 shadow-xs"
               onPress={() => setScannerOpen(true)}
               activeOpacity={0.8}
             >
@@ -461,6 +467,30 @@ export const PosScreen: React.FC = () => {
               <Text className="text-xs font-extrabold text-white">Scan</Text>
             </TouchableOpacity>
           </View>
+
+          {/* Quick Sticky Cart Banner When Items in Cart */}
+          {items.length > 0 && (
+            <View className="flex-row items-center justify-between border-b border-[#a7f3d0] bg-[#ecfdf5] px-4 py-2">
+              <TouchableOpacity
+                className="flex-row items-center gap-1.5"
+                onPress={() => setCartDrawerExpanded((prev) => !prev)}
+                activeOpacity={0.7}
+              >
+                <ShoppingBag size={15} color="#059669" />
+                <Text className="text-xs font-extrabold text-[#059669]">
+                  Cart ({totalItems} items) • ₹{safeNum(totalAmount).toFixed(2)}
+                </Text>
+              </TouchableOpacity>
+
+              <TouchableOpacity
+                className="flex-row items-center gap-1 rounded-lg bg-[#059669] px-3 py-1 shadow-xs"
+                onPress={() => setCheckoutModalOpen(true)}
+                activeOpacity={0.8}
+              >
+                <Text className="text-xs font-black text-white">Complete Sale →</Text>
+              </TouchableOpacity>
+            </View>
+          )}
 
           {loadError ? (
             <View className="mx-4 mt-2 rounded-lg border border-[#fecaca] bg-[#fee2e2] p-2.5">
@@ -704,32 +734,35 @@ export const PosScreen: React.FC = () => {
                     <View className="items-end gap-1.5">
                       {cartItem ? (
                         /* When item is in cart: Show Interactive Stepper + Clickable Qty Box */
-                        <View className="flex-row items-center rounded-lg border border-[#059669] bg-[#ecfdf5]">
+                        <View className="flex-row items-center rounded-xl border border-[#059669] bg-[#ecfdf5] p-0.5 shadow-xs">
                           <TouchableOpacity
-                            className="p-2"
+                            className="h-8 w-8 items-center justify-center rounded-lg bg-white shadow-xs"
                             onPress={() => updateQuantity(item.id, cartItem.quantity - 1)}
+                            activeOpacity={0.7}
                           >
                             <Minus size={14} color="#059669" />
                           </TouchableOpacity>
 
                           <TouchableOpacity
-                            className="min-w-8 items-center justify-center bg-white px-1.5 py-1"
+                            className="min-w-10 items-center justify-center px-2 py-0.5"
                             onPress={() => openQuantityPicker(item)}
+                            activeOpacity={0.7}
                           >
                             <Text className="text-xs font-black text-[#059669]">
                               {cartItem.quantity}
                             </Text>
-                            <Text className="text-[8px] font-bold text-[#64748b]">Qty</Text>
+                            <Text className="text-[8px] font-bold text-[#64748b]">Qty ⚙</Text>
                           </TouchableOpacity>
 
                           <TouchableOpacity
-                            className="p-2"
+                            className="h-8 w-8 items-center justify-center rounded-lg bg-[#059669] shadow-xs"
                             onPress={() => updateQuantity(item.id, cartItem.quantity + 1)}
-                            disabled={cartItem.quantity >= maxQty}
+                            disabled={safeNum(item.currentQuantity) > 0 && cartItem.quantity >= maxQty}
+                            activeOpacity={0.7}
                           >
                             <Plus
                               size={14}
-                              color={cartItem.quantity >= maxQty ? colors.textLight : '#059669'}
+                              color={safeNum(item.currentQuantity) > 0 && cartItem.quantity >= maxQty ? colors.textLight : '#fff'}
                             />
                           </TouchableOpacity>
                         </View>
@@ -739,7 +772,7 @@ export const PosScreen: React.FC = () => {
                           {/* Choose Exact Qty Button */}
                           {!isOutOfStock && (
                             <TouchableOpacity
-                              className="rounded-lg border border-[#cbd5e1] bg-[#f8fafc] px-2 py-1.5"
+                              className="rounded-xl border border-[#cbd5e1] bg-[#f8fafc] px-2.5 py-2"
                               onPress={() => openQuantityPicker(item)}
                               activeOpacity={0.7}
                             >
@@ -747,9 +780,9 @@ export const PosScreen: React.FC = () => {
                             </TouchableOpacity>
                           )}
 
-                          {/* 1-Tap Sell (+1) */}
+                          {/* 1-Tap Add (+1) */}
                           <TouchableOpacity
-                            className={`flex-row items-center gap-1 rounded-lg px-3 py-1.5 ${
+                            className={`flex-row items-center gap-1 rounded-xl px-3.5 py-2 ${
                               isOutOfStock ? 'bg-[#e2e8f0]' : 'bg-[#059669]'
                             }`}
                             onPress={() => {
@@ -764,7 +797,7 @@ export const PosScreen: React.FC = () => {
                                 isOutOfStock ? 'text-[#94a3b8]' : 'text-white'
                               }`}
                             >
-                              {isOutOfStock ? 'Sold Out' : 'Sell'}
+                              {isOutOfStock ? 'Sold Out' : 'Add'}
                             </Text>
                           </TouchableOpacity>
                         </View>
@@ -1337,6 +1370,151 @@ export const PosScreen: React.FC = () => {
                     </Text>
                   </>
                 )}
+              </TouchableOpacity>
+            </View>
+          </View>
+        </KeyboardAvoidingView>
+      </Modal>
+
+      {/* Custom Quantity Picker Modal */}
+      <Modal
+        visible={qtyModalOpen}
+        animationType="fade"
+        transparent
+        onRequestClose={() => setQtyModalOpen(false)}
+      >
+        <KeyboardAvoidingView
+          behavior={Platform.OS === 'ios' ? 'padding' : undefined}
+          className="flex-1 items-center justify-center bg-black/60 px-4"
+        >
+          <View className="w-full max-w-sm rounded-3xl bg-white p-5 shadow-2xl">
+            {/* Header */}
+            <View className="flex-row items-center justify-between border-b border-[#e2e8f0] pb-3">
+              <View className="flex-1 pr-2">
+                <Text className="text-base font-extrabold text-[#0f172a]" numberOfLines={1}>
+                  {qtyTargetProduct?.name || 'Set Quantity'}
+                </Text>
+                <Text className="mt-0.5 text-xs text-[#64748b]">
+                  {qtyTargetProduct?.brand ? `${qtyTargetProduct.brand} • ` : ''}
+                  Stock: {safeNum(qtyTargetProduct?.currentQuantity)} {qtyTargetProduct?.unit || 'units'}
+                </Text>
+              </View>
+              <TouchableOpacity onPress={() => setQtyModalOpen(false)} hitSlop={10} className="p-1">
+                <X size={20} color={colors.textMuted} />
+              </TouchableOpacity>
+            </View>
+
+            {/* Stepper + Input */}
+            <View className="my-4 items-center">
+              <Text className="text-xs font-bold uppercase tracking-wider text-[#64748b]">
+                Enter Quantity ({qtyTargetProduct?.unit || 'PIECE'})
+              </Text>
+
+              <View className="mt-3 flex-row items-center gap-3">
+                <TouchableOpacity
+                  className="h-12 w-12 items-center justify-center rounded-2xl bg-[#f1f5f9]"
+                  onPress={() => {
+                    const curr = parseFloat(customQtyValue) || 0;
+                    const isWeighted =
+                      qtyTargetProduct?.unit === 'KG' ||
+                      qtyTargetProduct?.unit === 'LITRE' ||
+                      qtyTargetProduct?.unit === 'GRAM' ||
+                      qtyTargetProduct?.unit === 'ML';
+                    const step = isWeighted && curr <= 1 ? 0.25 : 1;
+                    const nextVal = Math.max(0, curr - step);
+                    setCustomQtyValue(String(nextVal));
+                  }}
+                  activeOpacity={0.7}
+                >
+                  <Minus size={20} color={colors.text} />
+                </TouchableOpacity>
+
+                <TextInput
+                  className="h-14 w-32 rounded-2xl border-2 border-[#059669] bg-[#f8fafc] text-center text-2xl font-black text-[#059669]"
+                  keyboardType={
+                    qtyTargetProduct?.unit === 'KG' ||
+                    qtyTargetProduct?.unit === 'LITRE' ||
+                    qtyTargetProduct?.unit === 'GRAM' ||
+                    qtyTargetProduct?.unit === 'ML'
+                      ? 'decimal-pad'
+                      : 'number-pad'
+                  }
+                  value={customQtyValue}
+                  onChangeText={setCustomQtyValue}
+                  selectTextOnFocus
+                />
+
+                <TouchableOpacity
+                  className="h-12 w-12 items-center justify-center rounded-2xl bg-[#059669]"
+                  onPress={() => {
+                    const curr = parseFloat(customQtyValue) || 0;
+                    const isWeighted =
+                      qtyTargetProduct?.unit === 'KG' ||
+                      qtyTargetProduct?.unit === 'LITRE' ||
+                      qtyTargetProduct?.unit === 'GRAM' ||
+                      qtyTargetProduct?.unit === 'ML';
+                    const step = isWeighted && curr < 1 ? 0.25 : 1;
+                    const maxStock = safeNum(qtyTargetProduct?.currentQuantity, 9999);
+                    const hasLimited = safeNum(qtyTargetProduct?.currentQuantity) > 0;
+                    const nextVal = hasLimited ? Math.min(curr + step, maxStock) : curr + step;
+                    setCustomQtyValue(String(nextVal));
+                  }}
+                  activeOpacity={0.7}
+                >
+                  <Plus size={20} color="#fff" />
+                </TouchableOpacity>
+              </View>
+
+              {/* Subtotal preview */}
+              {qtyTargetProduct && (
+                <View className="mt-3 rounded-xl bg-[#ecfdf5] px-3 py-1.5">
+                  <Text className="text-xs font-extrabold text-[#059669]">
+                    Line Total: ₹{(safeNum(qtyTargetProduct.sellingPrice) * (parseFloat(customQtyValue) || 0)).toFixed(2)}
+                  </Text>
+                </View>
+              )}
+            </View>
+
+            {/* Quick preset chips */}
+            <View className="mb-4">
+              <Text className="mb-1.5 text-[11px] font-bold text-[#64748b]">Quick Presets</Text>
+              <View className="flex-row flex-wrap gap-2">
+                {qtyPresets.map((preset) => (
+                  <TouchableOpacity
+                    key={preset}
+                    className={`rounded-xl border px-3 py-1.5 ${
+                      customQtyValue === preset
+                        ? 'border-[#059669] bg-[#d1fae5]'
+                        : 'border-[#e2e8f0] bg-[#f8fafc]'
+                    }`}
+                    onPress={() => setCustomQtyValue(preset)}
+                  >
+                    <Text
+                      className={`text-xs font-bold ${
+                        customQtyValue === preset ? 'text-[#059669]' : 'text-[#475569]'
+                      }`}
+                    >
+                      {preset} {qtyTargetProduct?.unit || ''}
+                    </Text>
+                  </TouchableOpacity>
+                ))}
+              </View>
+            </View>
+
+            {/* Action buttons */}
+            <View className="flex-row gap-2">
+              <TouchableOpacity
+                className="flex-1 items-center justify-center rounded-xl border border-[#e2e8f0] bg-[#f8fafc] py-3"
+                onPress={() => setQtyModalOpen(false)}
+              >
+                <Text className="text-xs font-bold text-[#64748b]">Cancel</Text>
+              </TouchableOpacity>
+
+              <TouchableOpacity
+                className="flex-[2] items-center justify-center rounded-xl bg-[#059669] py-3"
+                onPress={handleConfirmQuantity}
+              >
+                <Text className="text-xs font-black text-white">Save Quantity</Text>
               </TouchableOpacity>
             </View>
           </View>

@@ -27,6 +27,7 @@ import { Category, Product, ProductRequest, ProductUnit, SaleResponse } from '..
 import * as Haptics from 'expo-haptics';
 import {
   Plus,
+  Minus,
   Search,
   Camera,
   Pencil,
@@ -80,7 +81,7 @@ export const ProductsScreen: React.FC<ProductsScreenProps> = ({
     insets.bottom > 0 ? insets.bottom + 20 : 0,
     Platform.OS === 'android' ? 56 : 24
   );
-  const { items, addItem, totalAmount, totalItems } = useCart();
+  const { items, addItem, updateQuantity, totalAmount, totalItems } = useCart();
   const { shopProfile } = useAuth();
 
   const [products, setProducts] = useState<Product[]>(() => productsApi.getCachedProducts() ?? []);
@@ -419,39 +420,68 @@ export const ProductsScreen: React.FC<ProductsScreenProps> = ({
           </View>
         </View>
 
-        {/* Action Buttons: SELL + Edit + Remove */}
+        {/* Action Buttons: SELL / QTY + Quick Sell + Edit + Remove */}
         <View className="flex-row gap-2">
-          {/* Primary SELL Button */}
-          <TouchableOpacity
-            className={`flex-[1.5] flex-row items-center justify-center gap-1.5 rounded-lg py-2.5 ${
-              isOutOfStock
-                ? 'bg-[#e2e8f0]'
-                : cartItem
-                ? 'bg-[#059669]'
-                : 'bg-[#059669]'
-            }`}
-            onPress={() => {
-              if (!isOutOfStock) {
-                const added = addItem(item, 1);
-                if (added) {
-                  try {
-                    Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
-                  } catch {}
-                }
-              }
-            }}
-            disabled={isOutOfStock}
-            activeOpacity={0.8}
-          >
-            <ShoppingBag size={14} color={isOutOfStock ? '#94a3b8' : '#fff'} />
-            <Text
-              className={`text-xs font-black ${
-                isOutOfStock ? 'text-[#94a3b8]' : 'text-white'
+          {cartItem ? (
+            /* Modern Interactive Stepper when item is in cart */
+            <View className="flex-[1.5] flex-row items-center justify-between rounded-lg border border-[#059669] bg-[#ecfdf5] p-1">
+              <TouchableOpacity
+                className="h-8 w-8 items-center justify-center rounded-md bg-white shadow-xs"
+                onPress={() => updateQuantity(item.id, cartItem.quantity - 1)}
+                activeOpacity={0.7}
+              >
+                <Minus size={14} color="#059669" />
+              </TouchableOpacity>
+
+              <View className="items-center px-1">
+                <Text className="text-xs font-black text-[#059669]">
+                  In Cart: {cartItem.quantity}
+                </Text>
+              </View>
+
+              <TouchableOpacity
+                className="h-8 w-8 items-center justify-center rounded-md bg-[#059669] shadow-xs"
+                onPress={() => updateQuantity(item.id, cartItem.quantity + 1)}
+                disabled={safeNumber(item.currentQuantity) > 0 && cartItem.quantity >= safeNumber(item.currentQuantity)}
+                activeOpacity={0.7}
+              >
+                <Plus
+                  size={14}
+                  color={safeNumber(item.currentQuantity) > 0 && cartItem.quantity >= safeNumber(item.currentQuantity) ? colors.textLight : '#fff'}
+                />
+              </TouchableOpacity>
+            </View>
+          ) : (
+            /* Primary SELL Button */
+            <TouchableOpacity
+              className={`flex-[1.5] flex-row items-center justify-center gap-1.5 rounded-lg py-2.5 ${
+                isOutOfStock
+                  ? 'bg-[#e2e8f0]'
+                  : 'bg-[#059669]'
               }`}
+              onPress={() => {
+                if (!isOutOfStock) {
+                  const added = addItem(item, 1);
+                  if (added) {
+                    try {
+                      Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
+                    } catch {}
+                  }
+                }
+              }}
+              disabled={isOutOfStock}
+              activeOpacity={0.8}
             >
-              {isOutOfStock ? 'Out of Stock' : cartItem ? `+ Sell More (${cartItem.quantity})` : 'Sell Product'}
-            </Text>
-          </TouchableOpacity>
+              <ShoppingBag size={14} color={isOutOfStock ? '#94a3b8' : '#fff'} />
+              <Text
+                className={`text-xs font-black ${
+                  isOutOfStock ? 'text-[#94a3b8]' : 'text-white'
+                }`}
+              >
+                {isOutOfStock ? 'Out of Stock' : 'Sell Product'}
+              </Text>
+            </TouchableOpacity>
+          )}
 
           {/* Quick 1-Tap Direct Checkout Modal Trigger */}
           {!isOutOfStock && (

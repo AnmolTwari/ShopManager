@@ -132,9 +132,9 @@ ShopManager includes a native mobile POS and store management application built 
 - **Blazing Fast (0ms Transitions)**: Persistent multi-screen lazy stacking and Stale-While-Revalidate memory caching.
 
 ### 📲 Download Latest Android APK
-- **Direct APK Download**: [Download ShopManager Android APK](https://expo.dev/artifacts/eas/OID9sOng0qBRpe7WunwOzUtxX2tNv6pTljILYwR5ayU.apk)
+- **Direct APK Download**: [Download ShopManager Android APK](https://expo.dev/artifacts/eas/9X_FWuEhV24ne1XBwBnaj9eguLNEl9YVLyhOai2lvuU.apk)
 - **EAS Build Dashboard**: [Expo Android APK Build Dashboard](https://expo.dev/accounts/anmolxtiwari/projects/shopmanager/builds)
-- **Latest Build ID**: `760b184f-1e4b-4000-9fcd-da68044dd69b`
+- **Latest Build ID**: `a7904734-7485-4685-a3f5-fde2f6a0de41`
 
 ---
 
